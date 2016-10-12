@@ -2,8 +2,10 @@ package main
 
 import (
 	"bytes"
+	"log"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 //ExecChroot executes the given command, possibly within the chroot (if
@@ -24,10 +26,23 @@ func ExecChroot(command string, args ...string) (stdout, stderr string, e error)
 	stdoutBuf := bytes.NewBuffer(nil)
 	stderrBuf := bytes.NewBuffer(nil)
 
+	log.Printf("DEBUG: execute %s %s\n", command, strings.Join(args, " "))
 	cmd := exec.Command(command, args...)
 	cmd.Stdout = stdoutBuf
 	cmd.Stderr = stderrBuf
 
 	err := cmd.Run()
 	return string(stdoutBuf.Bytes()), string(stderrBuf.Bytes()), err
+}
+
+//ExecChrootSimple is like ExecChroot, but error output from the called program
+//is sent to stderr directly.
+func ExecChrootSimple(command string, args ...string) (string, error) {
+	stdout, stderr, err := ExecChroot(command, args...)
+	for _, line := range strings.Split(stderr, "\n") {
+		if line != "" {
+			log.Printf("Output from %s: %s\n", command, line)
+		}
+	}
+	return stdout, err
 }
