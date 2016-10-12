@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 
 	yaml "gopkg.in/yaml.v2"
@@ -19,29 +19,20 @@ type Configuration struct {
 var Config Configuration
 
 func main() {
-	err := actualMain()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err.Error())
-		os.Exit(1)
-	}
-}
-
-func actualMain() error {
 	//expect one argument (config file name)
 	if len(os.Args) != 2 {
-		return fmt.Errorf("Usage: %s <config-file>\n", os.Args[0])
+		log.Fatalf("Usage: %s <config-file>\n", os.Args[0])
 	}
 
 	//read config file
 	configBytes, err := ioutil.ReadFile(os.Args[1])
 	if err != nil {
-		return err
+		log.Fatal(err)
 	}
 	err = yaml.Unmarshal(configBytes, &Config)
 	if err != nil {
-		return err
+		log.Fatal(err)
 	}
 
-	fmt.Printf("%#v\n", Config)
-	return nil
+	log.Printf("%#v\n", Config) //DEBUG
 }
