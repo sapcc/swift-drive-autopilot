@@ -1,2 +1,3 @@
+chroot: /coreos
 drives:
   - /dev/sd[c-z]

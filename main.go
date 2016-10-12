@@ -8,10 +8,15 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-//Config represents the content of the config file.
-type Config struct {
+//Configuration represents the content of the config file.
+type Configuration struct {
+	ChrootPath string
 	DriveGlobs []string `yaml:"drives"`
 }
+
+//Config is the global Configuration instance that's filled by main() at
+//program start.
+var Config Configuration
 
 func main() {
 	err := actualMain()
@@ -32,12 +37,11 @@ func actualMain() error {
 	if err != nil {
 		return err
 	}
-	var config Config
-	err = yaml.Unmarshal(configBytes, &config)
+	err = yaml.Unmarshal(configBytes, &Config)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("%#v\n", config)
+	fmt.Printf("%#v\n", Config)
 	return nil
 }
