@@ -43,7 +43,7 @@ $ cat > config.yml
 drives:
   - /dev/sd[c-z]
 chroot: /host
-$ docker run -d -v config.yml:/config.yml -v /:/host sapcc/swift-storage-boot:latest /config.yml
+$ docker run -d -v $PWD/config.yml:/config.yml -v /:/host sapcc/swift-storage-boot:latest /config.yml
 ```
 
 ### In Kubernetes
