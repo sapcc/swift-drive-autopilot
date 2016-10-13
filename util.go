@@ -11,6 +11,13 @@ import (
 //ExecChroot executes the given command, possibly within the chroot (if
 //configured in Config.ChrootPath).
 func ExecChroot(command string, args ...string) (stdout, stderr string, e error) {
+	//if we are executing mount, we need to make sure that we are in the
+	//correct mount namespace
+	if command == "mount" {
+		args = append([]string{"--mount=/proc/1/ns/mnt", "--", "mount"}, args...)
+		command = "nsenter"
+	}
+
 	//prepend `chroot $CHROOT_PATH` if requested
 	if Config.ChrootPath != "" {
 		args = append([]string{Config.ChrootPath, command}, args...)

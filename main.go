@@ -53,6 +53,18 @@ func main() {
 		log.Fatalf("Cannot parse configuration: %s", err.Error())
 	}
 
+	//set working directory to the chroot directory; this simplifies file
+	//system operations because we can just use relative paths to refer to
+	//stuff inside the chroot
+	workingDir := "/"
+	if Config.ChrootPath != "" {
+		workingDir = Config.ChrootPath
+	}
+	err = os.Chdir(workingDir)
+	if err != nil {
+		log.Fatalf("Cannot chdir to %s: %s", workingDir, err.Error())
+	}
+
 	//TODO: execute everything after this point in a loop
 
 	//list drives

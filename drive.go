@@ -19,14 +19,22 @@
 
 package main
 
-import "path/filepath"
+import (
+	"path/filepath"
+	"strings"
+)
 
 //ListDrives returns the list of all Swift storage drives, by expanding the
-//shell globs in Config.DriveGlobs.
+//shell globs in Config.DriveGlobs. The paths returned are relative (to the
+//Config.ChrootPath).
 func ListDrives() ([]string, error) {
 	var result []string
 
 	for _, pattern := range Config.DriveGlobs {
+		if Config.ChrootPath != "" {
+			pattern = strings.TrimPrefix(pattern, "/")
+		}
+
 		matches, err := filepath.Glob(pattern)
 		if err != nil {
 			return nil, err

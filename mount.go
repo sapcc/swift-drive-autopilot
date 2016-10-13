@@ -53,14 +53,9 @@ func ScanMountPoints() (map[string][]string, error) {
 			continue
 		}
 
-		//only consider mount points below the chrootPath
-		if strings.HasPrefix(mountPath, chrootPath) {
-			rel, _ := filepath.Rel(chrootPath, mountPath)
-			mountPath = filepath.Join("/", rel)
-
-			//insert into map
-			result[devicePath] = append(result[devicePath], mountPath)
-		}
+		//make mountPath relative to chroot dir (which is "/" because of ExecChroot)
+		mountPath = strings.TrimPrefix(mountPath, "/")
+		result[devicePath] = append(result[devicePath], mountPath)
 	}
 
 	return result, nil
@@ -75,19 +70,20 @@ func MountDevice(devicePath string, allMounts map[string][]string) (mountPath st
 	}
 
 	//prepare new target directory
-	mountPath = filepath.Join("/run/swift-storage", md5sum(devicePath))
+	mountPath = filepath.Join("/run/swift-storage", md5sum("/"+devicePath))
 	_, err := ExecChrootSimple("mkdir", "-m", "0700", "-p", mountPath)
 	if err != nil {
 		return mountPath, fmt.Errorf("Cannot mkdir -p %s: %s", mountPath, err.Error())
 	}
 
 	//perform mount
-	_, err = ExecChrootSimple("mount", devicePath, mountPath)
+	_, err = ExecChrootSimple("mount", "/"+devicePath, mountPath)
 	if err != nil {
 		return mountPath, fmt.Errorf("Cannot mount %s: %s", devicePath, err.Error())
 	}
 
-	return mountPath, nil
+	//return path as relative to chroot dir
+	return strings.TrimPrefix(mountPath, "/"), nil
 }
 
 func md5sum(str string) string {
