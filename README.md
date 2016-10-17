@@ -3,12 +3,38 @@
 This service finds, formats and mounts Swift storage drives, usually from
 within a container on a Kubernetes host.
 
-## Compiling
+## How it works
+
+Swift expects its drives to be mounted at `/srv/node/$id`, where the `$id`
+identifier is referenced in the cluster's **ring files**. The usual method is
+to set `$id` equal to the device's name in `/dev`, e.g. `/dev/sdc` becomes
+`/srv/node/sdc`, but that mapping is too rigid for some situations.
+
+`swift-storage-boot` establishes disk identity by examining a special file
+called `swift-id` in the root directory of the disk. In detail, it performs the
+following steps:
+
+1. enumerate all storage drives (using a configurable list of globs)
+
+2. mount each device below `/run/swift-storage` with a temporary name
+
+3. examine each device's `swift-id` file, and if it is present and unique,
+   bind-mount it to `/srv/node/$id`
+
+Planned future extensions include automatic filesystem creation for new drives,
+and support for data-at-rest encryption using dm-crypt/LUKS.
+
+## Installation
 
 To build the binary:
 
 ```bash
 make
+```
+
+The binary can also be installed with `go get`:
+```bash
+go get github.com/sapcc/swift-storage-boot
 ```
 
 To build the Docker container:
