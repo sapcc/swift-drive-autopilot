@@ -23,6 +23,9 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -70,23 +73,100 @@ func MountDevice(devicePath string, allMounts map[string][]string) (mountPath st
 	}
 
 	//prepare new target directory
-	mountPath = filepath.Join("/run/swift-storage", md5sum("/"+devicePath))
-	_, err := ExecChrootSimple("mkdir", "-m", "0700", "-p", mountPath)
+	mountPath = filepath.Join("/run/swift-storage", md5sum(devicePath))
+	return strings.TrimPrefix(mountPath, "/"), doMount(devicePath, mountPath)
+}
+
+func doMount(fromPath, toPath string) error {
+	//prepare new target directory
+	_, err := ExecChrootSimple("mkdir", "-m", "0700", "-p", toPath)
 	if err != nil {
-		return mountPath, fmt.Errorf("Cannot mkdir -p %s: %s", mountPath, err.Error())
+		return fmt.Errorf("mkdir -p %s: %s", toPath, err.Error())
 	}
 
 	//perform mount
-	_, err = ExecChrootSimple("mount", "/"+devicePath, mountPath)
+	_, err = ExecChrootSimple("mount", fromPath, toPath)
 	if err != nil {
-		return mountPath, fmt.Errorf("Cannot mount %s: %s", devicePath, err.Error())
+		return fmt.Errorf("mount %s: %s", fromPath, err.Error())
 	}
-
-	//return path as relative to chroot dir
-	return strings.TrimPrefix(mountPath, "/"), nil
+	return nil
 }
 
 func md5sum(str string) string {
 	s := md5.Sum([]byte(str))
 	return hex.EncodeToString(s[:])
+}
+
+//ScanSwiftID looks at all drives mounted below /run/swift-storage and
+//returns a mapping of the contents of their swift-id file to the device path
+//(relative to the chroot dir). The argument is the output of
+//ScanMountPoints().
+func ScanSwiftID(allMounts map[string][]string) (result map[string]string, failed bool) {
+	chrootPath := Config.ChrootPath
+	if chrootPath == "" {
+		chrootPath = "/"
+	}
+
+	//find devices mounted below /run/swift-storage
+	drivesByID := make(map[string]string)
+	for device, deviceMounts := range allMounts {
+		for _, deviceMount := range deviceMounts {
+			if !strings.HasPrefix(deviceMount, "run/swift-storage/") {
+				continue
+			}
+
+			//read this device's swift-id
+			idPath := filepath.Join(deviceMount, "swift-id")
+			idBytes, err := ioutil.ReadFile(filepath.Join(chrootPath, idPath))
+			if err != nil {
+				if os.IsNotExist(err) {
+					log.Printf("ERROR: no swift-id file found on device %s (mounted at /%s)", device, deviceMount)
+				} else {
+					log.Printf("ERROR: read /%s: %s", idPath, err.Error())
+				}
+				continue
+			}
+			idStr := strings.TrimSpace(string(idBytes))
+
+			//is this the first device with this swift-id?
+			_, exists := drivesByID[idStr]
+			if exists {
+				//no - do not mount any of them, just complain
+				log.Printf("ERROR: multiple drives with swift-id \"%s\" (not mounting any of them)", idStr)
+				//leave entry in drivesByID hash to detect further duplicates,
+				//but set value to empty string to skip during mounting
+				drivesByID[idStr] = ""
+			} else {
+				//yes - mount it after this loop
+				drivesByID[idStr] = device
+			}
+		}
+	}
+
+	//remove all the entries that were marked as duplicates
+	result = make(map[string]string)
+	for idStr, device := range drivesByID {
+		if device != "" {
+			result[idStr] = device
+		}
+	}
+
+	log.Printf("DEBUG: result = %#v, failed = %#v\n", result, failed)
+	return
+}
+
+//ExecuteFinalMount mounts the given device into `/srv/node`. The last argument
+//is the output of ScanMountPoints().
+func ExecuteFinalMount(devicePath, swiftID string, allMounts map[string][]string) error {
+	log.Printf("DEBUG: called ExecuteFinalMount(%#v, %#v)\n", devicePath, swiftID)
+
+	//check if this device is already mounted at the desired location
+	mountPath := "/srv/node/" + swiftID
+	for _, otherMountPath := range allMounts[devicePath] {
+		if "/"+otherMountPath == mountPath {
+			return nil
+		}
+	}
+
+	return doMount(devicePath, mountPath)
 }

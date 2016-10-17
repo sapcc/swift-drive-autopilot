@@ -46,11 +46,11 @@ func main() {
 	//read config file
 	configBytes, err := ioutil.ReadFile(os.Args[1])
 	if err != nil {
-		log.Fatalf("Cannot read configuration file: %s", err.Error())
+		log.Fatalf("ERROR: read configuration file: %s", err.Error())
 	}
 	err = yaml.Unmarshal(configBytes, &Config)
 	if err != nil {
-		log.Fatalf("Cannot parse configuration: %s", err.Error())
+		log.Fatalf("ERROR: parse configuration: %s", err.Error())
 	}
 
 	//set working directory to the chroot directory; this simplifies file
@@ -62,30 +62,28 @@ func main() {
 	}
 	err = os.Chdir(workingDir)
 	if err != nil {
-		log.Fatalf("Cannot chdir to %s: %s", workingDir, err.Error())
+		log.Fatalf("ERROR: chdir to %s: %s", workingDir, err.Error())
 	}
-
-	//TODO: execute everything after this point in a loop
 
 	//list drives
 	drivePaths, err := ListDrives()
 	if err != nil {
-		log.Fatalf("Cannot list drives: %s", err.Error())
+		log.Fatalf("ERROR: list drives: %s", err.Error())
 	}
 	log.Printf("DEBUG: drivePaths = %#v\n", drivePaths)
 
 	//look for existing mount points
 	allMounts, err := ScanMountPoints()
 	if err != nil {
-		log.Fatalf("Cannot list mount points: %s", err.Error())
+		log.Fatalf("ERROR: list mount points: %s", err.Error())
 	}
 	log.Printf("DEBUG: allMounts = %#v\n", allMounts)
 
-	//try to mount all drives (if not yet mounted)
+	//try to mount all drives to /run/swift-storage (if not yet mounted)
 	failed := false
 	var mountPaths []string
 	for _, drivePath := range drivePaths {
-		mountPath, err := MountDevice(drivePath, allMounts)
+		mountPath, err := MountDevice("/"+drivePath, allMounts)
 		if err == nil {
 			mountPaths = append(mountPaths, mountPath)
 		} else {
@@ -93,11 +91,35 @@ func main() {
 			failed = true
 		}
 	}
-
 	log.Printf("DEBUG: mountPaths = %#v\n", mountPaths)
+
+	//rescan mount points if we mounted something
+	if len(mountPaths) > 0 {
+		allMounts, err = ScanMountPoints()
+		if err != nil {
+			log.Fatalf("ERROR: list mount points: %s", err.Error())
+		}
+		log.Printf("DEBUG: allMounts = %#v\n", allMounts)
+	}
+
+	//map mountpoints from /run/swift-storage to /srv/node
+	mountsByID, scanFailed := ScanSwiftID(allMounts)
+	if scanFailed {
+		failed = true //but keep going for the drives that work
+	}
+
+	for swiftID, device := range mountsByID {
+		err := ExecuteFinalMount(device, swiftID, allMounts)
+		if err != nil {
+			log.Println(err.Error())
+			failed = true
+		}
+	}
 
 	//signal intermittent failures to the caller
 	if failed {
 		os.Exit(1)
 	}
+
+	//TODO signal to the other containers that the storage is ready
 }
