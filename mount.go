@@ -158,15 +158,12 @@ func ScanSwiftID(allMounts map[string][]string) (result map[string]string, faile
 		}
 	}
 
-	log.Printf("DEBUG: result = %#v, failed = %#v\n", result, failed)
 	return
 }
 
 //ExecuteFinalMount mounts the given device into `/srv/node`. The last argument
 //is the output of ScanMountPoints().
 func ExecuteFinalMount(devicePath, swiftID string, allMounts map[string][]string) error {
-	log.Printf("DEBUG: called ExecuteFinalMount(%#v, %#v)\n", devicePath, swiftID)
-
 	//check if this device is already mounted at the desired location
 	mountPath := "/srv/node/" + swiftID
 	for _, otherMountPath := range allMounts[devicePath] {

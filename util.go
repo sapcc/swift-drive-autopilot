@@ -42,7 +42,6 @@ func Exec(mode ExecMode, command string, args ...string) (stdout, stderr string,
 	stdoutBuf := bytes.NewBuffer(nil)
 	stderrBuf := bytes.NewBuffer(nil)
 
-	log.Printf("DEBUG: execute %s %s\n", command, strings.Join(args, " "))
 	cmd := exec.Command(command, args...)
 	cmd.Stdout = stdoutBuf
 	cmd.Stderr = stderrBuf
