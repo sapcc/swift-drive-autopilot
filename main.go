@@ -110,16 +110,24 @@ func main() {
 
 	for swiftID, device := range mountsByID {
 		err := ExecuteFinalMount(device, swiftID, allMounts)
-		if err != nil {
+		if err == nil {
+			log.Printf("INFO: %s is mounted on /srv/node/%s\n", device, swiftID)
+		} else {
 			log.Println(err.Error())
 			failed = true
 		}
 	}
 
-	//signal intermittent failures to the caller
-	if failed {
-		os.Exit(1)
+	//mark /srv/node as ready
+	_, err = ExecSimple(ExecChroot, "touch", "/srv/node/ready")
+	if err != nil {
+		log.Printf("ERROR: touch /srv/node/ready: %s\n", err.Error())
+		failed = true
 	}
 
-	//TODO signal to the other containers that the storage is ready
+	//signal intermittent failures to the caller
+	if failed {
+		log.Printf("INFO: completed with errors, see above\n")
+		os.Exit(1)
+	}
 }

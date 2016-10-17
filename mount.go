@@ -37,7 +37,7 @@ func ScanMountPoints() (map[string][]string, error) {
 		chrootPath = "/"
 	}
 
-	stdout, err := ExecChrootSimple("mount")
+	stdout, err := ExecSimple(ExecChrootNsenter, "mount")
 	if err != nil {
 		return nil, err
 	}
@@ -79,16 +79,22 @@ func MountDevice(devicePath string, allMounts map[string][]string) (mountPath st
 
 func doMount(fromPath, toPath string) error {
 	//prepare new target directory
-	_, err := ExecChrootSimple("mkdir", "-m", "0700", "-p", toPath)
+	_, err := ExecSimple(ExecChroot, "mkdir", "-m", "0700", "-p", toPath)
 	if err != nil {
 		return fmt.Errorf("mkdir -p %s: %s", toPath, err.Error())
 	}
 
-	//perform mount
-	_, err = ExecChrootSimple("mount", fromPath, toPath)
+	//for the mount to appear both in the container and the host, it has to be
+	//performed twice, once for each mount namespace involved
+	_, err = ExecSimple(ExecChrootNsenter, "mount", fromPath, toPath)
 	if err != nil {
-		return fmt.Errorf("mount %s: %s", fromPath, err.Error())
+		return fmt.Errorf("mount %s on host: %s", fromPath, err.Error())
 	}
+	_, err = ExecSimple(ExecChroot, "mount", fromPath, toPath) //without nsenter!
+	if err != nil {
+		return fmt.Errorf("mount %s in container: %s", fromPath, err.Error())
+	}
+
 	return nil
 }
 
@@ -124,6 +130,7 @@ func ScanSwiftID(allMounts map[string][]string) (result map[string]string, faile
 				} else {
 					log.Printf("ERROR: read /%s: %s", idPath, err.Error())
 				}
+				failed = true
 				continue
 			}
 			idStr := strings.TrimSpace(string(idBytes))

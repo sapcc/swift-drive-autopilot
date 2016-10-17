@@ -8,18 +8,27 @@ import (
 	"strings"
 )
 
-//ExecChroot executes the given command, possibly within the chroot (if
-//configured in Config.ChrootPath).
-func ExecChroot(command string, args ...string) (stdout, stderr string, e error) {
+type ExecMode int
+
+const (
+	ExecNormal        ExecMode = 0
+	ExecChroot        ExecMode = 1 << 0
+	ExecNsenter       ExecMode = 1 << 1
+	ExecChrootNsenter ExecMode = ExecChroot | ExecNsenter
+)
+
+//Exec executes the given command, possibly within the chroot (if
+//configured in Config.ChrootPath, and if the first argument is true).
+func Exec(mode ExecMode, command string, args ...string) (stdout, stderr string, e error) {
 	//if we are executing mount, we need to make sure that we are in the
 	//correct mount namespace
-	if command == "mount" {
+	if (mode&ExecNsenter == ExecNsenter) && command == "mount" {
 		args = append([]string{"--mount=/proc/1/ns/mnt", "--", "mount"}, args...)
 		command = "nsenter"
 	}
 
 	//prepend `chroot $CHROOT_PATH` if requested
-	if Config.ChrootPath != "" {
+	if (mode&ExecChroot == ExecChroot) && Config.ChrootPath != "" {
 		args = append([]string{Config.ChrootPath, command}, args...)
 		command = "chroot"
 	}
@@ -42,10 +51,10 @@ func ExecChroot(command string, args ...string) (stdout, stderr string, e error)
 	return string(stdoutBuf.Bytes()), string(stderrBuf.Bytes()), err
 }
 
-//ExecChrootSimple is like ExecChroot, but error output from the called program
-//is sent to stderr directly.
-func ExecChrootSimple(command string, args ...string) (string, error) {
-	stdout, stderr, err := ExecChroot(command, args...)
+//ExecSimple is like Exec, but error output from the called program is sent to
+//stderr directly.
+func ExecSimple(mode ExecMode, command string, args ...string) (string, error) {
+	stdout, stderr, err := Exec(mode, command, args...)
 	for _, line := range strings.Split(stderr, "\n") {
 		if line != "" {
 			log.Printf("Output from %s: %s\n", command, line)
