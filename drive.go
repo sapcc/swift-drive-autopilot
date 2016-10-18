@@ -25,21 +25,36 @@ import (
 )
 
 //ListDrives returns the list of all Swift storage drives, by expanding the
-//shell globs in Config.DriveGlobs. The paths returned are relative (to the
-//Config.ChrootPath).
+//shell globs in Config.DriveGlobs and resolving any symlinks. The paths
+//returned are relative (to the Config.ChrootPath).
 func ListDrives() ([]string, error) {
 	var result []string
 
 	for _, pattern := range Config.DriveGlobs {
-		if Config.ChrootPath != "" {
-			pattern = strings.TrimPrefix(pattern, "/")
-		}
+		//make pattern relative to current directory (== chroot directory)
+		pattern = strings.TrimPrefix(pattern, "/")
 
 		matches, err := filepath.Glob(pattern)
 		if err != nil {
 			return nil, err
 		}
-		result = append(result, matches...)
+		Log(LogDebug, "ListDrives: %s matches %#v", pattern, matches)
+
+		for _, match := range matches {
+			devicePath, err := filepath.EvalSymlinks(match)
+			if err != nil {
+				return nil, err
+			}
+
+			//path might have become absolute because of this, so make it
+			//relative to the current directory (== chroot directory) again
+			devicePath = strings.TrimPrefix(devicePath, "/")
+			result = append(result, devicePath)
+
+			if devicePath != match {
+				Log(LogDebug, "ListDrives: resolved %s to %s", match, devicePath)
+			}
+		}
 	}
 
 	return result, nil
