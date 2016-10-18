@@ -24,7 +24,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -126,9 +125,9 @@ func ScanSwiftID(allMounts map[string][]string) (result map[string]string, faile
 			idBytes, err := ioutil.ReadFile(filepath.Join(chrootPath, idPath))
 			if err != nil {
 				if os.IsNotExist(err) {
-					log.Printf("ERROR: no swift-id file found on device %s (mounted at /%s)", device, deviceMount)
+					Log(LogError, "no swift-id file found on device %s (mounted at /%s)", device, deviceMount)
 				} else {
-					log.Printf("ERROR: read /%s: %s", idPath, err.Error())
+					Log(LogError, "read /%s: %s", idPath, err.Error())
 				}
 				failed = true
 				continue
@@ -139,7 +138,7 @@ func ScanSwiftID(allMounts map[string][]string) (result map[string]string, faile
 			_, exists := drivesByID[idStr]
 			if exists {
 				//no - do not mount any of them, just complain
-				log.Printf("ERROR: multiple drives with swift-id \"%s\" (not mounting any of them)", idStr)
+				Log(LogError, "multiple drives with swift-id \"%s\" (not mounting any of them)", idStr)
 				//leave entry in drivesByID hash to detect further duplicates,
 				//but set value to empty string to skip during mounting
 				drivesByID[idStr] = ""

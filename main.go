@@ -20,8 +20,8 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 
 	yaml "gopkg.in/yaml.v2"
@@ -40,17 +40,18 @@ var Config Configuration
 func main() {
 	//expect one argument (config file name)
 	if len(os.Args) != 2 {
-		log.Fatalf("Usage: %s <config-file>\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage: %s <config-file>\n", os.Args[0])
+		os.Exit(1)
 	}
 
 	//read config file
 	configBytes, err := ioutil.ReadFile(os.Args[1])
 	if err != nil {
-		log.Fatalf("ERROR: read configuration file: %s", err.Error())
+		Log(LogFatal, "read configuration file: %s", err.Error())
 	}
 	err = yaml.Unmarshal(configBytes, &Config)
 	if err != nil {
-		log.Fatalf("ERROR: parse configuration: %s", err.Error())
+		Log(LogFatal, "parse configuration: %s", err.Error())
 	}
 
 	//set working directory to the chroot directory; this simplifies file
@@ -62,19 +63,19 @@ func main() {
 	}
 	err = os.Chdir(workingDir)
 	if err != nil {
-		log.Fatalf("ERROR: chdir to %s: %s", workingDir, err.Error())
+		Log(LogFatal, "chdir to %s: %s", workingDir, err.Error())
 	}
 
 	//list drives
 	drivePaths, err := ListDrives()
 	if err != nil {
-		log.Fatalf("ERROR: list drives: %s", err.Error())
+		Log(LogFatal, "list drives: %s", err.Error())
 	}
 
 	//look for existing mount points
 	allMounts, err := ScanMountPoints()
 	if err != nil {
-		log.Fatalf("ERROR: list mount points: %s", err.Error())
+		Log(LogFatal, "list mount points: %s", err.Error())
 	}
 
 	//try to mount all drives to /run/swift-storage (if not yet mounted)
@@ -85,7 +86,7 @@ func main() {
 		if err == nil {
 			mountPaths = append(mountPaths, mountPath)
 		} else {
-			log.Println(err.Error())
+			Log(LogError, err.Error())
 			failed = true
 		}
 	}
@@ -94,7 +95,7 @@ func main() {
 	if len(mountPaths) > 0 {
 		allMounts, err = ScanMountPoints()
 		if err != nil {
-			log.Fatalf("ERROR: list mount points: %s", err.Error())
+			Log(LogFatal, "list mount points: %s", err.Error())
 		}
 	}
 
@@ -107,9 +108,9 @@ func main() {
 	for swiftID, device := range mountsByID {
 		err := ExecuteFinalMount(device, swiftID, allMounts)
 		if err == nil {
-			log.Printf("INFO: %s is mounted on /srv/node/%s\n", device, swiftID)
+			Log(LogInfo, "%s is mounted on /srv/node/%s", device, swiftID)
 		} else {
-			log.Println(err.Error())
+			Log(LogError, err.Error())
 			failed = true
 		}
 	}
@@ -117,13 +118,13 @@ func main() {
 	//mark /srv/node as ready
 	_, err = ExecSimple(ExecChroot, "touch", "/srv/node/ready")
 	if err != nil {
-		log.Printf("ERROR: touch /srv/node/ready: %s\n", err.Error())
+		Log(LogError, "touch /srv/node/ready: %s", err.Error())
 		failed = true
 	}
 
 	//signal intermittent failures to the caller
 	if failed {
-		log.Printf("INFO: completed with errors, see above\n")
+		Log(LogInfo, "completed with errors, see above")
 		os.Exit(1)
 	}
 }
