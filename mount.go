@@ -60,7 +60,7 @@ func ScanMountPoints() (map[string][]string, error) {
 		result[devicePath] = append(result[devicePath], mountPath)
 	}
 
-	Log(LogDebug, "ScanMountPoints returns %#v\n", result)
+	Log(LogDebug, "ScanMountPoints returns %#v", result)
 	return result, nil
 }
 
@@ -69,7 +69,7 @@ func ScanMountPoints() (map[string][]string, error) {
 func MountDevice(devicePath string, allMounts map[string][]string) (mountPath string, e error) {
 	//check if this device is already mounted somewhere
 	for _, mountPath = range allMounts[devicePath] {
-		Log(LogDebug, "MountDevice(%s) skipped because of existing mount point %s\n", devicePath, mountPath)
+		Log(LogDebug, "MountDevice(%s) skipped because of existing mount point %s", devicePath, mountPath)
 		return mountPath, nil
 	}
 
@@ -159,7 +159,7 @@ func ScanSwiftID(allMounts map[string][]string) (result map[string]string, faile
 		}
 	}
 
-	Log(LogDebug, "ScanSwiftID returns %#v\n", result)
+	Log(LogDebug, "ScanSwiftID returns %#v", result)
 	return
 }
 
@@ -170,7 +170,7 @@ func ExecuteFinalMount(devicePath, swiftID string, allMounts map[string][]string
 	mountPath := "/srv/node/" + swiftID
 	for _, otherMountPath := range allMounts[devicePath] {
 		if "/"+otherMountPath == mountPath {
-			Log(LogDebug, "ExecuteFinalMount(%s, %s) skipped because of existing mount point %s\n", devicePath, swiftID, mountPath)
+			Log(LogDebug, "ExecuteFinalMount(%s, %s) skipped because of existing mount point %s", devicePath, swiftID, mountPath)
 			return nil
 		}
 	}
