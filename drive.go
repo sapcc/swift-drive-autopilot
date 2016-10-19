@@ -24,11 +24,19 @@ import (
 	"strings"
 )
 
+//Drive contains all the information about a single drive: its device path,
+//where it is mounted, etc. All fields ending in "Path" are relative to the
+//Config.ChrootPath (or to "/" if no chroot is configured).
+type Drive struct {
+	//DevicePath is where the device file is located (with all symlinks
+	//resolved, e.g. "/dev/sdc" instead of "/dev/disk/by-path/...").
+	DevicePath string
+}
+
 //ListDrives returns the list of all Swift storage drives, by expanding the
-//shell globs in Config.DriveGlobs and resolving any symlinks. The paths
-//returned are relative (to the Config.ChrootPath).
-func ListDrives() ([]string, error) {
-	var result []string
+//shell globs in Config.DriveGlobs and resolving any symlinks.
+func ListDrives() []*Drive {
+	var result []*Drive
 
 	for _, pattern := range Config.DriveGlobs {
 		//make pattern relative to current directory (== chroot directory)
@@ -36,20 +44,20 @@ func ListDrives() ([]string, error) {
 
 		matches, err := filepath.Glob(pattern)
 		if err != nil {
-			return nil, err
+			Log(LogFatal, "glob(%#v) failed: %s", pattern, err.Error())
 		}
 		Log(LogDebug, "ListDrives: %s matches %#v", pattern, matches)
 
 		for _, match := range matches {
 			devicePath, err := filepath.EvalSymlinks(match)
 			if err != nil {
-				return nil, err
+				Log(LogFatal, "readlink(%#v) failed: %s", match, err.Error())
 			}
 
 			//path might have become absolute because of this, so make it
 			//relative to the current directory (== chroot directory) again
 			devicePath = strings.TrimPrefix(devicePath, "/")
-			result = append(result, devicePath)
+			result = append(result, &Drive{DevicePath: devicePath})
 
 			if devicePath != match {
 				Log(LogDebug, "ListDrives: resolved %s to %s", match, devicePath)
@@ -57,5 +65,5 @@ func ListDrives() ([]string, error) {
 		}
 	}
 
-	return result, nil
+	return result
 }

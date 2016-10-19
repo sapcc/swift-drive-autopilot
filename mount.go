@@ -30,7 +30,7 @@ import (
 )
 
 //ScanMountPoints returns a mapping of device names to their mount points.
-func ScanMountPoints() (map[string][]string, error) {
+func ScanMountPoints() map[string][]string {
 	chrootPath := Config.ChrootPath
 	if chrootPath == "" {
 		chrootPath = "/"
@@ -38,7 +38,7 @@ func ScanMountPoints() (map[string][]string, error) {
 
 	stdout, err := ExecSimple(ExecChrootNsenter, "mount")
 	if err != nil {
-		return nil, err
+		Log(LogFatal, "exec(mount) failed: %s", err.Error())
 	}
 
 	result := make(map[string][]string)
@@ -61,7 +61,7 @@ func ScanMountPoints() (map[string][]string, error) {
 	}
 
 	Log(LogDebug, "ScanMountPoints returns %#v", result)
-	return result, nil
+	return result
 }
 
 //MountDevice will mount the given device below /run/swift-storage if it has
