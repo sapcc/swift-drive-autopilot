@@ -57,9 +57,9 @@ func Log(level LogLevel, msg string, args ...interface{}) {
 	}
 
 	if len(args) > 0 {
-		log.Printf(logLevelNames[level]+" "+msg+"\n", args...)
+		log.Printf(logLevelNames[level]+": "+msg+"\n", args...)
 	} else {
-		log.Println(logLevelNames[level] + " " + msg)
+		log.Println(logLevelNames[level] + ": " + msg)
 	}
 
 	if level == LogFatal {
