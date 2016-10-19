@@ -68,42 +68,26 @@ func main() {
 
 	//list drives
 	drives := ListDrives()
-
-	//look for existing mount points
-	allMounts := ScanMountPoints()
+	drives.ScanMountPoints()
 
 	//try to mount all drives to /run/swift-storage (if not yet mounted)
 	failed := false
-	var mountPaths []string
 	for _, drive := range drives {
-		drivePath := drive.DevicePath
-		mountPath, err := MountDevice("/"+drivePath, allMounts)
-		if err == nil {
-			mountPaths = append(mountPaths, mountPath)
-		} else {
-			Log(LogError, err.Error())
-			failed = true
+		if !drive.MountSomewhere() {
+			failed = true //but keep going for the drives that work
 		}
 	}
 
-	//rescan mount points if we mounted something
-	if len(mountPaths) > 0 {
-		allMounts = ScanMountPoints()
-	}
-
 	//map mountpoints from /run/swift-storage to /srv/node
-	mountsByID, scanFailed := ScanSwiftID(allMounts)
-	if scanFailed {
+	if !drives.ScanSwiftIDs() {
 		failed = true //but keep going for the drives that work
 	}
 
-	for swiftID, device := range mountsByID {
-		err := ExecuteFinalMount(device, swiftID, allMounts)
-		if err == nil {
-			Log(LogInfo, "%s is mounted on /srv/node/%s", device, swiftID)
+	for _, drive := range drives {
+		if drive.MountForSwift() {
+			Log(LogInfo, "%s is mounted on /srv/node/%s", drive.DevicePath, drive.SwiftID)
 		} else {
-			Log(LogError, err.Error())
-			failed = true
+			failed = true //but keep going for the drives that work
 		}
 	}
 
