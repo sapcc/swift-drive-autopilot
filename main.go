@@ -19,45 +19,9 @@
 
 package main
 
-import (
-	"fmt"
-	"io/ioutil"
-	"os"
-
-	yaml "gopkg.in/yaml.v2"
-)
-
-//Configuration represents the content of the config file.
-type Configuration struct {
-	ChrootPath string   `yaml:"chroot"`
-	DriveGlobs []string `yaml:"drives"`
-	Owner      struct {
-		User  string `yaml:"user"`
-		Group string `yaml:"group"`
-	} `yaml:"chown"`
-}
-
-//Config is the global Configuration instance that's filled by main() at
-//program start.
-var Config Configuration
+import "os"
 
 func main() {
-	//expect one argument (config file name)
-	if len(os.Args) != 2 {
-		fmt.Fprintf(os.Stderr, "Usage: %s <config-file>\n", os.Args[0])
-		os.Exit(1)
-	}
-
-	//read config file
-	configBytes, err := ioutil.ReadFile(os.Args[1])
-	if err != nil {
-		Log(LogFatal, "read configuration file: %s", err.Error())
-	}
-	err = yaml.Unmarshal(configBytes, &Config)
-	if err != nil {
-		Log(LogFatal, "parse configuration: %s", err.Error())
-	}
-
 	//set working directory to the chroot directory; this simplifies file
 	//system operations because we can just use relative paths to refer to
 	//stuff inside the chroot
@@ -65,7 +29,7 @@ func main() {
 	if Config.ChrootPath != "" {
 		workingDir = Config.ChrootPath
 	}
-	err = os.Chdir(workingDir)
+	err := os.Chdir(workingDir)
 	if err != nil {
 		Log(LogFatal, "chdir to %s: %s", workingDir, err.Error())
 	}
