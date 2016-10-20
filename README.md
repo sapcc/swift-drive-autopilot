@@ -16,13 +16,14 @@ following steps:
 
 1. enumerate all storage drives (using a configurable list of globs)
 
+2. create an XFS filesystem on devices that do not have a filesystem yet
+
 2. mount each device below `/run/swift-storage` with a temporary name
 
 3. examine each device's `swift-id` file, and if it is present and unique,
    bind-mount it to `/srv/node/$id`
 
-Planned future extensions include automatic filesystem creation for new drives,
-and support for data-at-rest encryption using dm-crypt/LUKS.
+Support for data-at-rest encryption using dm-crypt/LUKS is coming soon.
 
 ## Installation
 

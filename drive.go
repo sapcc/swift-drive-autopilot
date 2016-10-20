@@ -100,6 +100,33 @@ func newDrive(devicePath string) *Drive {
 	}
 }
 
+//EnsureFilesystem will check if the device contains a filesystem, and if not,
+//create an XFS. (Swift requires a filesystem that supports extended
+//attributes, and XFS is the most popular choice.)
+func (d *Drive) EnsureFilesystem() (success bool) {
+	//ask file(1) to identify the contents of this device
+	stdout, err := ExecSimple(ExecChroot, "file", "-bs", d.DevicePath)
+	if err != nil {
+		Log(LogError, "exec(file -bs %s): %s", d.DevicePath, err.Error)
+		return false
+	}
+
+	//is it a filesystem?
+	if strings.Contains(stdout, "filesystem data") {
+		return true
+	}
+
+	//format device with XFS
+	_, err = ExecSimple(ExecChroot, "mkfs.xfs", d.DevicePath)
+	if err != nil {
+		Log(LogError, "exec(mkfs.xfs %s): %s", d.DevicePath, err.Error)
+		return false
+	}
+	Log(LogDebug, "XFS filesystem created on %s", d.DevicePath)
+
+	return true
+}
+
 //MountSomewhere will mount the given device below `/run/swift-storage` if it
 //has not been mounted yet.
 func (d *Drive) MountSomewhere() (success bool) {

@@ -73,8 +73,13 @@ func main() {
 	//try to mount all drives to /run/swift-storage (if not yet mounted)
 	failed := false
 	for _, drive := range drives {
+		if !drive.EnsureFilesystem() {
+			failed = true //but keep going for the drives that work
+			continue
+		}
 		if !drive.MountSomewhere() {
 			failed = true //but keep going for the drives that work
+			continue
 		}
 	}
 
