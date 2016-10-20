@@ -1,4 +1,4 @@
-all: swift-storage-boot
+all: swift-drive-autopilot
 
-swift-storage-boot: *.go
+swift-drive-autopilot: *.go
 	go build -ldflags '-s -w' -o $@ .

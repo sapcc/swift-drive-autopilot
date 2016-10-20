@@ -1,4 +1,4 @@
-# swift-storage-boot
+# swift-drive-autopilot
 
 This service finds, formats and mounts Swift storage drives, usually from
 within a container on a Kubernetes host.
@@ -10,7 +10,7 @@ identifier is referenced in the cluster's **ring files**. The usual method is
 to set `$id` equal to the device's name in `/dev`, e.g. `/dev/sdc` becomes
 `/srv/node/sdc`, but that mapping is too rigid for some situations.
 
-`swift-storage-boot` establishes disk identity by examining a special file
+`swift-drive-autopilot` establishes disk identity by examining a special file
 called `swift-id` in the root directory of the disk. In detail, it performs the
 following steps:
 
@@ -34,7 +34,7 @@ make
 
 The binary can also be installed with `go get`:
 ```bash
-go get github.com/sapcc/swift-storage-boot
+go get github.com/sapcc/swift-drive-autopilot
 ```
 
 To build the Docker container:
@@ -69,7 +69,7 @@ $ cat > config.yml
 drives:
   - /dev/sd[c-z]
 chroot: /host
-$ docker run --privileged --rm -v $PWD/config.yml:/config.yml -v /:/host sapcc/swift-storage-boot:latest /config.yml
+$ docker run --privileged --rm -v $PWD/config.yml:/config.yml -v /:/host sapcc/swift-drive-autopilot:latest /config.yml
 ```
 
 ### In Kubernetes
