@@ -35,6 +35,11 @@ type Configuration struct {
 		User  string `yaml:"user"`
 		Group string `yaml:"group"`
 	} `yaml:"chown"`
+	Keys []struct {
+		//this is a struct to later support the addition of a Method field to
+		//specify the key derivation method
+		Secret string `yaml:"secret"`
+	} `yaml:"keys"`
 }
 
 //Config is the global Configuration instance that's filled by main() at

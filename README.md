@@ -47,20 +47,49 @@ make && docker build .
 ## Usage
 
 Call with a configuration file as single argument. The configuration file is a
-YAML like this:
+YAML and the following options are supported:
 
 ```yaml
-drives:             # (required) paths of Swift storage drives, as list of
-  - /dev/sd[c-z]    # shell globs
-
-chroot: /coreos     # (optional) if set, then execute cryptsetup/mkfs/mount
-                    # inside this chroot; this allows to use the host OS's
-                    # utilities instead of those from the container
-
-chown:              # (optional) if set, then mountpoints below /srv/node will
-  user: "1000"      # be chown'ed to this user and/or group after mounting (give
-  group: "swift"    # the UID/GID or names of the Swift user and group)
+drives:
+  - /dev/sd[c-z]
 ```
+
+The only required field, `drives`, contains the paths of the Swift storage
+drives, as a list of shell globs.
+
+```yaml
+chroot: /coreos
+```
+
+If `chroot` is set, commands like cryptsetup/mkfs/mount will be executed inside
+the chroot. This allows to use the host OS's utilities instead of those from
+the container.
+
+```yaml
+chown:
+  user: "1000"
+  group: "swift"
+```
+
+If `chown` is set, mountpoints below `/srv/node` will be chown'ed to this user
+and/or group after mounting. Give the UID/GID or names of the Swift user and
+group here.
+
+```yaml
+keys:
+  - secret: "bzQoG5HN4onnEis5bhDmnYqqacoLNCSmDbFEAb3VDztmBtGobH"
+  - secret: "Nr8LHATRJF4kPI51KY6pgsUCbAXwHN9LPNjaMknTWK4u44EAme"
+```
+
+If `keys` is set, automatic disk encryption handling is activated. LUKS
+containers on the drives will be decrypted automatically, and empty drives will
+be encrypted with LUKS before a filesystem is created.
+
+When decrypting, each of the keys is tried until one works, but only the first
+one is used when creating new LUKS containers.
+
+Currently, the `secret` will be used as encryption key directly. Other key
+derivation schemes may be supported in the future.
 
 ### In Docker
 
