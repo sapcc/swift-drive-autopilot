@@ -56,6 +56,10 @@ drives:             # (required) paths of Swift storage drives, as list of
 chroot: /coreos     # (optional) if set, then execute cryptsetup/mkfs/mount
                     # inside this chroot; this allows to use the host OS's
                     # utilities instead of those from the container
+
+chown:              # (optional) if set, then mountpoints below /srv/node will
+  user: "1000"      # be chown'ed to this user and/or group after mounting (give
+  group: "swift"    # the UID/GID or names of the Swift user and group)
 ```
 
 ### In Docker

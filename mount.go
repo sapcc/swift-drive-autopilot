@@ -82,3 +82,35 @@ func (m MountPoint) ReportToDebugLog(callerDesc, devicePath string) {
 		Log(LogDebug, "%s: %s is not mounted below %s", callerDesc, devicePath, m.Location)
 	}
 }
+
+//Chown changes the ownership of the mount point path to the given user and
+//group. Both arguments may either be a name or a numeric ID (but still given
+//as a string in decimal).
+func (m MountPoint) Chown(user, group string) (success bool) {
+	var (
+		command string
+		arg     string
+	)
+
+	//set only those things which were given
+	if user == "" {
+		if group == "" {
+			return true // nothing to do
+		}
+		command, arg = "chgrp", group
+	} else {
+		command, arg = "chown", user
+		if group != "" {
+			arg += ":" + group
+		}
+	}
+
+	mountPath := m.Path()
+	Log(LogDebug, "%s %s to %s", command, mountPath, arg)
+	_, err := ExecSimple(ExecChroot, command, arg, mountPath)
+	if err != nil {
+		Log(LogError, "exec(%s %s %s): %s", command, arg, mountPath, err.Error())
+		return false
+	}
+	return true
+}

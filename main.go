@@ -31,6 +31,10 @@ import (
 type Configuration struct {
 	ChrootPath string   `yaml:"chroot"`
 	DriveGlobs []string `yaml:"drives"`
+	Owner      struct {
+		User  string `yaml:"user"`
+		Group string `yaml:"group"`
+	} `yaml:"chown"`
 }
 
 //Config is the global Configuration instance that's filled by main() at
@@ -93,6 +97,12 @@ func main() {
 			Log(LogInfo, "%s is mounted on %s", drive.DevicePath, drive.FinalMount.Path())
 		} else {
 			failed = true //but keep going for the drives that work
+			continue
+		}
+
+		owner := Config.Owner
+		if !drive.FinalMount.Chown(owner.User, owner.Group) {
+			failed = true
 		}
 	}
 
