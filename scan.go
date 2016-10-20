@@ -35,7 +35,7 @@ var finalMountRx = regexp.MustCompile(`^/srv/node/([^/]+)$`)
 //`MountID/Mounted` and `SwiftID/Mapped` fields of the drives are initialized
 //accordingly.
 func (drives Drives) ScanMountPoints() {
-	stdout, err := ExecSimple(ExecChrootNsenter, "mount")
+	stdout, err := ExecSimple(ExecChroot, nil, "mount")
 	if err != nil {
 		Log(LogFatal, "exec(mount) failed: %s", err.Error())
 	}
@@ -51,7 +51,7 @@ func (drives Drives) ScanMountPoints() {
 		//does `devicePath` refer to a Drive that we know?
 		var drive *Drive
 		for _, theDrive := range drives {
-			if devicePath == theDrive.DevicePath {
+			if devicePath == theDrive.ActiveDevicePath() {
 				drive = theDrive
 				break
 			}
@@ -76,8 +76,9 @@ func (drives Drives) ScanMountPoints() {
 	}
 
 	for _, drive := range drives {
-		drive.TemporaryMount.ReportToDebugLog("ScanMountPoints", drive.DevicePath)
-		drive.FinalMount.ReportToDebugLog("ScanMountPoints", drive.DevicePath)
+		devicePath := drive.ActiveDevicePath()
+		drive.TemporaryMount.ReportToDebugLog("ScanMountPoints", devicePath)
+		drive.FinalMount.ReportToDebugLog("ScanMountPoints", devicePath)
 	}
 }
 
@@ -108,7 +109,7 @@ func (drives Drives) ScanSwiftIDs() (success bool) {
 		idBytes, err := readFileFromChroot(idPath)
 		if err != nil {
 			if os.IsNotExist(err) {
-				Log(LogError, "no swift-id file found on device %s (mounted at /%s)", drive.DevicePath, mountPath)
+				Log(LogError, "no swift-id file found on device %s (mounted at %s)", drive.DevicePath, mountPath)
 			} else {
 				Log(LogError, "read /%s: %s", idPath, err.Error())
 			}

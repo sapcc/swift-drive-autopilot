@@ -32,6 +32,16 @@ type Drive struct {
 	//resolved, e.g. "/dev/sdc" instead of "/dev/disk/by-path/..."). The path
 	//is absolute and refers to a location in the chroot (if any).
 	DevicePath string
+	//MappedDevicePath is only set when the device at DevicePath is encrypted
+	//with LUKS. After the LUKS container is opened, MappedDevicePath is the
+	//device file below /dev/mapper with the decrypted block device
+	//(e.g. "/dev/mapper/swift-a45e9353-7836-4de6-ba1a-2c69ab577e91").
+	MappedDevicePath string
+	//Classification describes the contents of this drive's device file, as
+	//returned by file(1). This field refers to the device at DevicePath,
+	//unless MappedDevicePath is set, in which case it refers to that device.
+	//An empty string means that Classify() has not run yet.
+	Classification string
 	//TemporaryMount is this device's mount point below /run/swift-storage.
 	TemporaryMount MountPoint
 	//FinalMount is this device's mount point below /srv/node.
@@ -83,10 +93,12 @@ func newDrive(devicePath string) *Drive {
 	s := md5.Sum([]byte(devicePath))
 	mountID := hex.EncodeToString(s[:])
 
+	//- MappedDevicePath will be initialized by TryDecrypt()
 	//- MountPoint.Active will be initialized by ScanDriveMountPoints()
 	//- FinalMount.Name will be initialized by ScanDriveSwiftIDs()
 	return &Drive{
-		DevicePath: devicePath,
+		DevicePath:       devicePath,
+		MappedDevicePath: "",
 		TemporaryMount: MountPoint{
 			Location: "/run/swift-storage",
 			Name:     mountID,
@@ -100,29 +112,54 @@ func newDrive(devicePath string) *Drive {
 	}
 }
 
+//ActiveDevicePath is usually DevicePath, but if the drive is LUKS-encrypted
+//and the LUKS container has already been opened, MappedDevicePath is returned.
+func (d Drive) ActiveDevicePath() string {
+	if d.MappedDevicePath == "" {
+		return d.DevicePath
+	}
+	return d.MappedDevicePath
+}
+
+//Classify will call file(1) on the drive's device file (or the mapped device
+//file, if any), and save the result in the Classification field.
+func (d *Drive) Classify() (success bool) {
+	//run only once
+	if d.Classification != "" {
+		return true
+	}
+
+	//ask file(1) to identify the contents of this device
+	devicePath := d.ActiveDevicePath()
+	var err error
+	d.Classification, err = ExecSimple(ExecChroot, nil, "file", "-bLs", devicePath)
+	if err != nil {
+		Log(LogError, "exec(file -bLs %s): %s", devicePath, err.Error)
+		return false
+	}
+	return true
+}
+
 //EnsureFilesystem will check if the device contains a filesystem, and if not,
 //create an XFS. (Swift requires a filesystem that supports extended
 //attributes, and XFS is the most popular choice.)
 func (d *Drive) EnsureFilesystem() (success bool) {
-	//ask file(1) to identify the contents of this device
-	stdout, err := ExecSimple(ExecChroot, "file", "-bs", d.DevicePath)
-	if err != nil {
-		Log(LogError, "exec(file -bs %s): %s", d.DevicePath, err.Error)
+	//is it a filesystem?
+	if !d.Classify() {
 		return false
 	}
-
-	//is it a filesystem?
-	if strings.Contains(stdout, "filesystem data") {
+	if strings.Contains(d.Classification, "filesystem data") {
 		return true
 	}
 
 	//format device with XFS
-	_, err = ExecSimple(ExecChroot, "mkfs.xfs", d.DevicePath)
+	devicePath := d.ActiveDevicePath()
+	_, err := ExecSimple(ExecChroot, nil, "mkfs.xfs", devicePath)
 	if err != nil {
-		Log(LogError, "exec(mkfs.xfs %s): %s", d.DevicePath, err.Error)
+		Log(LogError, "exec(mkfs.xfs %s): %s", devicePath, err.Error)
 		return false
 	}
-	Log(LogDebug, "XFS filesystem created on %s", d.DevicePath)
+	Log(LogDebug, "XFS filesystem created on %s", devicePath)
 
 	return true
 }
@@ -134,5 +171,5 @@ func (d *Drive) MountSomewhere() (success bool) {
 	if d.FinalMount.Active {
 		return true
 	}
-	return d.TemporaryMount.Activate(d.DevicePath)
+	return d.TemporaryMount.Activate(d.ActiveDevicePath())
 }

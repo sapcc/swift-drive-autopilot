@@ -36,10 +36,18 @@ func main() {
 
 	//list drives
 	drives := ListDrives()
-	drives.ScanMountPoints()
+
+	//open LUKS containers if required
+	failed := false
+	for _, drive := range drives {
+		if !drive.OpenLUKS() {
+			failed = true //but keep going for the drives that work
+			continue
+		}
+	}
 
 	//try to mount all drives to /run/swift-storage (if not yet mounted)
-	failed := false
+	drives.ScanMountPoints()
 	for _, drive := range drives {
 		if !drive.EnsureFilesystem() {
 			failed = true //but keep going for the drives that work
@@ -57,7 +65,7 @@ func main() {
 	}
 
 	for _, drive := range drives {
-		if drive.FinalMount.Activate(drive.DevicePath) {
+		if drive.FinalMount.Activate(drive.ActiveDevicePath()) {
 			Log(LogInfo, "%s is mounted on %s", drive.DevicePath, drive.FinalMount.Path())
 		} else {
 			failed = true //but keep going for the drives that work
@@ -71,7 +79,7 @@ func main() {
 	}
 
 	//mark /srv/node as ready
-	_, err = ExecSimple(ExecChroot, "touch", "/srv/node/ready")
+	_, err = ExecSimple(ExecChroot, nil, "touch", "/srv/node/ready")
 	if err != nil {
 		Log(LogError, "touch /srv/node/ready: %s", err.Error())
 		failed = true

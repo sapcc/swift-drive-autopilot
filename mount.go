@@ -51,7 +51,7 @@ func (m *MountPoint) Activate(devicePath string) bool {
 	Log(LogDebug, "mounting %s to %s", devicePath, mountPath)
 
 	//prepare new target directory
-	_, err := ExecSimple(ExecChroot, "mkdir", "-m", "0700", "-p", mountPath)
+	_, err := ExecSimple(ExecChroot, nil, "mkdir", "-m", "0700", "-p", mountPath)
 	if err != nil {
 		Log(LogError, "exec(mkdir -p %s): %s", mountPath, err.Error())
 		return false
@@ -59,15 +59,17 @@ func (m *MountPoint) Activate(devicePath string) bool {
 
 	//for the mount to appear both in the container and the host, it has to be
 	//performed twice, once for each mount namespace involved
-	_, err = ExecSimple(ExecChrootNsenter, "mount", devicePath, mountPath)
+	_, err = ExecSimple(ExecChroot, nil, "mount", devicePath, mountPath)
 	if err != nil {
 		Log(LogError, "exec(mount %s) on host: %s", devicePath, err.Error())
 		return false
 	}
-	_, err = ExecSimple(ExecChroot, "mount", devicePath, mountPath) //without nsenter!
-	if err != nil {
-		Log(LogError, "exec(mount %s) in container: %s", devicePath, err.Error())
-		return false
+	if Config.ChrootPath != "" {
+		_, err = ExecSimple(ExecChrootNoNsenter, nil, "mount", devicePath, mountPath)
+		if err != nil {
+			Log(LogError, "exec(mount %s) in container: %s", devicePath, err.Error())
+			return false
+		}
 	}
 
 	m.Active = true
@@ -107,7 +109,7 @@ func (m MountPoint) Chown(user, group string) (success bool) {
 
 	mountPath := m.Path()
 	Log(LogDebug, "%s %s to %s", command, mountPath, arg)
-	_, err := ExecSimple(ExecChroot, command, arg, mountPath)
+	_, err := ExecSimple(ExecChroot, nil, command, arg, mountPath)
 	if err != nil {
 		Log(LogError, "exec(%s %s %s): %s", command, arg, mountPath, err.Error())
 		return false
