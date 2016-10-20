@@ -27,8 +27,8 @@ import (
 	"strings"
 )
 
-var mountIDrx = regexp.MustCompile(`^/run/swift-storage/([^/]+)$`)
-var swiftIDrx = regexp.MustCompile(`^/srv/node/([^/]+)$`)
+var tempMountRx = regexp.MustCompile(`^/run/swift-storage/([^/]+)$`)
+var finalMountRx = regexp.MustCompile(`^/srv/node/([^/]+)$`)
 
 //ScanMountPoints looks through the active mounts to check which of the given
 //drives are already mounted below /run/swift-storage or /srv/node. If so, the
@@ -61,31 +61,23 @@ func (drives Drives) ScanMountPoints() {
 		}
 
 		//is this a mount in which we are interested?
-		match := mountIDrx.FindStringSubmatch(mountPath)
+		match := tempMountRx.FindStringSubmatch(mountPath)
 		if match != nil {
-			drive.MountID = match[1]
-			drive.Mounted = true
+			drive.TemporaryMount.Name = match[1]
+			drive.TemporaryMount.Active = true
 			continue
 		}
-		match = swiftIDrx.FindStringSubmatch(mountPath)
+		match = finalMountRx.FindStringSubmatch(mountPath)
 		if match != nil {
-			drive.SwiftID = match[1]
-			drive.Mapped = true
+			drive.FinalMount.Name = match[1]
+			drive.FinalMount.Active = true
 			continue
 		}
 	}
 
 	for _, drive := range drives {
-		if drive.Mounted {
-			Log(LogDebug, "ScanMountPoints: %s is mounted at /run/swift-storage/%s", drive.DevicePath, drive.MountID)
-		} else {
-			Log(LogDebug, "ScanMountPoints: %s is not mounted below /run/swift-storage", drive.DevicePath)
-		}
-		if drive.Mapped {
-			Log(LogDebug, "ScanMountPoints: %s is mounted at /srv/node/%s", drive.DevicePath, drive.SwiftID)
-		} else {
-			Log(LogDebug, "ScanMountPoints: %s is not mounted below /srv/node", drive.DevicePath)
-		}
+		drive.TemporaryMount.ReportToDebugLog("ScanMountPoints", drive.DevicePath)
+		drive.FinalMount.ReportToDebugLog("ScanMountPoints", drive.DevicePath)
 	}
 }
 
@@ -100,10 +92,10 @@ func (drives Drives) ScanSwiftIDs() (success bool) {
 		//find a path where this drive is mounted
 		var mountPath string
 		switch {
-		case drive.Mapped:
-			mountPath = "/srv/node/" + drive.SwiftID
-		case drive.Mounted:
-			mountPath = "/run/swift-storage/" + drive.MountID
+		case drive.FinalMount.Active:
+			mountPath = drive.FinalMount.Path()
+		case drive.TemporaryMount.Active:
+			mountPath = drive.TemporaryMount.Path()
 		}
 		//if a drive could not be mounted because of an earlier error, ignore
 		//it and keep going
@@ -126,14 +118,14 @@ func (drives Drives) ScanSwiftIDs() (success bool) {
 		swiftID := strings.TrimSpace(string(idBytes))
 
 		//does this swift-id conflict with where the device is currently mounted?
-		if drive.Mapped && drive.SwiftID != swiftID {
+		if drive.FinalMount.Active && drive.FinalMount.Name != swiftID {
 			Log(LogError,
 				"drive %s is currently mounted at /srv/node/%s, but its swift-id says \"%s\" (not going to touch it)",
-				drive.DevicePath, drive.SwiftID, swiftID)
-			drive.SwiftID = "" //to skip it during the final mount
+				drive.DevicePath, drive.FinalMount.Name, swiftID)
+			drive.FinalMount.Name = "" //to skip it during the final mount
 		} else {
-			//record SwiftID for the final mount
-			drive.SwiftID = swiftID
+			//record swift-id for the final mount
+			drive.FinalMount.Name = swiftID
 		}
 
 		//is this the first device with this swift-id?
@@ -141,10 +133,10 @@ func (drives Drives) ScanSwiftIDs() (success bool) {
 		if exists {
 			//no - do not mount any of them, just complain
 			Log(LogError, "found multiple drives with swift-id \"%s\" (not mounting any of them)", swiftID)
-			//clear SwiftID for all drives involved in the collision, to
+			//clear swift-id for all drives involved in the collision, to
 			//skip them during the final mount
-			drive.SwiftID = ""
-			otherDrive.SwiftID = ""
+			drive.FinalMount.Name = ""
+			otherDrive.FinalMount.Name = ""
 		} else {
 			//yes - remember it to check for collisions later on
 			drivesBySwiftID[swiftID] = drive

@@ -19,57 +19,66 @@
 
 package main
 
-//MountSomewhere will mount the given device below `/run/swift-storage` if it
-//has not been mounted yet.
-func (d *Drive) MountSomewhere() (success bool) {
-	//already mounted somewhere?
-	if d.Mounted || d.Mapped {
+//MountPoint describes a location where a Drive can be mounted.
+type MountPoint struct {
+	//Location is the dirname(1) of the mountpoint. It is an absolute path
+	//referring to a location in the chroot (if any).
+	Location string
+	//Name is the basename(1) of the mountpoint.
+	Name string
+	//Active is true when the device is mounted at this path.
+	Active bool
+}
+
+//Path returns the full absolute path (inside the chroot) of the mountpoint.
+func (m MountPoint) Path() string {
+	return m.Location + "/" + m.Name
+}
+
+//Activate will mount the given device to this MountPoint if the MountPoint is
+//not yet Active.
+func (m *MountPoint) Activate(devicePath string) bool {
+	//ready to be mounted?
+	if m.Location == "" || m.Name == "" {
+		return false
+	}
+	//already mounted?
+	if m.Active {
 		return true
 	}
 
-	//mount in /run/swift-storage
-	mountPath := "/run/swift-storage/" + d.MountID
-	d.Mounted = doMount(d.DevicePath, mountPath)
-	return d.Mounted
-}
+	mountPath := m.Path()
+	Log(LogDebug, "mounting %s to %s", devicePath, mountPath)
 
-func doMount(fromPath, toPath string) (success bool) {
 	//prepare new target directory
-	_, err := ExecSimple(ExecChroot, "mkdir", "-m", "0700", "-p", toPath)
+	_, err := ExecSimple(ExecChroot, "mkdir", "-m", "0700", "-p", mountPath)
 	if err != nil {
-		Log(LogError, "exec(mkdir -p %s): %s", toPath, err.Error())
+		Log(LogError, "exec(mkdir -p %s): %s", mountPath, err.Error())
 		return false
 	}
 
 	//for the mount to appear both in the container and the host, it has to be
 	//performed twice, once for each mount namespace involved
-	_, err = ExecSimple(ExecChrootNsenter, "mount", fromPath, toPath)
+	_, err = ExecSimple(ExecChrootNsenter, "mount", devicePath, mountPath)
 	if err != nil {
-		Log(LogError, "exec(mount %s) on host: %s", fromPath, err.Error())
+		Log(LogError, "exec(mount %s) on host: %s", devicePath, err.Error())
 		return false
 	}
-	_, err = ExecSimple(ExecChroot, "mount", fromPath, toPath) //without nsenter!
+	_, err = ExecSimple(ExecChroot, "mount", devicePath, mountPath) //without nsenter!
 	if err != nil {
-		Log(LogError, "exec(mount %s) in container: %s", fromPath, err.Error())
+		Log(LogError, "exec(mount %s) in container: %s", devicePath, err.Error())
 		return false
 	}
 
+	m.Active = true
 	return true
 }
 
-//MountForSwift mounts the given drive below `/srv/node`.
-func (d *Drive) MountForSwift() (success bool) {
-	//ready to be mounted?
-	if d.SwiftID == "" {
-		return false
+//ReportToDebugLog reports the state of the MountPoint to Log(LogDebug).
+func (m MountPoint) ReportToDebugLog(callerDesc, devicePath string) {
+	if m.Active {
+		Log(LogDebug, "%s: %s is mounted at %s", callerDesc, devicePath, m.Path())
+	} else {
+		Log(LogDebug, "%s: %s is not mounted below %s", callerDesc, devicePath, m.Location)
 	}
-	//already mounted?
-	if d.Mapped {
-		return true
-	}
-
-	//mount in /srv/node
-	mountPath := "/srv/node/" + d.SwiftID
-	d.Mapped = doMount(d.DevicePath, mountPath)
-	return d.Mapped
 }

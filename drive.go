@@ -26,23 +26,16 @@ import (
 	"strings"
 )
 
-//Drive contains all the information about a single drive: its device path,
-//where it is mounted, etc. All fields ending in "Path" are absolute and refer
-//to a location in the chroot (if any).
+//Drive contains all the information about a single drive.
 type Drive struct {
 	//DevicePath is where the device file is located (with all symlinks
-	//resolved, e.g. "/dev/sdc" instead of "/dev/disk/by-path/...").
+	//resolved, e.g. "/dev/sdc" instead of "/dev/disk/by-path/..."). The path
+	//is absolute and refers to a location in the chroot (if any).
 	DevicePath string
-	//MountID is the name of the directory below /run/swift-storage where this
-	//drive shall be mounted.
-	MountID string
-	//Mounted is true if this drive is mounted below /run/swift-storage.
-	Mounted bool
-	//SwiftID is the name of the directory below /srv/node where this
-	//drive shall be mounted.
-	SwiftID string
-	//Mapped is true if this drive is mounted below /srv/node.
-	Mapped bool
+	//TemporaryMount is this device's mount point below /run/swift-storage.
+	TemporaryMount MountPoint
+	//FinalMount is this device's mount point below /srv/node.
+	FinalMount MountPoint
 }
 
 //Drives is a list of Drive structs with some extra methods.
@@ -90,10 +83,29 @@ func newDrive(devicePath string) *Drive {
 	s := md5.Sum([]byte(devicePath))
 	mountID := hex.EncodeToString(s[:])
 
+	//- MountPoint.Active will be initialized by ScanDriveMountPoints()
+	//- FinalMount.Name will be initialized by ScanDriveSwiftIDs()
 	return &Drive{
 		DevicePath: devicePath,
-		MountID:    mountID,
-		//Mounted and Mapped will be initialized by ScanDriveMountPoints()
-		//SwiftID will be initialized by ScanDriveSwiftIDs()
+		TemporaryMount: MountPoint{
+			Location: "/run/swift-storage",
+			Name:     mountID,
+			Active:   false,
+		},
+		FinalMount: MountPoint{
+			Location: "/srv/node",
+			Name:     "",
+			Active:   false,
+		},
 	}
+}
+
+//MountSomewhere will mount the given device below `/run/swift-storage` if it
+//has not been mounted yet.
+func (d *Drive) MountSomewhere() (success bool) {
+	//already mounted somewhere?
+	if d.FinalMount.Active {
+		return true
+	}
+	return d.TemporaryMount.Activate(d.DevicePath)
 }

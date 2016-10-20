@@ -84,8 +84,8 @@ func main() {
 	}
 
 	for _, drive := range drives {
-		if drive.MountForSwift() {
-			Log(LogInfo, "%s is mounted on /srv/node/%s", drive.DevicePath, drive.SwiftID)
+		if drive.FinalMount.Activate(drive.DevicePath) {
+			Log(LogInfo, "%s is mounted on %s", drive.DevicePath, drive.FinalMount.Path())
 		} else {
 			failed = true //but keep going for the drives that work
 		}
