@@ -19,45 +19,9 @@
 
 package main
 
-import (
-	"fmt"
-	"io/ioutil"
-	"os"
-
-	yaml "gopkg.in/yaml.v2"
-)
-
-//Configuration represents the content of the config file.
-type Configuration struct {
-	ChrootPath string   `yaml:"chroot"`
-	DriveGlobs []string `yaml:"drives"`
-	Owner      struct {
-		User  string `yaml:"user"`
-		Group string `yaml:"group"`
-	} `yaml:"chown"`
-}
-
-//Config is the global Configuration instance that's filled by main() at
-//program start.
-var Config Configuration
+import "os"
 
 func main() {
-	//expect one argument (config file name)
-	if len(os.Args) != 2 {
-		fmt.Fprintf(os.Stderr, "Usage: %s <config-file>\n", os.Args[0])
-		os.Exit(1)
-	}
-
-	//read config file
-	configBytes, err := ioutil.ReadFile(os.Args[1])
-	if err != nil {
-		Log(LogFatal, "read configuration file: %s", err.Error())
-	}
-	err = yaml.Unmarshal(configBytes, &Config)
-	if err != nil {
-		Log(LogFatal, "parse configuration: %s", err.Error())
-	}
-
 	//set working directory to the chroot directory; this simplifies file
 	//system operations because we can just use relative paths to refer to
 	//stuff inside the chroot
@@ -65,17 +29,33 @@ func main() {
 	if Config.ChrootPath != "" {
 		workingDir = Config.ChrootPath
 	}
-	err = os.Chdir(workingDir)
+	err := os.Chdir(workingDir)
 	if err != nil {
 		Log(LogFatal, "chdir to %s: %s", workingDir, err.Error())
 	}
 
 	//list drives
 	drives := ListDrives()
-	drives.ScanMountPoints()
+	drives.ScanOpenLUKSContainers()
+
+	failed := false
+	if len(Config.Keys) > 0 {
+		for _, drive := range drives {
+			//create LUKS containers on unformatted drives
+			if !drive.FormatLUKSIfRequired() {
+				failed = true //but keep going for the drives that work
+				continue
+			}
+			//open LUKS containers if required
+			if !drive.OpenLUKS() {
+				failed = true //but keep going for the drives that work
+				continue
+			}
+		}
+	}
 
 	//try to mount all drives to /run/swift-storage (if not yet mounted)
-	failed := false
+	drives.ScanMountPoints()
 	for _, drive := range drives {
 		if !drive.EnsureFilesystem() {
 			failed = true //but keep going for the drives that work
@@ -93,7 +73,7 @@ func main() {
 	}
 
 	for _, drive := range drives {
-		if drive.FinalMount.Activate(drive.DevicePath) {
+		if drive.FinalMount.Activate(drive.ActiveDevicePath()) {
 			Log(LogInfo, "%s is mounted on %s", drive.DevicePath, drive.FinalMount.Path())
 		} else {
 			failed = true //but keep going for the drives that work
@@ -107,7 +87,7 @@ func main() {
 	}
 
 	//mark /srv/node as ready
-	_, err = ExecSimple(ExecChroot, "touch", "/srv/node/ready")
+	_, err = ExecSimple(ExecChroot, nil, "touch", "/srv/node/ready")
 	if err != nil {
 		Log(LogError, "touch /srv/node/ready: %s", err.Error())
 		failed = true

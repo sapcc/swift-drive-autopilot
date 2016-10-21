@@ -21,6 +21,7 @@ package main
 
 import (
 	"bytes"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -30,10 +31,9 @@ import (
 type ExecMode int
 
 const (
-	ExecNormal        ExecMode = 0
-	ExecChroot        ExecMode = 1 << 0
-	ExecNsenter       ExecMode = 1 << 1
-	ExecChrootNsenter ExecMode = ExecChroot | ExecNsenter
+	ExecNormal          ExecMode = 0
+	ExecChroot          ExecMode = 1
+	ExecChrootNoNsenter ExecMode = 2
 )
 
 type LogLevel int
@@ -69,16 +69,23 @@ func Log(level LogLevel, msg string, args ...interface{}) {
 
 //Exec executes the given command, possibly within the chroot (if
 //configured in Config.ChrootPath, and if the first argument is true).
-func Exec(mode ExecMode, command string, args ...string) (stdout, stderr string, e error) {
+func Exec(mode ExecMode, stdin io.Reader, command string, args ...string) (stdout, stderr string, e error) {
 	//if we are executing mount, we need to make sure that we are in the
-	//correct mount namespace
-	if (mode&ExecNsenter == ExecNsenter) && command == "mount" {
-		args = append([]string{"--mount=/proc/1/ns/mnt", "--", "mount"}, args...)
+	//correct mount namespace; for cryptsetup, we even need to be in the
+	//correct IPC namespace (device-mapper wants to talk to udev)
+	switch command {
+	case "mount":
+		if mode != ExecChrootNoNsenter {
+			args = append([]string{"--mount=/proc/1/ns/mnt", "--", "mount"}, args...)
+			command = "nsenter"
+		}
+	case "cryptsetup":
+		args = append([]string{"--mount=/proc/1/ns/mnt", "--ipc=/proc/1/ns/ipc", "--", "cryptsetup"}, args...)
 		command = "nsenter"
 	}
 
 	//prepend `chroot $CHROOT_PATH` if requested
-	if (mode&ExecChroot == ExecChroot) && Config.ChrootPath != "" {
+	if mode != ExecNormal && Config.ChrootPath != "" {
 		args = append([]string{Config.ChrootPath, command}, args...)
 		command = "chroot"
 	}
@@ -93,6 +100,7 @@ func Exec(mode ExecMode, command string, args ...string) (stdout, stderr string,
 	stderrBuf := bytes.NewBuffer(nil)
 
 	cmd := exec.Command(command, args...)
+	cmd.Stdin = stdin //usually nil
 	cmd.Stdout = stdoutBuf
 	cmd.Stderr = stderrBuf
 
@@ -102,8 +110,8 @@ func Exec(mode ExecMode, command string, args ...string) (stdout, stderr string,
 
 //ExecSimple is like Exec, but error output from the called program is sent to
 //stderr directly.
-func ExecSimple(mode ExecMode, command string, args ...string) (string, error) {
-	stdout, stderr, err := Exec(mode, command, args...)
+func ExecSimple(mode ExecMode, stdin io.Reader, command string, args ...string) (string, error) {
+	stdout, stderr, err := Exec(mode, stdin, command, args...)
 	for _, line := range strings.Split(stderr, "\n") {
 		if line != "" {
 			log.Printf("Output from %s: %s\n", command, line)
