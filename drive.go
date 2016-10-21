@@ -26,6 +26,23 @@ import (
 	"strings"
 )
 
+//DeviceType describes the contents of a device, to the granularity required by
+//this program.
+type DeviceType int
+
+const (
+	//DeviceTypeNotScanned says that Drive.Classify() has not been run for this
+	//device yet.
+	DeviceTypeNotScanned DeviceType = iota
+	//DeviceTypeUnknown describes a device that contains neither a LUKS
+	//container nor a filesystem.
+	DeviceTypeUnknown
+	//DeviceTypeLUKS describes a device that contains a LUKS container.
+	DeviceTypeLUKS
+	//DeviceTypeFilesystem describes a device that contains a filesystem.
+	DeviceTypeFilesystem
+)
+
 //Drive contains all the information about a single drive.
 type Drive struct {
 	//DevicePath is where the device file is located (with all symlinks
@@ -37,11 +54,11 @@ type Drive struct {
 	//device file below /dev/mapper with the decrypted block device
 	//(e.g. "/dev/mapper/swift-a45e9353-7836-4de6-ba1a-2c69ab577e91").
 	MappedDevicePath string
-	//Classification describes the contents of this drive's device file, as
+	//Type describes the contents of this drive's device file, as
 	//returned by file(1). This field refers to the device at DevicePath,
 	//unless MappedDevicePath is set, in which case it refers to that device.
-	//An empty string means that Classify() has not run yet.
-	Classification string
+	//A value of nil means that Classify() has not been run yet.
+	Type DeviceType
 	//TemporaryMount is this device's mount point below /run/swift-storage.
 	TemporaryMount MountPoint
 	//FinalMount is this device's mount point below /srv/node.
@@ -131,18 +148,28 @@ func (d Drive) ActiveDevicePath() string {
 //file, if any), and save the result in the Classification field.
 func (d *Drive) Classify() (success bool) {
 	//run only once
-	if d.Classification != "" {
+	if d.Type != DeviceTypeNotScanned {
 		return true
 	}
 
 	//ask file(1) to identify the contents of this device
 	devicePath := d.ActiveDevicePath()
-	var err error
-	d.Classification, err = ExecSimple(ExecChroot, nil, "file", "-bLs", devicePath)
+	desc, err := ExecSimple(ExecChroot, nil, "file", "-bLs", devicePath)
 	if err != nil {
 		Log(LogError, "exec(file -bLs %s): %s", devicePath, err.Error)
 		return false
 	}
+
+	//convert into DeviceType
+	switch {
+	case strings.HasPrefix(desc, "LUKS encrypted file"):
+		d.Type = DeviceTypeLUKS
+	case strings.Contains(desc, "filesystem data"):
+		d.Type = DeviceTypeFilesystem
+	default:
+		d.Type = DeviceTypeUnknown
+	}
+
 	return true
 }
 
@@ -154,7 +181,7 @@ func (d *Drive) EnsureFilesystem() (success bool) {
 	if !d.Classify() {
 		return false
 	}
-	if strings.Contains(d.Classification, "filesystem data") {
+	if d.Type != DeviceTypeFilesystem {
 		return true
 	}
 

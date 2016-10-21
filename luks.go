@@ -37,11 +37,9 @@ func (d *Drive) OpenLUKS() (success bool) {
 	if !d.Classify() {
 		return false
 	}
-	if !strings.HasPrefix(d.Classification, "LUKS encrypted file") {
+	if d.Type != DeviceTypeLUKS {
 		return true
 	}
-
-	//TODO: add a scanning pass to recognize open LUKS devices from a previous run
 
 	//try each key until one works
 	mapperName := d.TemporaryMount.Name
@@ -63,7 +61,7 @@ func (d *Drive) OpenLUKS() (success bool) {
 	}
 
 	d.MappedDevicePath = "/dev/mapper/" + mapperName
-	d.Classification = "" //reset because Classification now refers to what's in the mapped device
+	d.Type = DeviceTypeNotScanned //reset because Classification now refers to what's in the mapped device
 	Log(LogDebug, "LUKS container at %s opened as %s", d.DevicePath, d.MappedDevicePath)
 	return true
 }
