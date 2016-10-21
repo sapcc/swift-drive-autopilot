@@ -154,9 +154,8 @@ func (d *Drive) Classify() (success bool) {
 
 	//ask file(1) to identify the contents of this device
 	devicePath := d.ActiveDevicePath()
-	desc, err := ExecSimple(ExecChroot, nil, "file", "-bLs", devicePath)
-	if err != nil {
-		Log(LogError, "exec(file -bLs %s): %s", devicePath, err.Error())
+	desc, ok := Run("file", "-bLs", devicePath)
+	if !ok {
 		return false
 	}
 
@@ -188,9 +187,8 @@ func (d *Drive) EnsureFilesystem() (success bool) {
 
 	//format device with XFS
 	devicePath := d.ActiveDevicePath()
-	_, err := ExecSimple(ExecChroot, nil, "mkfs.xfs", devicePath)
-	if err != nil {
-		Log(LogError, "exec(mkfs.xfs %s): %s", devicePath, err.Error())
+	_, ok := Run("mkfs.xfs", devicePath)
+	if !ok {
 		return false
 	}
 	Log(LogDebug, "XFS filesystem created on %s", devicePath)

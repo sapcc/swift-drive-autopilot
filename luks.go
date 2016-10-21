@@ -20,7 +20,6 @@
 package main
 
 import (
-	"bytes"
 	"regexp"
 	"strings"
 )
@@ -45,11 +44,11 @@ func (d *Drive) OpenLUKS() (success bool) {
 	mapperName := d.TemporaryMount.Name
 	for idx, key := range Config.Keys {
 		Log(LogDebug, "trying to luksOpen %s as %s with key %d...", d.DevicePath, mapperName, idx)
-		_, _, err := Exec(
-			ExecChroot, bytes.NewReader([]byte(key.Secret+"\n")),
-			"cryptsetup", "luksOpen", d.DevicePath, mapperName,
-		)
-		if err == nil {
+		_, ok := Command{
+			Stdin:   key.Secret + "\n",
+			SkipLog: true,
+		}.Run("cryptsetup", "luksOpen", d.DevicePath, mapperName)
+		if ok {
 			success = true
 			break
 		}
@@ -69,10 +68,7 @@ func (d *Drive) OpenLUKS() (success bool) {
 //ScanOpenLUKSContainers checks all mapped devices in /dev/mapper/*, and
 //records them as MappedDevicePath for their corresponding Drive (if any).
 func (drives Drives) ScanOpenLUKSContainers() {
-	stdout, err := ExecSimple(ExecChroot, nil, "dmsetup", "ls", "--target=crypt")
-	if err != nil {
-		Log(LogFatal, "exec(dmsetup ls --target=crypt): %s", err.Error())
-	}
+	stdout, _ := Command{ExitOnError: true}.Run("dmsetup", "ls", "--target=crypt")
 
 	for _, line := range strings.Split(stdout, "\n") {
 		//each output line describes a mapping and looks like
@@ -101,10 +97,7 @@ var backingDeviceRx = regexp.MustCompile(`(?m)^\s*device:\s*(\S+)\s*$`)
 
 //Ask cryptsetup for the device backing an open LUKS container.
 func getBackingDevicePath(mapName string) string {
-	stdout, err := ExecSimple(ExecChroot, nil, "cryptsetup", "status", mapName)
-	if err != nil {
-		Log(LogFatal, "exec(cryptsetup status %s): %s", mapName, err.Error())
-	}
+	stdout, _ := Command{ExitOnError: true}.Run("cryptsetup", "status", mapName)
 
 	//look for a line like "  device:  /dev/sdb"
 	match := backingDeviceRx.FindStringSubmatch(stdout)
@@ -138,16 +131,11 @@ func (d *Drive) FormatLUKSIfRequired() (success bool) {
 	//format with the preferred key
 	key := Config.Keys[0]
 	Log(LogDebug, "running cryptsetup luksFormat %s with key 0...", d.DevicePath)
-	_, err := ExecSimple(
-		ExecChroot, bytes.NewReader([]byte(key.Secret+"\n")),
-		"cryptsetup", "luksFormat", d.DevicePath,
-	)
-	if err != nil {
-		Log(LogError, "exec(cryptsetup luksFormat %s): %s", d.DevicePath, err.Error())
-		return false
-	}
+	_, ok := Command{Stdin: key.Secret + "\n"}.Run("cryptsetup", "luksFormat", d.DevicePath)
 
 	//update drive classification so that OpenLUKS() will now open this device
-	d.Type = DeviceTypeLUKS
-	return true
+	if ok {
+		d.Type = DeviceTypeLUKS
+	}
+	return ok
 }

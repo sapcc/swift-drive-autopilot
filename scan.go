@@ -35,10 +35,7 @@ var finalMountRx = regexp.MustCompile(`^/srv/node/([^/]+)$`)
 //`MountID/Mounted` and `SwiftID/Mapped` fields of the drives are initialized
 //accordingly.
 func (drives Drives) ScanMountPoints() {
-	stdout, err := ExecSimple(ExecChroot, nil, "mount")
-	if err != nil {
-		Log(LogFatal, "exec(mount) failed: %s", err.Error())
-	}
+	stdout, _ := Command{ExitOnError: true}.Run("mount")
 
 	for _, line := range strings.Split(stdout, "\n") {
 		//line looks like "<device> on <mountpoint> type <type> (<options>)"

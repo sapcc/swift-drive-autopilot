@@ -21,7 +21,6 @@ package main
 
 import (
 	"bytes"
-	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -67,55 +66,70 @@ func Log(level LogLevel, msg string, args ...interface{}) {
 	}
 }
 
-//Exec executes the given command, possibly within the chroot (if
+//Command contains optional parameters for Command.Run().
+type Command struct {
+	Stdin       string
+	NoChroot    bool
+	SkipLog     bool
+	NoNsenter   bool
+	ExitOnError bool
+}
+
+//Run executes the given command, possibly within the chroot (if
 //configured in Config.ChrootPath, and if the first argument is true).
-func Exec(mode ExecMode, stdin io.Reader, command string, args ...string) (stdout, stderr string, e error) {
+func (c Command) Run(cmd ...string) (stdout string, success bool) {
 	//if we are executing mount, we need to make sure that we are in the
 	//correct mount namespace; for cryptsetup, we even need to be in the
 	//correct IPC namespace (device-mapper wants to talk to udev)
-	switch command {
-	case "mount":
-		if mode != ExecChrootNoNsenter {
-			args = append([]string{"--mount=/proc/1/ns/mnt", "--", "mount"}, args...)
-			command = "nsenter"
+	if !c.NoNsenter {
+		switch cmd[0] {
+		case "mount":
+			cmd = append([]string{"nsenter", "--mount=/proc/1/ns/mnt", "--"}, cmd...)
+		case "cryptsetup":
+			cmd = append([]string{"nsenter", "--mount=/proc/1/ns/mnt", "--ipc=/proc/1/ns/ipc", "--"}, cmd...)
 		}
-	case "cryptsetup":
-		args = append([]string{"--mount=/proc/1/ns/mnt", "--ipc=/proc/1/ns/ipc", "--", "cryptsetup"}, args...)
-		command = "nsenter"
 	}
 
 	//prepend `chroot $CHROOT_PATH` if requested
-	if mode != ExecNormal && Config.ChrootPath != "" {
-		args = append([]string{Config.ChrootPath, command}, args...)
-		command = "chroot"
+	if !c.NoChroot && Config.ChrootPath != "" {
+		cmd = append([]string{"chroot", Config.ChrootPath}, cmd...)
 	}
 
 	//become root if necessary (useful for development mode)
 	if os.Geteuid() != 0 {
-		args = append([]string{command}, args...)
-		command = "sudo"
+		cmd = append([]string{"sudo"}, cmd...)
 	}
 
 	stdoutBuf := bytes.NewBuffer(nil)
 	stderrBuf := bytes.NewBuffer(nil)
 
-	cmd := exec.Command(command, args...)
-	cmd.Stdin = stdin //usually nil
-	cmd.Stdout = stdoutBuf
-	cmd.Stderr = stderrBuf
+	execCmd := exec.Command(cmd[0], cmd[1:]...)
+	execCmd.Stdout = stdoutBuf
+	execCmd.Stderr = stderrBuf
+	if c.Stdin != "" {
+		execCmd.Stdin = bytes.NewReader([]byte(c.Stdin))
+	}
+	err := execCmd.Run()
 
-	err := cmd.Run()
-	return string(stdoutBuf.Bytes()), string(stderrBuf.Bytes()), err
-}
-
-//ExecSimple is like Exec, but error output from the called program is sent to
-//stderr directly.
-func ExecSimple(mode ExecMode, stdin io.Reader, command string, args ...string) (string, error) {
-	stdout, stderr, err := Exec(mode, stdin, command, args...)
-	for _, line := range strings.Split(stderr, "\n") {
-		if line != "" {
-			log.Printf("Output from %s: %s\n", command, line)
+	if !c.SkipLog {
+		for _, line := range strings.Split(string(stderrBuf.Bytes()), "\n") {
+			if line != "" {
+				log.Printf("Output from %s: %s\n", cmd[0], line)
+			}
+		}
+		if err != nil {
+			logLevel := LogError
+			if c.ExitOnError {
+				logLevel = LogFatal
+			}
+			Log(logLevel, "exec(%s) failed: %s", strings.Join(cmd, " "), err.Error())
 		}
 	}
-	return stdout, err
+
+	return string(stdoutBuf.Bytes()), err == nil
+}
+
+//Run is a shortcut for Command.Run() that just takes a command line.
+func Run(cmd ...string) (string, bool) {
+	return Command{}.Run(cmd...)
 }

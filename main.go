@@ -87,9 +87,8 @@ func main() {
 	}
 
 	//mark /srv/node as ready
-	_, err = ExecSimple(ExecChroot, nil, "touch", "/srv/node/ready")
-	if err != nil {
-		Log(LogError, "touch /srv/node/ready: %s", err.Error())
+	_, ok := Run("touch", "/srv/node/ready")
+	if !ok {
 		failed = true
 	}
 
