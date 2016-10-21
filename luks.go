@@ -93,6 +93,7 @@ func (drives Drives) ScanOpenLUKSContainers() {
 			//forbids that
 			if drive.DevicePath == backingDevicePath {
 				drive.MappedDevicePath = "/dev/mapper/" + mapName
+				Log(LogDebug, "ScanOpenLUKSContainers: %s is mapped to %s", drive.DevicePath, drive.MappedDevicePath)
 			}
 		}
 	}

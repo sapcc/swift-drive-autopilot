@@ -64,7 +64,13 @@ func ListDrives() Drives {
 		if err != nil {
 			Log(LogFatal, "glob(%#v) failed: %s", pattern, err.Error())
 		}
-		Log(LogDebug, "ListDrives: %s matches %#v", pattern, matches)
+		if len(matches) == 0 {
+			//this could hint at a misconfiguration
+			Log(LogError, "ListDrives: %s does not match anything", pattern)
+		} else {
+			//when logging, prepend slashes to all matches because they are relative paths!
+			Log(LogDebug, "ListDrives: %s matches /%s", pattern, strings.Join(matches, ", /"))
+		}
 
 		for _, match := range matches {
 			//resolve any symlinks to get the actual devicePath
@@ -79,7 +85,7 @@ func ListDrives() Drives {
 			}
 			result = append(result, newDrive(devicePath))
 
-			if devicePath != match {
+			if devicePath != "/"+match {
 				Log(LogDebug, "ListDrives: resolved %s to %s", match, devicePath)
 			}
 		}
