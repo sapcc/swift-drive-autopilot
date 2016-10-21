@@ -44,7 +44,7 @@ func (d *Drive) OpenLUKS() (success bool) {
 	//try each key until one works
 	mapperName := d.TemporaryMount.Name
 	for idx, key := range Config.Keys {
-		Log(LogDebug, "trying to luksOpen %s as %s with key %d", d.DevicePath, mapperName, idx)
+		Log(LogDebug, "trying to luksOpen %s as %s with key %d...", d.DevicePath, mapperName, idx)
 		_, _, err := Exec(
 			ExecChroot, bytes.NewReader([]byte(key.Secret+"\n")),
 			"cryptsetup", "luksOpen", d.DevicePath, mapperName,
@@ -112,4 +112,42 @@ func getBackingDevicePath(mapName string) string {
 		Log(LogFatal, "cannot find backing device for /dev/mapper/%s", mapName)
 	}
 	return match[1]
+}
+
+//FormatLUKSIfRequired will create a LUKS container on this device if empty.
+func (d *Drive) FormatLUKSIfRequired() (success bool) {
+	//sanity checks
+	if d.MappedDevicePath != "" {
+		Log(LogError, "FormatLUKSIfRequired called on %s, but drive is already mapped!", d.DevicePath)
+		return false
+	}
+	if len(Config.Keys) == 0 {
+		Log(LogError, "FormatLUKSIfRequired called on %s, but no keys specified!", d.DevicePath)
+		return false
+	}
+
+	//is it safe to be formatted? (i.e. don't format when there is already a
+	//filesystem or LUKS container)
+	if !d.Classify() {
+		return false
+	}
+	if d.Type != DeviceTypeUnknown {
+		return true
+	}
+
+	//format with the preferred key
+	key := Config.Keys[0]
+	Log(LogDebug, "running cryptsetup luksFormat %s with key 0...", d.DevicePath)
+	_, err := ExecSimple(
+		ExecChroot, bytes.NewReader([]byte(key.Secret+"\n")),
+		"cryptsetup", "luksFormat", d.DevicePath,
+	)
+	if err != nil {
+		Log(LogError, "exec(cryptsetup luksFormat %s): %s", d.DevicePath, err.Error())
+		return false
+	}
+
+	//update drive classification so that OpenLUKS() will now open this device
+	d.Type = DeviceTypeLUKS
+	return true
 }

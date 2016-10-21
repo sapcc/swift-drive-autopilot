@@ -38,12 +38,19 @@ func main() {
 	drives := ListDrives()
 	drives.ScanOpenLUKSContainers()
 
-	//open LUKS containers if required
 	failed := false
-	for _, drive := range drives {
-		if !drive.OpenLUKS() {
-			failed = true //but keep going for the drives that work
-			continue
+	if len(Config.Keys) > 0 {
+		for _, drive := range drives {
+			//create LUKS containers on unformatted drives
+			if !drive.FormatLUKSIfRequired() {
+				failed = true //but keep going for the drives that work
+				continue
+			}
+			//open LUKS containers if required
+			if !drive.OpenLUKS() {
+				failed = true //but keep going for the drives that work
+				continue
+			}
 		}
 	}
 

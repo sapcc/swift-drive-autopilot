@@ -156,7 +156,7 @@ func (d *Drive) Classify() (success bool) {
 	devicePath := d.ActiveDevicePath()
 	desc, err := ExecSimple(ExecChroot, nil, "file", "-bLs", devicePath)
 	if err != nil {
-		Log(LogError, "exec(file -bLs %s): %s", devicePath, err.Error)
+		Log(LogError, "exec(file -bLs %s): %s", devicePath, err.Error())
 		return false
 	}
 
@@ -177,11 +177,12 @@ func (d *Drive) Classify() (success bool) {
 //create an XFS. (Swift requires a filesystem that supports extended
 //attributes, and XFS is the most popular choice.)
 func (d *Drive) EnsureFilesystem() (success bool) {
-	//is it a filesystem?
+	//is it safe to be formatted? (i.e. don't format when there is already a
+	//filesystem or LUKS container)
 	if !d.Classify() {
 		return false
 	}
-	if d.Type != DeviceTypeFilesystem {
+	if d.Type != DeviceTypeUnknown {
 		return true
 	}
 
@@ -189,7 +190,7 @@ func (d *Drive) EnsureFilesystem() (success bool) {
 	devicePath := d.ActiveDevicePath()
 	_, err := ExecSimple(ExecChroot, nil, "mkfs.xfs", devicePath)
 	if err != nil {
-		Log(LogError, "exec(mkfs.xfs %s): %s", devicePath, err.Error)
+		Log(LogError, "exec(mkfs.xfs %s): %s", devicePath, err.Error())
 		return false
 	}
 	Log(LogDebug, "XFS filesystem created on %s", devicePath)
