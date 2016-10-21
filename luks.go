@@ -21,6 +21,7 @@ package main
 
 import (
 	"bytes"
+	"regexp"
 	"strings"
 )
 
@@ -65,4 +66,51 @@ func (d *Drive) OpenLUKS() (success bool) {
 	d.Classification = "" //reset because Classification now refers to what's in the mapped device
 	Log(LogDebug, "LUKS container at %s opened as %s", d.DevicePath, d.MappedDevicePath)
 	return true
+}
+
+//ScanOpenLUKSContainers checks all mapped devices in /dev/mapper/*, and
+//records them as MappedDevicePath for their corresponding Drive (if any).
+func (drives Drives) ScanOpenLUKSContainers() {
+	stdout, err := ExecSimple(ExecChroot, nil, "dmsetup", "ls", "--target=crypt")
+	if err != nil {
+		Log(LogFatal, "exec(dmsetup ls --target=crypt): %s", err.Error())
+	}
+
+	for _, line := range strings.Split(stdout, "\n") {
+		//each output line describes a mapping and looks like
+		//"mapname\t(devmajor, devminor)"; extract the mapping names
+		fields := strings.Fields(line)
+		if len(fields) == 0 {
+			continue
+		}
+		mapName := fields[0]
+
+		//ask cryptsetup for the device backing this mapping
+		backingDevicePath := getBackingDevicePath(mapName)
+		for _, drive := range drives {
+			//NOTE: do not need to check for duplicates here (i.e. multiple
+			//mappings backed by the same device) because device-mapper already
+			//forbids that
+			if drive.DevicePath == backingDevicePath {
+				drive.MappedDevicePath = "/dev/mapper/" + mapName
+			}
+		}
+	}
+}
+
+var backingDeviceRx = regexp.MustCompile(`(?m)^\s*device:\s*(\S+)\s*$`)
+
+//Ask cryptsetup for the device backing an open LUKS container.
+func getBackingDevicePath(mapName string) string {
+	stdout, err := ExecSimple(ExecChroot, nil, "cryptsetup", "status", mapName)
+	if err != nil {
+		Log(LogFatal, "exec(cryptsetup status %s): %s", mapName, err.Error())
+	}
+
+	//look for a line like "  device:  /dev/sdb"
+	match := backingDeviceRx.FindStringSubmatch(stdout)
+	if match == nil {
+		Log(LogFatal, "cannot find backing device for /dev/mapper/%s", mapName)
+	}
+	return match[1]
 }

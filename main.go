@@ -36,6 +36,7 @@ func main() {
 
 	//list drives
 	drives := ListDrives()
+	drives.ScanOpenLUKSContainers()
 
 	//open LUKS containers if required
 	failed := false
