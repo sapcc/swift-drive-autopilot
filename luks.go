@@ -70,6 +70,10 @@ func (d *Drive) OpenLUKS() (success bool) {
 func (drives Drives) ScanOpenLUKSContainers() {
 	stdout, _ := Command{ExitOnError: true}.Run("dmsetup", "ls", "--target=crypt")
 
+	if strings.TrimSpace(stdout) == "No devices found" {
+		return
+	}
+
 	for _, line := range strings.Split(stdout, "\n") {
 		//each output line describes a mapping and looks like
 		//"mapname\t(devmajor, devminor)"; extract the mapping names
