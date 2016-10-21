@@ -153,8 +153,11 @@ func (d *Drive) Classify() (success bool) {
 	}
 
 	//ask file(1) to identify the contents of this device
+	//BUT: do not run file(1) in the chroot (e.g. CoreOS does not have file(1))
 	devicePath := d.ActiveDevicePath()
-	desc, ok := Run("file", "-bLs", devicePath)
+	desc, ok := Command{
+		NoChroot: true,
+	}.Run("file", "-bLs", Config.ChrootPath+devicePath)
 	if !ok {
 		return false
 	}
