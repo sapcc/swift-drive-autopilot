@@ -86,8 +86,12 @@ func main() {
 		}
 	}
 
-	//mark /srv/node as ready
-	_, ok := Run("touch", "/srv/node/ready")
+	//mark storage as ready for consumption by Swift
+	_, ok := Run("mkdir", "-p", "/run/swift-storage/state")
+	if !ok {
+		failed = true
+	}
+	_, ok = Run("touch", "/run/swift-storage/state/flag-ready")
 	if !ok {
 		failed = true
 	}

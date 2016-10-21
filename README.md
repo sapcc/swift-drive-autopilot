@@ -91,6 +91,16 @@ one is used when creating new LUKS containers.
 Currently, the `secret` will be used as encryption key directly. Other key
 derivation schemes may be supported in the future.
 
+### Runtime interface
+
+`swift-drive-autopilot` maintains the directory `/run/swift-storage/state` to
+store and advertise state information. Currently, the following files will be
+written:
+
+* `flag-ready` is an empty file whose existence marks that
+  `swift-drive-autopilot` has run at least once. This flag can be used to delay
+  the startup of Swift services until storage is available.
+
 ### In Docker
 
 When used as a container, supply the host's root filesystem as a bind-mount and
@@ -113,3 +123,7 @@ matching your Swift storage nodes. Like described for Docker above, make sure
 to mount the host's root filesystem into the container (with a `hostPath`
 volume) and run the container in privileged mode (by setting
 `securityContext.privileged` to `true` in the container spec).
+
+Any other Swift containers should have access to the host's
+`/run/swift-storage/state` directory (using a `hostPath` volume) and wait for
+the file `flag-ready` to appear before starting up.
