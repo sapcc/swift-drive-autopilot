@@ -113,11 +113,12 @@ func getBackingDevicePath(mapName string) string {
 
 //FormatLUKSIfRequired will create a LUKS container on this device if empty.
 func (d *Drive) FormatLUKSIfRequired() (success bool) {
-	//sanity checks
+	//we can skip all of this if the LUKS container exists and is mapped already
 	if d.MappedDevicePath != "" {
-		Log(LogError, "FormatLUKSIfRequired called on %s, but drive is already mapped!", d.DevicePath)
-		return false
+		return true
 	}
+
+	//sanity check
 	if len(Config.Keys) == 0 {
 		Log(LogError, "FormatLUKSIfRequired called on %s, but no keys specified!", d.DevicePath)
 		return false
