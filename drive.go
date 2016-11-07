@@ -22,7 +22,6 @@ package main
 import (
 	"crypto/md5"
 	"encoding/hex"
-	"path/filepath"
 	"strings"
 )
 
@@ -67,49 +66,6 @@ type Drive struct {
 
 //Drives is a list of Drive structs with some extra methods.
 type Drives []*Drive
-
-//ListDrives returns the list of all Swift storage drives, by expanding the
-//shell globs in Config.DriveGlobs and resolving any symlinks.
-func ListDrives() Drives {
-	var result Drives
-
-	for _, pattern := range Config.DriveGlobs {
-		//make pattern relative to current directory (== chroot directory)
-		pattern = strings.TrimPrefix(pattern, "/")
-
-		matches, err := filepath.Glob(pattern)
-		if err != nil {
-			Log(LogFatal, "glob(%#v) failed: %s", pattern, err.Error())
-		}
-		if len(matches) == 0 {
-			//this could hint at a misconfiguration
-			Log(LogError, "ListDrives: %s does not match anything", pattern)
-		} else {
-			//when logging, prepend slashes to all matches because they are relative paths!
-			Log(LogDebug, "ListDrives: %s matches /%s", pattern, strings.Join(matches, ", /"))
-		}
-
-		for _, match := range matches {
-			//resolve any symlinks to get the actual devicePath
-			devicePath, err := filepath.EvalSymlinks(match)
-			if err != nil {
-				Log(LogFatal, "readlink(%#v) failed: %s", match, err.Error())
-			}
-
-			//make path absolute if necessary (the glob was a relative path!)
-			if !strings.HasPrefix(devicePath, "/") {
-				devicePath = "/" + devicePath
-			}
-			result = append(result, newDrive(devicePath))
-
-			if devicePath != "/"+match {
-				Log(LogDebug, "ListDrives: resolved %s to %s", match, devicePath)
-			}
-		}
-	}
-
-	return result
-}
 
 func newDrive(devicePath string) *Drive {
 	//default value for MountID is md5sum of devicePath
