@@ -16,14 +16,35 @@ following steps:
 
 1. enumerate all storage drives (using a configurable list of globs)
 
-2. create an XFS filesystem on devices that do not have a filesystem yet
+2. (optional) create a LUKS encryption container on fresh devices, or unlock an
+   existing one
 
-2. mount each device below `/run/swift-storage` with a temporary name
+3. create an XFS filesystem on devices that do not have a filesystem yet
 
-3. examine each device's `swift-id` file, and if it is present and unique,
+4. mount each device below `/run/swift-storage` with a temporary name
+
+5. examine each device's `swift-id` file, and if it is present and unique,
    bind-mount it to `/srv/node/$id`
 
-Support for data-at-rest encryption using dm-crypt/LUKS is coming soon.
+### Event-based behavior
+
+The autopilot consists of two types of threads: *Collectors* watch for
+interesting events, and trigger the *converger* which will then react on the
+events to ensure the desired state of the drives. The following events are
+recognized:
+
+1. A new device file appears. It will be decrypted and mounted (and formatted
+   if necessary).
+
+2. A device file disappears. Any active mounts or mappings will be cleaned up.
+   (This is especially helpful with hot-swappable hard drives.)
+
+3. The kernel log contains a line like `error on /dev/sda`. The offending
+   device will be marked as unhealthy and unmounted from `/srv/node`. The
+   other mappings and mounts are left intact for the administrator to inspect.
+
+4. Mounts of managed devices disappear unexpectedly. The offending device will
+   be marked as unhealthy (see previous point).
 
 ## Installation
 
