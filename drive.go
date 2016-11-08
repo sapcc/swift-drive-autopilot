@@ -176,10 +176,7 @@ func (d *Drive) CheckMounts(temporaryMounts, finalMounts map[string]string) {
 	finalMountOk := d.FinalMount.Check(devicePath, finalMounts[devicePath])
 
 	success := tempMountOk && finalMountOk
-	if success {
-		d.TemporaryMount.ReportToDebugLog("CheckMounts", devicePath)
-		d.FinalMount.ReportToDebugLog("CheckMounts", devicePath)
-	} else {
+	if !success {
 		d.Broken = true
 	}
 }

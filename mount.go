@@ -68,6 +68,7 @@ func (m *MountPoint) Check(devicePath, actualMountName string) (success bool) {
 		//and now we know that it is already active (and under which name)
 		m.Name = actualMountName
 		m.Active = true
+		Log(LogDebug, "discovered %s to be mounted at %s/%s already", m.Location, m.Active)
 	}
 	return true
 }
@@ -85,7 +86,6 @@ func (m *MountPoint) Activate(devicePath string) bool {
 	}
 
 	mountPath := m.Path()
-	Log(LogDebug, "mounting %s to %s", devicePath, mountPath)
 
 	//prepare new target directory
 	_, ok := Run("mkdir", "-m", "0700", "-p", mountPath)
@@ -107,6 +107,7 @@ func (m *MountPoint) Activate(devicePath string) bool {
 	}
 
 	m.Active = true
+	Log(LogInfo, "mounted %s to %s", devicePath, mountPath)
 	return true
 }
 
@@ -118,7 +119,6 @@ func (m *MountPoint) Deactivate() bool {
 	}
 
 	mountPath := m.Path()
-	Log(LogDebug, "unmounting %s", mountPath)
 
 	//unmount both in the container and the host (same pattern as for Activate)
 	_, ok := Run("umount", mountPath)
@@ -133,16 +133,8 @@ func (m *MountPoint) Deactivate() bool {
 	}
 
 	m.Active = false
+	Log(LogInfo, "unmounted %s", mountPath)
 	return true
-}
-
-//ReportToDebugLog reports the state of the MountPoint to Log(LogDebug).
-func (m MountPoint) ReportToDebugLog(callerDesc, devicePath string) {
-	if m.Active {
-		Log(LogDebug, "%s: %s is mounted at %s", callerDesc, devicePath, m.Path())
-	} else {
-		Log(LogDebug, "%s: %s is not mounted below %s", callerDesc, devicePath, m.Location)
-	}
 }
 
 //Chown changes the ownership of the mount point path to the given user and

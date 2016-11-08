@@ -68,7 +68,7 @@ func (d *Drive) OpenLUKS() {
 
 	d.MappedDevicePath = "/dev/mapper/" + mapperName
 	d.Type = DeviceTypeNotScanned //reset because Classification now refers to what's in the mapped device
-	Log(LogDebug, "LUKS container at %s opened as %s", d.DevicePath, d.MappedDevicePath)
+	Log(LogInfo, "LUKS container at %s opened as %s", d.DevicePath, d.MappedDevicePath)
 }
 
 //CloseLUKS will close the LUKS container on the given drive, if it exists and
@@ -85,7 +85,7 @@ func (d *Drive) CloseLUKS() (success bool) {
 		return false
 	}
 
-	Log(LogDebug, "LUKS container %s closed", d.MappedDevicePath)
+	Log(LogInfo, "LUKS container %s closed", d.MappedDevicePath)
 	d.MappedDevicePath = ""
 	return true
 }
