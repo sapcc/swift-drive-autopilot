@@ -86,6 +86,9 @@ func (c *Converger) Converge() {
 
 	for _, drive := range c.Drives {
 		if drive.Broken {
+			if !drive.FinalMount.Deactivate() {
+				c.Failed = true
+			}
 			continue
 		}
 
