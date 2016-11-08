@@ -139,12 +139,12 @@ func CollectDriveEvents(queue chan []Event) {
 ////////////////////////////////////////////////////////////////////////////////
 // wakeup scheduler
 
-//ScheduleWakeups is a collector job that pushes a no-op event every few minutes
+//ScheduleWakeups is a collector job that pushes a no-op event every 30 seconds
 //to invoke the consistency checks that the converger executes during each of
 //its event loop iterations.
 func ScheduleWakeups(queue chan []Event) {
 	for {
-		time.Sleep(10 * time.Minute)
+		time.Sleep(30 * time.Second)
 		queue <- []Event{WakeupEvent{}}
 	}
 }
