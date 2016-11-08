@@ -68,7 +68,7 @@ func (m *MountPoint) Check(devicePath, actualMountName string) (success bool) {
 		//and now we know that it is already active (and under which name)
 		m.Name = actualMountName
 		m.Active = true
-		Log(LogDebug, "discovered %s to be mounted at %s/%s already", m.Location, m.Active)
+		Log(LogInfo, "discovered %s to be mounted at %s/%s already", devicePath, m.Location, m.Name)
 	}
 	return true
 }
