@@ -67,19 +67,19 @@ func CollectDriveEvents(queue chan []Event) {
 	reportedEmptyGlob := false
 	//this map will track which drives we know about (i.e. for which drives we
 	//have sent DriveAddedEvent)
-	devicePaths := make(map[string]bool)
+	devicePaths := make(map[string]string)
 
 	//work loop
 	for {
 		var events []Event
 
 		//check if any of the known drives have been removed
-		for devicePath := range devicePaths {
-			_, err := os.Stat(devicePath)
+		for globbedPath, devicePath := range devicePaths {
+			_, err := os.Stat(globbedPath)
 			switch {
 			case os.IsNotExist(err):
 				events = append(events, DriveRemovedEvent{DevicePath: devicePath})
-				delete(devicePaths, devicePath)
+				delete(devicePaths, globbedPath)
 			case err != nil:
 				Log(LogFatal, "stat(%s) failed: %s", devicePath, err.Error())
 			}
@@ -110,21 +110,18 @@ func CollectDriveEvents(queue chan []Event) {
 					Log(LogFatal, "readlink(%#v) failed: %s", match, err.Error())
 				}
 
-				//make paths absolute if necessary (the glob was a relative path!)
+				//make path absolute if necessary (the glob was a relative path!)
 				if !strings.HasPrefix(devicePath, "/") {
 					devicePath = "/" + devicePath
 				}
-				if !strings.HasPrefix(match, "/") {
-					match = "/" + match
-				}
 
 				//report drive unless it was already found in a previous run
-				if !devicePaths[devicePath] {
+				if devicePaths[match] == "" {
 					events = append(events, DriveAddedEvent{
 						DevicePath:  devicePath,
-						FoundAtPath: match,
+						FoundAtPath: "/" + match,
 					})
-					devicePaths[devicePath] = true
+					devicePaths[match] = devicePath
 				}
 			}
 		}
