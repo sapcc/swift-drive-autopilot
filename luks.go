@@ -73,21 +73,18 @@ func (d *Drive) OpenLUKS() {
 
 //CloseLUKS will close the LUKS container on the given drive, if it exists and
 //is currently open.
-func (d *Drive) CloseLUKS() (success bool) {
+func (d *Drive) CloseLUKS() {
 	//anything to do?
 	if d.MappedDevicePath == "" {
-		return true
+		return
 	}
 
 	mapperName := filepath.Base(d.MappedDevicePath)
 	_, ok := Run("cryptsetup", "close", mapperName)
-	if !ok {
-		return false
+	if ok {
+		Log(LogInfo, "LUKS container %s closed", d.MappedDevicePath)
+		d.MappedDevicePath = ""
 	}
-
-	Log(LogInfo, "LUKS container %s closed", d.MappedDevicePath)
-	d.MappedDevicePath = ""
-	return true
 }
 
 //ScanLUKSMappings checks all mapped devices in /dev/mapper/*, and records them

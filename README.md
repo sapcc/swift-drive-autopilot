@@ -46,6 +46,13 @@ recognized:
 4. Mounts of managed devices disappear unexpectedly. The offending device will
    be marked as unhealthy (see previous point).
 
+### Operational considerations
+
+`swift-drive-autopilot` runs under the assumption that a few disks are better
+than no disks. If some operation relating to a single disk fails, the autopilot
+will log an error and keep going. This means that it is absolutely crucial that
+you have proper alerting in place for log messages with the `ERROR` label.
+
 ## Installation
 
 To build the binary:

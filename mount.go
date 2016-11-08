@@ -112,35 +112,28 @@ func (m *MountPoint) Activate(devicePath string) bool {
 }
 
 //Deactivate will unmount the given MountPoint if it is Active.
-func (m *MountPoint) Deactivate() bool {
+func (m *MountPoint) Deactivate() {
 	//already unmounted?
 	if !m.Active {
-		return true
+		return
 	}
 
 	mountPath := m.Path()
 
 	//unmount both in the container and the host (same pattern as for Activate)
-	_, ok := Run("umount", mountPath)
-	if !ok {
-		return false
-	}
+	Run("umount", mountPath)
 	if Config.ChrootPath != "" {
-		_, ok = Command{NoNsenter: true}.Run("umount", mountPath)
-		if !ok {
-			return false
-		}
+		Command{NoNsenter: true}.Run("umount", mountPath)
 	}
 
 	m.Active = false
 	Log(LogInfo, "unmounted %s", mountPath)
-	return true
 }
 
 //Chown changes the ownership of the mount point path to the given user and
 //group. Both arguments may either be a name or a numeric ID (but still given
 //as a string in decimal).
-func (m MountPoint) Chown(user, group string) (success bool) {
+func (m MountPoint) Chown(user, group string) {
 	var (
 		command string
 		arg     string
@@ -149,7 +142,7 @@ func (m MountPoint) Chown(user, group string) (success bool) {
 	//set only those things which were given
 	if user == "" {
 		if group == "" {
-			return true // nothing to do
+			return // nothing to do
 		}
 		command, arg = "chgrp", group
 	} else {
@@ -161,8 +154,7 @@ func (m MountPoint) Chown(user, group string) (success bool) {
 
 	mountPath := m.Path()
 	Log(LogDebug, "%s %s to %s", command, mountPath, arg)
-	_, ok := Run(command, arg, mountPath)
-	return ok
+	Run(command, arg, mountPath)
 }
 
 var tempMountRx = regexp.MustCompile(`^/run/swift-storage/([^/]+)$`)

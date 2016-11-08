@@ -22,7 +22,6 @@ package main
 import (
 	"crypto/md5"
 	"encoding/hex"
-	"os"
 )
 
 //Converger contains the internal state of the converger thread.
@@ -34,12 +33,6 @@ type Converger struct {
 	ActiveLUKSMappings    map[string]string
 	ActiveTemporaryMounts map[string]string
 	ActiveFinalMounts     map[string]string
-
-	//When Failed becomes true, the application will shutdown after the next
-	//Converge() run.  This is intended to signal failures of critical
-	//operations (like cryptsetup/mount/umount) to the caller, without
-	//interrupting the setup of other drives.
-	Failed bool
 }
 
 //RunConverger runs the converger thread. This function does not return.
@@ -72,49 +65,22 @@ func RunConverger(queue chan []Event) {
 func (c *Converger) Converge() {
 	for _, drive := range c.Drives {
 		drive.Converge(c)
-
-		if drive.Broken {
-			c.Failed = true
-			continue
-		}
 	}
 
 	//map mountpoints from /run/swift-storage to /srv/node
-	if !Drives(c.Drives).ScanSwiftIDs() {
-		c.Failed = true //but keep going for the drives that work
-	}
+	Drives(c.Drives).ScanSwiftIDs()
 
 	for _, drive := range c.Drives {
-		if drive.Broken {
-			continue
-		}
-
-		if !drive.FinalMount.Activate(drive.ActiveDevicePath()) {
-			c.Failed = true //but keep going for the drives that work
-			continue
-		}
-
-		owner := Config.Owner
-		if !drive.FinalMount.Chown(owner.User, owner.Group) {
-			c.Failed = true
+		if !drive.Broken {
+			if drive.FinalMount.Activate(drive.ActiveDevicePath()) {
+				drive.FinalMount.Chown(Config.Owner.User, Config.Owner.Group)
+			}
 		}
 	}
 
 	//mark storage as ready for consumption by Swift
-	_, ok := Run("mkdir", "-p", "/run/swift-storage/state")
-	if !ok {
-		c.Failed = true
-	}
-	_, ok = Run("touch", "/run/swift-storage/state/flag-ready")
-	if !ok {
-		c.Failed = true
-	}
-
-	//signal failure to the caller by terminating the process
-	if c.Failed {
-		Log(LogInfo, "encountered some errors, see above")
-		os.Exit(1)
-	}
+	Command{ExitOnError: true}.Run("mkdir", "-p", "/run/swift-storage/state")
+	Command{ExitOnError: true}.Run("touch", "/run/swift-storage/state/flag-ready")
 }
 
 //Handle implements the Event interface.
@@ -161,16 +127,7 @@ func (e DriveRemovedEvent) Handle(c *Converger) {
 
 	//shutdown all active mounts
 	//TODO: flag unmount to other containers
-	if !drive.FinalMount.Deactivate() {
-		c.Failed = true
-		return
-	}
-	if !drive.TemporaryMount.Deactivate() {
-		c.Failed = true
-		return
-	}
-	if !drive.CloseLUKS() {
-		c.Failed = true
-		return
-	}
+	drive.FinalMount.Deactivate()
+	drive.TemporaryMount.Deactivate()
+	drive.CloseLUKS()
 }
