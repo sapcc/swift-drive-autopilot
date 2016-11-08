@@ -19,11 +19,7 @@
 
 package main
 
-import (
-	"crypto/md5"
-	"encoding/hex"
-	"strings"
-)
+import "strings"
 
 //DeviceType describes the contents of a device, to the granularity required by
 //this program.
@@ -67,35 +63,13 @@ type Drive struct {
 	//expectations. Broken drives will be unmounted from /srv/node so that
 	//Swift will stop consuming them.
 	Broken bool
+	//Converged is set when Drive.Converge() runs, to ensure that it does not
+	//run multiple times in a single event loop iteration.
+	Converged bool
 }
 
 //Drives is a list of Drive structs with some extra methods.
 type Drives []*Drive
-
-func newDrive(devicePath string) *Drive {
-	//default value for MountID is md5sum of devicePath
-	s := md5.Sum([]byte(devicePath))
-	mountID := hex.EncodeToString(s[:])
-
-	//- MappedDevicePath will be initialized by TryDecrypt()
-	//- MountPoint.Active will be initialized by ScanDriveMountPoints()
-	//- FinalMount.Name will be initialized by ScanDriveSwiftIDs()
-	return &Drive{
-		DevicePath:       devicePath,
-		MappedDevicePath: "",
-		TemporaryMount: MountPoint{
-			Location: "/run/swift-storage",
-			Name:     mountID,
-			Active:   false,
-		},
-		FinalMount: MountPoint{
-			Location: "/srv/node",
-			Name:     "",
-			Active:   false,
-		},
-		Broken: false, //until proven guilty :)
-	}
-}
 
 //ActiveDevicePath is usually DevicePath, but if the drive is LUKS-encrypted
 //and the LUKS container has already been opened, MappedDevicePath is returned.
@@ -208,4 +182,31 @@ func (d *Drive) CheckMounts(temporaryMounts, finalMounts map[string]string) {
 	} else {
 		d.Broken = true
 	}
+}
+
+//Converge moves the drive into its locally desired state.
+//
+//If the drive is not broken, its LUKS container (if any) will be created
+//and/or opened, and its filesystem will be mounted. The only thing missing
+//will be the final mount (since this step needs knowledge of all drives to
+//check for swift-id collisions).
+//
+//If the drive is broken (or discovered to be broken during this operation),
+//no new mappings and mounts will be performed.
+func (d *Drive) Converge(c *Converger) {
+	if d.Converged {
+		return
+	}
+
+	d.CheckLUKS(c.ActiveLUKSMappings)
+	if len(Config.Keys) > 0 {
+		d.FormatLUKSIfRequired()
+		d.OpenLUKS()
+	}
+	//try to mount the drive to /run/swift-storage (if not yet mounted)
+	d.CheckMounts(c.ActiveTemporaryMounts, c.ActiveFinalMounts)
+	d.EnsureFilesystem()
+	d.MountSomewhere()
+
+	d.Converged = true
 }

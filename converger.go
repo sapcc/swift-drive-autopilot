@@ -53,6 +53,9 @@ func RunConverger(queue chan []Event) {
 		//initialize short-lived state for this event loop iteration
 		c.ActiveLUKSMappings = ScanLUKSMappings()
 		c.ActiveTemporaryMounts, c.ActiveFinalMounts = ScanMountPoints()
+		for _, drive := range c.Drives {
+			drive.Converged = false
+		}
 
 		//handle events
 		for _, event := range events {
@@ -68,15 +71,7 @@ func RunConverger(queue chan []Event) {
 //has been received and handled by the converger.
 func (c *Converger) Converge() {
 	for _, drive := range c.Drives {
-		drive.CheckLUKS(c.ActiveLUKSMappings)
-		if len(Config.Keys) > 0 {
-			drive.FormatLUKSIfRequired()
-			drive.OpenLUKS()
-		}
-		//try to mount all drives to /run/swift-storage (if not yet mounted)
-		drive.CheckMounts(c.ActiveTemporaryMounts, c.ActiveFinalMounts)
-		drive.EnsureFilesystem()
-		drive.MountSomewhere()
+		drive.Converge(c)
 
 		if drive.Broken {
 			c.Failed = true
@@ -90,6 +85,10 @@ func (c *Converger) Converge() {
 	}
 
 	for _, drive := range c.Drives {
+		if drive.Broken {
+			continue
+		}
+
 		if drive.FinalMount.Activate(drive.ActiveDevicePath()) {
 			Log(LogInfo, "%s is mounted on %s", drive.DevicePath, drive.FinalMount.Path())
 		} else {
@@ -145,6 +144,7 @@ func (e DriveAddedEvent) Handle(c *Converger) {
 	}
 
 	c.Drives = append(c.Drives, drive)
+	drive.Converge(c)
 }
 
 //Handle implements the Event interface.
