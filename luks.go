@@ -85,9 +85,10 @@ func (d *Drive) CloseLUKS() (success bool) {
 	return true
 }
 
-//ScanOpenLUKSContainers checks all mapped devices in /dev/mapper/*, and
-//records them as MappedDevicePath for their corresponding Drive (if any).
-func (drives Drives) ScanOpenLUKSContainers() {
+//ScanLUKSMappings checks all mapped devices in /dev/mapper/*, and records them
+//as a map of backing device path to mapping name.
+func ScanLUKSMappings() (result map[string]string) {
+	result = make(map[string]string)
 	stdout, _ := Command{ExitOnError: true}.Run("dmsetup", "ls", "--target=crypt")
 
 	if strings.TrimSpace(stdout) == "No devices found" {
@@ -105,16 +106,9 @@ func (drives Drives) ScanOpenLUKSContainers() {
 
 		//ask cryptsetup for the device backing this mapping
 		backingDevicePath := getBackingDevicePath(mapName)
-		for _, drive := range drives {
-			//NOTE: do not need to check for duplicates here (i.e. multiple
-			//mappings backed by the same device) because device-mapper already
-			//forbids that
-			if drive.DevicePath == backingDevicePath {
-				drive.MappedDevicePath = "/dev/mapper/" + mapName
-				Log(LogDebug, "ScanOpenLUKSContainers: %s is mapped to %s", drive.DevicePath, drive.MappedDevicePath)
-			}
-		}
+		result[backingDevicePath] = mapName
 	}
+	return
 }
 
 var backingDeviceRx = regexp.MustCompile(`(?m)^\s*device:\s*(\S+)\s*$`)
@@ -129,6 +123,41 @@ func getBackingDevicePath(mapName string) string {
 		Log(LogFatal, "cannot find backing device for /dev/mapper/%s", mapName)
 	}
 	return match[1]
+}
+
+//CheckLUKS takes the output from ScanLUKSMappings and fills the
+//MappedDevicePath of this Drive if it is mapped. False is returned if any
+//inconsistencies are found.
+func (d *Drive) CheckLUKS(activeMappings map[string]string) (success bool) {
+	//TODO: mark drive as broken instead of returning false
+	actualMapName := activeMappings[d.DevicePath]
+
+	if actualMapName == "" {
+		if d.MappedDevicePath != "" {
+			Log(LogError, "LUKS container in %s should be open at %s, but is not",
+				d.DevicePath, d.MappedDevicePath,
+			)
+			return false
+		}
+		return true
+	}
+
+	actualMappedPath := "/dev/mapper/" + actualMapName
+	switch d.MappedDevicePath {
+	case "":
+		//existing mapping is now discovered for the first time -> update Drive struct
+		d.MappedDevicePath = actualMappedPath
+		return true
+	case actualMappedPath:
+		//no change
+		return true
+	default:
+		//our internal state tells a different story!
+		Log(LogError, "LUKS container in %s should be open at %s, but is actually open at %s",
+			d.DevicePath, d.MappedDevicePath, actualMappedPath,
+		)
+		return false
+	}
 }
 
 //FormatLUKSIfRequired will create a LUKS container on this device if empty.

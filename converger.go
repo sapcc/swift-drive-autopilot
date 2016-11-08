@@ -31,6 +31,7 @@ type Converger struct {
 	Drives []*Drive
 
 	//short-lived state that is gathered before the event handlers run
+	ActiveLUKSMappings    map[string]string
 	ActiveTemporaryMounts map[string]string
 	ActiveFinalMounts     map[string]string
 
@@ -50,6 +51,7 @@ func RunConverger(queue chan []Event) {
 		events := <-queue
 
 		//initialize short-lived state for this event loop iteration
+		c.ActiveLUKSMappings = ScanLUKSMappings()
 		c.ActiveTemporaryMounts, c.ActiveFinalMounts = ScanMountPoints()
 
 		//handle events
@@ -65,9 +67,11 @@ func RunConverger(queue chan []Event) {
 //Converge moves towards the desired state of all drives after a set of events
 //has been received and handled by the converger.
 func (c *Converger) Converge() {
-	Drives(c.Drives).ScanOpenLUKSContainers()
-
 	for _, drive := range c.Drives {
+		if !drive.CheckLUKS(c.ActiveLUKSMappings) {
+			c.Failed = true
+			continue //but keep going for the drives that work
+		}
 		if len(Config.Keys) > 0 {
 			//create LUKS containers on unformatted drives
 			if !drive.FormatLUKSIfRequired() {
