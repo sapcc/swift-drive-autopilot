@@ -115,10 +115,12 @@ func (e DriveAddedEvent) Handle(c *Converger) {
 func (e DriveRemovedEvent) Handle(c *Converger) {
 	//do we know this drive?
 	var drive *Drive
+	var otherDrives []*Drive
 	for _, d := range c.Drives {
 		if d.DevicePath == e.DevicePath {
 			drive = d
-			break
+		} else {
+			otherDrives = append(otherDrives, d)
 		}
 	}
 	if drive == nil {
@@ -130,4 +132,7 @@ func (e DriveRemovedEvent) Handle(c *Converger) {
 	drive.FinalMount.Deactivate()
 	drive.TemporaryMount.Deactivate()
 	drive.CloseLUKS()
+
+	//remove drive from list
+	c.Drives = otherDrives
 }
