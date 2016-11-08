@@ -140,4 +140,30 @@ func CollectDriveEvents(queue chan []Event) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// wakeup scheduler
+
+//ScheduleWakeups is a collector job that pushes a no-op event every few minutes
+//to invoke the consistency checks that the converger executes during each of
+//its event loop iterations.
+func ScheduleWakeups(queue chan []Event) {
+	for {
+		time.Sleep(10 * time.Minute)
+		queue <- []Event{WakeupEvent{}}
+	}
+}
+
+//WakeupEvent is sent by the ScheduleWakeups collector.
+type WakeupEvent struct{}
+
+//LogMessage implements the Event interface.
+func (e WakeupEvent) LogMessage() string {
+	return "scheduled consistency check"
+}
+
+//Handle implements the Event interface.
+func (e WakeupEvent) Handle(c *Converger) {
+	//do nothing
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // TODO: kernel log collector

@@ -37,6 +37,7 @@ func main() {
 	//start the collectors
 	queue := make(chan []Event, 10)
 	go CollectDriveEvents(queue)
+	go ScheduleWakeups(queue)
 
 	//the converger runs in the main thread
 	RunConverger(queue)
