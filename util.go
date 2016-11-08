@@ -83,7 +83,7 @@ func (c Command) Run(cmd ...string) (stdout string, success bool) {
 	//correct IPC namespace (device-mapper wants to talk to udev)
 	if !c.NoNsenter {
 		switch cmd[0] {
-		case "mount":
+		case "mount", "umount":
 			cmd = append([]string{"nsenter", "--mount=/proc/1/ns/mnt", "--"}, cmd...)
 		case "cryptsetup":
 			cmd = append([]string{"nsenter", "--mount=/proc/1/ns/mnt", "--ipc=/proc/1/ns/ipc", "--"}, cmd...)

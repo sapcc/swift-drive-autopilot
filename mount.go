@@ -73,6 +73,32 @@ func (m *MountPoint) Activate(devicePath string) bool {
 	return true
 }
 
+//Deactivate will unmount the given MountPoint if it is Active.
+func (m *MountPoint) Deactivate() bool {
+	//already unmounted?
+	if !m.Active {
+		return true
+	}
+
+	mountPath := m.Path()
+	Log(LogDebug, "unmounting %s", mountPath)
+
+	//unmount both in the container and the host (same pattern as for Activate)
+	_, ok := Run("umount", mountPath)
+	if !ok {
+		return false
+	}
+	if Config.ChrootPath != "" {
+		_, ok = Command{NoNsenter: true}.Run("umount", mountPath)
+		if !ok {
+			return false
+		}
+	}
+
+	m.Active = false
+	return true
+}
+
 //ReportToDebugLog reports the state of the MountPoint to Log(LogDebug).
 func (m MountPoint) ReportToDebugLog(callerDesc, devicePath string) {
 	if m.Active {

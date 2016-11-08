@@ -31,6 +31,7 @@ import (
 //the converger thread.
 type Event interface {
 	LogMessage() string
+	Handle(c *Converger)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -62,7 +63,7 @@ func (e DriveRemovedEvent) LogMessage() string {
 
 //CollectDriveEvents is a collector thread that emits DriveAddedEvent and
 //DriveRemovedEvent.
-func CollectDriveEvents(queue chan Event) {
+func CollectDriveEvents(queue chan []Event) {
 	reportedEmptyGlob := false
 	//this map will track which drives we know about (i.e. for which drives we
 	//have sent DriveAddedEvent)
@@ -70,12 +71,14 @@ func CollectDriveEvents(queue chan Event) {
 
 	//work loop
 	for {
+		var events []Event
+
 		//check if any of the known drives have been removed
 		for devicePath := range devicePaths {
 			_, err := os.Stat(devicePath)
 			switch {
 			case os.IsNotExist(err):
-				queue <- DriveRemovedEvent{DevicePath: devicePath}
+				events = append(events, DriveRemovedEvent{DevicePath: devicePath})
 				delete(devicePaths, devicePath)
 			case err != nil:
 				Log(LogFatal, "stat(%s) failed: %s", devicePath, err.Error())
@@ -117,13 +120,18 @@ func CollectDriveEvents(queue chan Event) {
 
 				//report drive unless it was already found in a previous run
 				if !devicePaths[devicePath] {
-					queue <- DriveAddedEvent{
+					events = append(events, DriveAddedEvent{
 						DevicePath:  devicePath,
 						FoundAtPath: match,
-					}
+					})
 					devicePaths[devicePath] = true
 				}
 			}
+		}
+
+		//wake up the converger thread
+		if len(events) > 0 {
+			queue <- events
 		}
 
 		//sleep for 5 seconds before running globs again

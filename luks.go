@@ -20,6 +20,7 @@
 package main
 
 import (
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -62,6 +63,25 @@ func (d *Drive) OpenLUKS() (success bool) {
 	d.MappedDevicePath = "/dev/mapper/" + mapperName
 	d.Type = DeviceTypeNotScanned //reset because Classification now refers to what's in the mapped device
 	Log(LogDebug, "LUKS container at %s opened as %s", d.DevicePath, d.MappedDevicePath)
+	return true
+}
+
+//CloseLUKS will close the LUKS container on the given drive, if it exists and
+//is currently open.
+func (d *Drive) CloseLUKS() (success bool) {
+	//anything to do?
+	if d.MappedDevicePath == "" {
+		return true
+	}
+
+	mapperName := filepath.Base(d.MappedDevicePath)
+	_, ok := Run("cryptsetup", "close", mapperName)
+	if !ok {
+		return false
+	}
+
+	Log(LogDebug, "LUKS container %s closed", d.MappedDevicePath)
+	d.MappedDevicePath = ""
 	return true
 }
 
