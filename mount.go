@@ -52,6 +52,7 @@ func (m *MountPoint) Check(devicePath, actualMountName string) (success bool) {
 			"expected %s to be mounted at %s, but is not mounted anymore",
 			devicePath, m.Path(),
 		)
+		m.Active = false
 		return false
 	}
 
@@ -61,6 +62,7 @@ func (m *MountPoint) Check(devicePath, actualMountName string) (success bool) {
 				"expected %s to be mounted at %s, but is actually mounted at /run/swift-storage/%s",
 				devicePath, m.Path(), actualMountName,
 			)
+			m.Name = actualMountName //to ensure that a subsequent automatic umount works
 			return false
 		}
 	} else {
