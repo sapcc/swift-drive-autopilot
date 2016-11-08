@@ -86,15 +86,10 @@ func (c *Converger) Converge() {
 
 	for _, drive := range c.Drives {
 		if drive.Broken {
-			if !drive.FinalMount.Deactivate() {
-				c.Failed = true
-			}
 			continue
 		}
 
-		if drive.FinalMount.Activate(drive.ActiveDevicePath()) {
-			Log(LogInfo, "%s is mounted on %s", drive.DevicePath, drive.FinalMount.Path())
-		} else {
+		if !drive.FinalMount.Activate(drive.ActiveDevicePath()) {
 			c.Failed = true //but keep going for the drives that work
 			continue
 		}

@@ -80,6 +80,18 @@ func (d Drive) ActiveDevicePath() string {
 	return d.MappedDevicePath
 }
 
+//MarkAsBroken sets the Broken flag on the drive.
+func (d *Drive) MarkAsBroken() {
+	if d.Broken {
+		return
+	}
+
+	d.Broken = true
+	Log(LogInfo, "flagging %s as broken because of previous error", d.DevicePath)
+
+	d.FinalMount.Deactivate()
+}
+
 //Classify will call file(1) on the drive's device file (or the mapped device
 //file, if any), and save the result in the Classification field.
 func (d *Drive) Classify() (success bool) {
@@ -95,7 +107,7 @@ func (d *Drive) Classify() (success bool) {
 		NoChroot: true,
 	}.Run("file", "-bLs", Config.ChrootPath+devicePath)
 	if !ok {
-		d.Broken = true
+		d.MarkAsBroken()
 		return false
 	}
 
@@ -133,7 +145,7 @@ func (d *Drive) EnsureFilesystem() {
 	devicePath := d.ActiveDevicePath()
 	_, ok := Run("mkfs.xfs", devicePath)
 	if !ok {
-		d.Broken = true
+		d.MarkAsBroken()
 		return
 	}
 	Log(LogDebug, "XFS filesystem created on %s", devicePath)
@@ -152,7 +164,7 @@ func (d *Drive) MountSomewhere() {
 	}
 	ok := d.TemporaryMount.Activate(d.ActiveDevicePath())
 	if !ok {
-		d.Broken = true
+		d.MarkAsBroken()
 	}
 }
 
@@ -164,7 +176,7 @@ func (d *Drive) CheckMounts(temporaryMounts, finalMounts map[string]string) {
 	if d.MappedDevicePath != "" {
 		if temporaryMounts[d.DevicePath] != "" || finalMounts[d.DevicePath] != "" {
 			Log(LogError, "%s contains an open LUKS container, but is also mounted directly", d.DevicePath)
-			d.Broken = true
+			d.MarkAsBroken()
 			return
 		}
 	}
@@ -177,7 +189,7 @@ func (d *Drive) CheckMounts(temporaryMounts, finalMounts map[string]string) {
 
 	success := tempMountOk && finalMountOk
 	if !success {
-		d.Broken = true
+		d.MarkAsBroken()
 	}
 }
 
