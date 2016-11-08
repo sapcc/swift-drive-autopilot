@@ -171,21 +171,23 @@ func (d *Drive) MountSomewhere() {
 //CheckMounts takes the return values of ScanMountPoints() and checks where the
 //given drive is mounted. False is returned if the state of the Drive is
 //inconsistent with the mounts lists.
-func (d *Drive) CheckMounts(temporaryMounts, finalMounts map[string]string) {
+func (d *Drive) CheckMounts(activeMounts SystemMountPoints) {
 	//if a LUKS container is open, then the base device should not be mounted
 	if d.MappedDevicePath != "" {
-		if temporaryMounts[d.DevicePath] != "" || finalMounts[d.DevicePath] != "" {
-			Log(LogError, "%s contains an open LUKS container, but is also mounted directly", d.DevicePath)
-			d.MarkAsBroken()
-			return
+		for _, m := range activeMounts {
+			if m.DevicePath == d.DevicePath {
+				Log(LogError, "%s contains an open LUKS container, but is also mounted directly", d.DevicePath)
+				d.MarkAsBroken()
+				return
+			}
 		}
 	}
 
 	//check that the mountpoints recorded in this Drive are consistent with the
 	//actual system state
 	devicePath := d.ActiveDevicePath()
-	tempMountOk := d.TemporaryMount.Check(devicePath, temporaryMounts[devicePath])
-	finalMountOk := d.FinalMount.Check(devicePath, finalMounts[devicePath])
+	tempMountOk := d.TemporaryMount.Check(devicePath, activeMounts)
+	finalMountOk := d.FinalMount.Check(devicePath, activeMounts)
 
 	success := tempMountOk && finalMountOk
 	if !success {
@@ -213,7 +215,7 @@ func (d *Drive) Converge(c *Converger) {
 		d.OpenLUKS()
 	}
 	//try to mount the drive to /run/swift-storage (if not yet mounted)
-	d.CheckMounts(c.ActiveTemporaryMounts, c.ActiveFinalMounts)
+	d.CheckMounts(c.ActiveMounts)
 	d.EnsureFilesystem()
 	d.MountSomewhere()
 

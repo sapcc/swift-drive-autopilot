@@ -30,9 +30,8 @@ type Converger struct {
 	Drives []*Drive
 
 	//short-lived state that is gathered before the event handlers run
-	ActiveLUKSMappings    map[string]string
-	ActiveTemporaryMounts map[string]string
-	ActiveFinalMounts     map[string]string
+	ActiveLUKSMappings map[string]string
+	ActiveMounts       SystemMountPoints
 }
 
 //RunConverger runs the converger thread. This function does not return.
@@ -45,7 +44,7 @@ func RunConverger(queue chan []Event) {
 
 		//initialize short-lived state for this event loop iteration
 		c.ActiveLUKSMappings = ScanLUKSMappings()
-		c.ActiveTemporaryMounts, c.ActiveFinalMounts = ScanMountPoints()
+		c.ActiveMounts = ScanMountPoints()
 		for _, drive := range c.Drives {
 			drive.Converged = false
 		}
