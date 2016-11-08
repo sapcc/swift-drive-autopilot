@@ -68,33 +68,18 @@ func RunConverger(queue chan []Event) {
 //has been received and handled by the converger.
 func (c *Converger) Converge() {
 	for _, drive := range c.Drives {
-		if !drive.CheckLUKS(c.ActiveLUKSMappings) {
-			c.Failed = true
-			continue //but keep going for the drives that work
-		}
+		drive.CheckLUKS(c.ActiveLUKSMappings)
 		if len(Config.Keys) > 0 {
-			//create LUKS containers on unformatted drives
-			if !drive.FormatLUKSIfRequired() {
-				c.Failed = true //but keep going for the drives that work
-				continue
-			}
-			//open LUKS containers if required
-			if !drive.OpenLUKS() {
-				c.Failed = true //but keep going for the drives that work
-				continue
-			}
+			drive.FormatLUKSIfRequired()
+			drive.OpenLUKS()
 		}
 		//try to mount all drives to /run/swift-storage (if not yet mounted)
-		if !drive.CheckMounts(c.ActiveTemporaryMounts, c.ActiveFinalMounts) {
-			c.Failed = true //but keep going for the drives that work
-			continue
-		}
-		if !drive.EnsureFilesystem() {
-			c.Failed = true //but keep going for the drives that work
-			continue
-		}
-		if !drive.MountSomewhere() {
-			c.Failed = true //but keep going for the drives that work
+		drive.CheckMounts(c.ActiveTemporaryMounts, c.ActiveFinalMounts)
+		drive.EnsureFilesystem()
+		drive.MountSomewhere()
+
+		if drive.Broken {
+			c.Failed = true
 			continue
 		}
 	}

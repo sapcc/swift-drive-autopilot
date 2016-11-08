@@ -62,6 +62,11 @@ type Drive struct {
 	TemporaryMount MountPoint
 	//FinalMount is this device's mount point below /srv/node.
 	FinalMount MountPoint
+	//Broken is set when some operation regarding the drive fails, or if the
+	//device or its mountpoints act in a way that is inconsistent with our
+	//expectations. Broken drives will be unmounted from /srv/node so that
+	//Swift will stop consuming them.
+	Broken bool
 }
 
 //Drives is a list of Drive structs with some extra methods.
@@ -88,6 +93,7 @@ func newDrive(devicePath string) *Drive {
 			Name:     "",
 			Active:   false,
 		},
+		Broken: false, //until proven guilty :)
 	}
 }
 
@@ -115,6 +121,7 @@ func (d *Drive) Classify() (success bool) {
 		NoChroot: true,
 	}.Run("file", "-bLs", Config.ChrootPath+devicePath)
 	if !ok {
+		d.Broken = true
 		return false
 	}
 
@@ -134,48 +141,57 @@ func (d *Drive) Classify() (success bool) {
 //EnsureFilesystem will check if the device contains a filesystem, and if not,
 //create an XFS. (Swift requires a filesystem that supports extended
 //attributes, and XFS is the most popular choice.)
-func (d *Drive) EnsureFilesystem() (success bool) {
+func (d *Drive) EnsureFilesystem() {
+	//do not touch broken stuff
+	if d.Broken {
+		return
+	}
 	//is it safe to be formatted? (i.e. don't format when there is already a
 	//filesystem or LUKS container)
 	if !d.Classify() {
-		return false
+		return
 	}
 	if d.Type != DeviceTypeUnknown {
-		return true
+		return
 	}
 
 	//format device with XFS
 	devicePath := d.ActiveDevicePath()
 	_, ok := Run("mkfs.xfs", devicePath)
 	if !ok {
-		return false
+		d.Broken = true
+		return
 	}
 	Log(LogDebug, "XFS filesystem created on %s", devicePath)
-
-	return true
 }
 
 //MountSomewhere will mount the given device below `/run/swift-storage` if it
 //has not been mounted yet.
-func (d *Drive) MountSomewhere() (success bool) {
+func (d *Drive) MountSomewhere() {
+	//do not touch broken stuff
+	if d.Broken {
+		return
+	}
 	//already mounted somewhere?
 	if d.FinalMount.Active {
-		return true
+		return
 	}
-	return d.TemporaryMount.Activate(d.ActiveDevicePath())
+	ok := d.TemporaryMount.Activate(d.ActiveDevicePath())
+	if !ok {
+		d.Broken = true
+	}
 }
 
 //CheckMounts takes the return values of ScanMountPoints() and checks where the
 //given drive is mounted. False is returned if the state of the Drive is
 //inconsistent with the mounts lists.
-func (d *Drive) CheckMounts(temporaryMounts, finalMounts map[string]string) bool {
-	//TODO: instead of returning false, mark device as broken
-
+func (d *Drive) CheckMounts(temporaryMounts, finalMounts map[string]string) {
 	//if a LUKS container is open, then the base device should not be mounted
 	if d.MappedDevicePath != "" {
 		if temporaryMounts[d.DevicePath] != "" || finalMounts[d.DevicePath] != "" {
 			Log(LogError, "%s contains an open LUKS container, but is also mounted directly", d.DevicePath)
-			return false
+			d.Broken = true
+			return
 		}
 	}
 
@@ -189,6 +205,7 @@ func (d *Drive) CheckMounts(temporaryMounts, finalMounts map[string]string) bool
 	if success {
 		d.TemporaryMount.ReportToDebugLog("CheckMounts", devicePath)
 		d.FinalMount.ReportToDebugLog("CheckMounts", devicePath)
+	} else {
+		d.Broken = true
 	}
-	return success
 }
