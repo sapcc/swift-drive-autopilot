@@ -19,6 +19,11 @@
 
 package main
 
+import (
+	"regexp"
+	"strings"
+)
+
 //MountPoint describes a location where a Drive can be mounted.
 type MountPoint struct {
 	//Location is the dirname(1) of the mountpoint. It is an absolute path
@@ -33,6 +38,38 @@ type MountPoint struct {
 //Path returns the full absolute path (inside the chroot) of the mountpoint.
 func (m MountPoint) Path() string {
 	return m.Location + "/" + m.Name
+}
+
+//Check takes the actual mount name of this device below the mountpoint's
+//Location (or an empty string if the mount is not active), and checks whether
+//this is consistent with the internal state of the MountPoint struct.
+func (m *MountPoint) Check(devicePath, actualMountName string) (success bool) {
+	if actualMountName == "" {
+		if !m.Active {
+			return true
+		}
+		Log(LogError,
+			"expected %s to be mounted at %s, but is not mounted anymore",
+			devicePath, m.Path(),
+		)
+		return false
+	}
+
+	if m.Active {
+		if actualMountName != m.Name {
+			Log(LogError,
+				"expected %s to be mounted at %s, but is actually mounted at /run/swift-storage/%s",
+				devicePath, m.Path(), actualMountName,
+			)
+			return false
+		}
+	} else {
+		//this case is okay - the MountPoint struct may have just been created
+		//and now we know that it is already active (and under which name)
+		m.Name = actualMountName
+		m.Active = true
+	}
+	return true
 }
 
 //Activate will mount the given device to this MountPoint if the MountPoint is
@@ -134,4 +171,38 @@ func (m MountPoint) Chown(user, group string) (success bool) {
 	Log(LogDebug, "%s %s to %s", command, mountPath, arg)
 	_, ok := Run(command, arg, mountPath)
 	return ok
+}
+
+var tempMountRx = regexp.MustCompile(`^/run/swift-storage/([^/]+)$`)
+var finalMountRx = regexp.MustCompile(`^/srv/node/([^/]+)$`)
+
+//ScanMountPoints looks through the active mounts to check which drives are
+//already mounted below /run/swift-storage or /srv/node.
+func ScanMountPoints() (temporaryMounts, finalMounts map[string]string) {
+	temporaryMounts = make(map[string]string)
+	finalMounts = make(map[string]string)
+
+	stdout, _ := Command{ExitOnError: true}.Run("mount")
+
+	for _, line := range strings.Split(stdout, "\n") {
+		//line looks like "<device> on <mountpoint> type <type> (<options>)"
+		words := strings.Split(line, " ")
+		if len(words) < 3 || words[1] != "on" {
+			continue
+		}
+		devicePath, mountPath := words[0], words[2]
+
+		match := tempMountRx.FindStringSubmatch(mountPath)
+		if match != nil {
+			temporaryMounts[devicePath] = match[1]
+			continue
+		}
+		match = finalMountRx.FindStringSubmatch(mountPath)
+		if match != nil {
+			finalMounts[devicePath] = match[1]
+			continue
+		}
+	}
+
+	return
 }

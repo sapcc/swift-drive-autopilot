@@ -164,3 +164,31 @@ func (d *Drive) MountSomewhere() (success bool) {
 	}
 	return d.TemporaryMount.Activate(d.ActiveDevicePath())
 }
+
+//CheckMounts takes the return values of ScanMountPoints() and checks where the
+//given drive is mounted. False is returned if the state of the Drive is
+//inconsistent with the mounts lists.
+func (d *Drive) CheckMounts(temporaryMounts, finalMounts map[string]string) bool {
+	//TODO: instead of returning false, mark device as broken
+
+	//if a LUKS container is open, then the base device should not be mounted
+	if d.MappedDevicePath != "" {
+		if temporaryMounts[d.DevicePath] != "" || finalMounts[d.DevicePath] != "" {
+			Log(LogError, "%s contains an open LUKS container, but is also mounted directly", d.DevicePath)
+			return false
+		}
+	}
+
+	//check that the mountpoints recorded in this Drive are consistent with the
+	//actual system state
+	devicePath := d.ActiveDevicePath()
+	tempMountOk := d.TemporaryMount.Check(devicePath, temporaryMounts[devicePath])
+	finalMountOk := d.FinalMount.Check(devicePath, finalMounts[devicePath])
+
+	success := tempMountOk && finalMountOk
+	if success {
+		d.TemporaryMount.ReportToDebugLog("CheckMounts", devicePath)
+		d.FinalMount.ReportToDebugLog("CheckMounts", devicePath)
+	}
+	return success
+}

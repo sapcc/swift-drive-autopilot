@@ -27,21 +27,37 @@ import (
 
 //Converger contains the internal state of the converger thread.
 type Converger struct {
+	//long-lived state
 	Drives []*Drive
-	Config Configuration
-	Failed bool //if true, will cause the application to shutdown after the next Converge()
+
+	//short-lived state that is gathered before the event handlers run
+	ActiveTemporaryMounts map[string]string
+	ActiveFinalMounts     map[string]string
+
+	//When Failed becomes true, the application will shutdown after the next
+	//Converge() run.  This is intended to signal failures of critical
+	//operations (like cryptsetup/mount/umount) to the caller, without
+	//interrupting the setup of other drives.
+	Failed bool
 }
 
 //RunConverger runs the converger thread. This function does not return.
 func RunConverger(queue chan []Event) {
-	c := &Converger{Config: Config}
+	c := &Converger{}
 
 	for {
+		//wait for processable events
 		events := <-queue
+
+		//initialize short-lived state for this event loop iteration
+		c.ActiveTemporaryMounts, c.ActiveFinalMounts = ScanMountPoints()
+
+		//handle events
 		for _, event := range events {
 			Log(LogInfo, "event received: "+event.LogMessage())
 			event.Handle(c)
 		}
+
 		c.Converge()
 	}
 }
@@ -51,8 +67,8 @@ func RunConverger(queue chan []Event) {
 func (c *Converger) Converge() {
 	Drives(c.Drives).ScanOpenLUKSContainers()
 
-	if len(Config.Keys) > 0 {
-		for _, drive := range c.Drives {
+	for _, drive := range c.Drives {
+		if len(Config.Keys) > 0 {
 			//create LUKS containers on unformatted drives
 			if !drive.FormatLUKSIfRequired() {
 				c.Failed = true //but keep going for the drives that work
@@ -64,11 +80,11 @@ func (c *Converger) Converge() {
 				continue
 			}
 		}
-	}
-
-	//try to mount all drives to /run/swift-storage (if not yet mounted)
-	Drives(c.Drives).ScanMountPoints()
-	for _, drive := range c.Drives {
+		//try to mount all drives to /run/swift-storage (if not yet mounted)
+		if !drive.CheckMounts(c.ActiveTemporaryMounts, c.ActiveFinalMounts) {
+			c.Failed = true //but keep going for the drives that work
+			continue
+		}
 		if !drive.EnsureFilesystem() {
 			c.Failed = true //but keep going for the drives that work
 			continue

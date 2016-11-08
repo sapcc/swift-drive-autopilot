@@ -23,61 +23,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 )
-
-var tempMountRx = regexp.MustCompile(`^/run/swift-storage/([^/]+)$`)
-var finalMountRx = regexp.MustCompile(`^/srv/node/([^/]+)$`)
-
-//ScanMountPoints looks through the active mounts to check which of the given
-//drives are already mounted below /run/swift-storage or /srv/node. If so, the
-//`MountID/Mounted` and `SwiftID/Mapped` fields of the drives are initialized
-//accordingly.
-func (drives Drives) ScanMountPoints() {
-	stdout, _ := Command{ExitOnError: true}.Run("mount")
-
-	for _, line := range strings.Split(stdout, "\n") {
-		//line looks like "<device> on <mountpoint> type <type> (<options>)"
-		words := strings.Split(line, " ")
-		if len(words) < 3 || words[1] != "on" {
-			continue
-		}
-		devicePath, mountPath := words[0], words[2]
-
-		//does `devicePath` refer to a Drive that we know?
-		var drive *Drive
-		for _, theDrive := range drives {
-			if devicePath == theDrive.ActiveDevicePath() {
-				drive = theDrive
-				break
-			}
-		}
-		if drive == nil {
-			continue
-		}
-
-		//is this a mount in which we are interested?
-		match := tempMountRx.FindStringSubmatch(mountPath)
-		if match != nil {
-			drive.TemporaryMount.Name = match[1]
-			drive.TemporaryMount.Active = true
-			continue
-		}
-		match = finalMountRx.FindStringSubmatch(mountPath)
-		if match != nil {
-			drive.FinalMount.Name = match[1]
-			drive.FinalMount.Active = true
-			continue
-		}
-	}
-
-	for _, drive := range drives {
-		devicePath := drive.ActiveDevicePath()
-		drive.TemporaryMount.ReportToDebugLog("ScanMountPoints", devicePath)
-		drive.FinalMount.ReportToDebugLog("ScanMountPoints", devicePath)
-	}
-}
 
 //ScanSwiftIDs inspects the "swift-id" file of all mounted drives and fills the
 //SwiftID field of the drives accordingly, while also detecting ID collisions,
