@@ -34,9 +34,13 @@ func main() {
 		Log(LogFatal, "chdir to %s: %s", workingDir, err.Error())
 	}
 
+	//prepare directories that the converger wants to write to
+	Command{ExitOnError: true}.Run("mkdir", "-p", "/run/swift-storage/broken")
+
 	//start the collectors
 	queue := make(chan []Event, 10)
 	go CollectDriveEvents(queue)
+	go CollectReinstatements(queue)
 	go ScheduleWakeups(queue)
 
 	//the converger runs in the main thread

@@ -44,6 +44,9 @@ type Drive struct {
 	//resolved, e.g. "/dev/sdc" instead of "/dev/disk/by-path/..."). The path
 	//is absolute and refers to a location in the chroot (if any).
 	DevicePath string
+	//DeviceID is hex.EncodeToString(md5.Sum(DevicePath)). This string is used
+	//to identify this drive in derived filenames.
+	DeviceID string
 	//MappedDevicePath is only set when the device at DevicePath is encrypted
 	//with LUKS. After the LUKS container is opened, MappedDevicePath is the
 	//device file below /dev/mapper with the decrypted block device
@@ -80,6 +83,12 @@ func (d Drive) ActiveDevicePath() string {
 	return d.MappedDevicePath
 }
 
+//BrokenFlagPath returns the path to the symlink that is written to the
+//filesystem to flag this drive as broken.
+func (d Drive) BrokenFlagPath() string {
+	return "/run/swift-storage/broken/" + d.DeviceID
+}
+
 //MarkAsBroken sets the Broken flag on the drive.
 func (d *Drive) MarkAsBroken() {
 	if d.Broken {
@@ -88,6 +97,12 @@ func (d *Drive) MarkAsBroken() {
 
 	d.Broken = true
 	Log(LogInfo, "flagging %s as broken because of previous error", d.DevicePath)
+
+	brokenFlagPath := d.BrokenFlagPath()
+	_, ok := Run("ln", "-sfT", d.DevicePath, brokenFlagPath)
+	if ok {
+		Log(LogInfo, "To reinstate this drive into the cluster, delete the symlink at "+brokenFlagPath)
+	}
 
 	d.FinalMount.Deactivate()
 }

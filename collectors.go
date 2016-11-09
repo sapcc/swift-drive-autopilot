@@ -137,6 +137,79 @@ func CollectDriveEvents(queue chan []Event) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// reinstatement collector
+
+//DriveReinstatedEvent is an Event that is emitted by CollectReinstatements.
+type DriveReinstatedEvent struct {
+	DevicePath string
+}
+
+//LogMessage implements the Event interface.
+func (e DriveReinstatedEvent) LogMessage() string {
+	return "device reinstated: " + e.DevicePath
+}
+
+//CollectReinstatements watches /run/swift-storage/broken and issues a
+//DriveReinstatedEvent whenever a broken-flag in there is deleted by an
+//administrator.
+func CollectReinstatements(queue chan []Event) {
+	//tracks broken devices between loop iterations; we only send an event when
+	//a device is removed from this set
+	brokenDevices := make(map[string]bool)
+
+	for {
+		var events []Event
+
+		//enumerate broken devices linked in /run/swift-storage/broken
+		newBrokenDevices := make(map[string]bool)
+
+		dir, err := os.Open("run/swift-storage/broken")
+		if err != nil {
+			Log(LogError, err.Error())
+			continue
+		}
+		fis, err := dir.Readdir(-1)
+		if err != nil {
+			Log(LogError, err.Error())
+			continue
+		}
+
+		failed := false
+		for _, fi := range fis {
+			if (fi.Mode() & os.ModeType) != os.ModeSymlink {
+				continue
+			}
+			devicePath, err := os.Readlink("run/swift-storage/broken/" + fi.Name())
+			if err != nil {
+				Log(LogError, err.Error())
+				failed = true
+				break
+			}
+			newBrokenDevices[devicePath] = true
+		}
+		if failed {
+			continue
+		}
+
+		//generate DriveReinstatedEvent for all devices that are not broken anymore
+		for devicePath := range brokenDevices {
+			if !newBrokenDevices[devicePath] {
+				events = append(events, DriveReinstatedEvent{DevicePath: devicePath})
+			}
+		}
+		brokenDevices = newBrokenDevices
+
+		//wake up the converger thread
+		if len(events) > 0 {
+			queue <- events
+		}
+
+		//sleep for 5 seconds before re-running
+		time.Sleep(5 * time.Second)
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // wakeup scheduler
 
 //ScheduleWakeups is a collector job that pushes a no-op event every 30 seconds

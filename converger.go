@@ -22,6 +22,8 @@ package main
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"os"
+	"strings"
 )
 
 //Converger contains the internal state of the converger thread.
@@ -84,19 +86,20 @@ func (c *Converger) Converge() {
 
 //Handle implements the Event interface.
 func (e DriveAddedEvent) Handle(c *Converger) {
-	//default value for MountID is md5sum of devicePath
+	//default value for TemporaryMount.Name is md5sum of devicePath
 	s := md5.Sum([]byte(e.DevicePath))
-	mountID := hex.EncodeToString(s[:])
+	deviceID := hex.EncodeToString(s[:])
 
 	//- MappedDevicePath will be initialized by ScanOpenLUKSContainers() or OpenLUKS()
 	//- MountPoint.Active will be initialized by ScanDriveMountPoints()
 	//- FinalMount.Name will be initialized by ScanDriveSwiftIDs()
 	drive := &Drive{
 		DevicePath:       e.DevicePath,
+		DeviceID:         deviceID,
 		MappedDevicePath: "",
 		TemporaryMount: MountPoint{
 			Location: "/run/swift-storage",
-			Name:     mountID,
+			Name:     deviceID,
 			Active:   false,
 		},
 		FinalMount: MountPoint{
@@ -104,6 +107,22 @@ func (e DriveAddedEvent) Handle(c *Converger) {
 			Name:     "",
 			Active:   false,
 		},
+	}
+
+	//check if the broken-flag is still present
+	brokenFlagPath := drive.BrokenFlagPath()
+	//make path relative to chroot dir (= cwd)
+	brokenFlagPath = strings.TrimPrefix(brokenFlagPath, "/")
+	_, err := os.Readlink(brokenFlagPath)
+	switch {
+	case err == nil:
+		//link still exists, so device is broken
+		Log(LogInfo, "%s was flagged as broken by a previous run of swift-drive-autopilot", drive.DevicePath)
+		drive.MarkAsBroken() //this will re-print the log message explaining how to reinstate the drive into the cluster
+	case os.IsNotExist(err):
+		//ignore this error (no broken-flag means everything's okay)
+	default:
+		Log(LogError, err.Error())
 	}
 
 	c.Drives = append(c.Drives, drive)
@@ -134,4 +153,16 @@ func (e DriveRemovedEvent) Handle(c *Converger) {
 
 	//remove drive from list
 	c.Drives = otherDrives
+}
+
+//Handle implements the Event interface.
+func (e DriveReinstatedEvent) Handle(c *Converger) {
+	//do we know this drive?
+	for _, d := range c.Drives {
+		if d.DevicePath == e.DevicePath {
+			d.Broken = false
+			d.Converge(c)
+			return
+		}
+	}
 }
