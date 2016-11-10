@@ -76,6 +76,7 @@ func (c *Converger) Converge() {
 			if drive.FinalMount.Activate(drive.ActiveDevicePath()) {
 				drive.FinalMount.Chown(Config.Owner.User, Config.Owner.Group)
 			}
+			drive.CleanupDuplicateMounts()
 		}
 	}
 

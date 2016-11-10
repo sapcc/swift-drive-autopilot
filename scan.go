@@ -55,7 +55,7 @@ func (drives Drives) ScanSwiftIDs() (success bool) {
 			if os.IsNotExist(err) {
 				Log(LogError, "no swift-id file found on device %s (mounted at %s)", drive.DevicePath, mountPath)
 			} else {
-				Log(LogError, "read /%s: %s", idPath, err.Error())
+				Log(LogError, "read %s: %s", idPath, err.Error())
 			}
 			success = false
 			continue

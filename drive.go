@@ -210,6 +210,19 @@ func (d *Drive) CheckMounts(activeMounts SystemMountPoints) {
 	}
 }
 
+//CleanupDuplicateMounts will deactivate the temporary mount if the final mount
+//is active.
+func (d *Drive) CleanupDuplicateMounts() {
+	//do not touch broken stuff
+	if d.Broken {
+		return
+	}
+
+	if d.TemporaryMount.Active && d.FinalMount.Active {
+		d.TemporaryMount.Deactivate()
+	}
+}
+
 //Converge moves the drive into its locally desired state.
 //
 //If the drive is not broken, its LUKS container (if any) will be created
