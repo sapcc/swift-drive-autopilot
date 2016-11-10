@@ -44,6 +44,7 @@ func main() {
 	go CollectDriveEvents(queue)
 	go CollectReinstatements(queue)
 	go ScheduleWakeups(queue)
+	go WatchKernelLog(queue)
 
 	//the converger runs in the main thread
 	RunConverger(queue)

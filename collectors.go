@@ -20,9 +20,13 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -236,4 +240,83 @@ func (e WakeupEvent) Handle(c *Converger) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// TODO: kernel log collector
+// kernel log collector
+
+//DriveErrorEvent is emitted by the WatchKernelLog collector.
+type DriveErrorEvent struct {
+	DevicePath string
+	LogLine    string
+}
+
+//LogMessage implements the Event interface.
+func (e DriveErrorEvent) LogMessage() string {
+	return "potential device error for " + e.DevicePath + " seen in kernel log: " + e.LogLine
+}
+
+var klogErrorRx = regexp.MustCompile(`(?i)\berror\b`)
+var klogDeviceRx = regexp.MustCompile(`\b(sd[a-z]{1,2})\b`)
+
+//WatchKernelLog is a collector job that sends DriveErrorEvent when the kernel
+//log contains an error regarding a SCSI disk.
+func WatchKernelLog(queue chan []Event) {
+	//assemble commandline for journalctl (similar to logic in Command.Run()
+	//which we cannot use here because we need a pipe on stdout)
+	command := []string{"journalctl", "-kf"}
+	if Config.ChrootPath != "" {
+		prefix := []string{
+			"chroot", Config.ChrootPath,
+			"nsenter", "--ipc=/proc/1/ns/ipc", "--",
+		}
+		command = append(prefix, command...)
+	}
+	if os.Geteuid() != 0 {
+		command = append([]string{"sudo"}, command...)
+	}
+
+	cmd := exec.Command(command[0], command[1:]...)
+	cmd.Stderr = os.Stderr
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		Log(LogFatal, err.Error())
+	}
+	err = cmd.Start()
+	if err != nil {
+		Log(LogFatal, err.Error())
+	}
+
+	//wait for a few seconds before starting to read stuff, so that all the
+	//DriveAddedEvents have already been sent
+	time.Sleep(3 * time.Second)
+
+	reader := bufio.NewReader(stdout)
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil && err != io.EOF {
+			Log(LogError, err.Error())
+		}
+		//NOTE: no special handling of io.EOF here; we will encounter it very
+		//frequently anyway while we're waiting for new log lines
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
+		//we're looking for log lines with "error" and a disk device name like "sda"
+		Log(LogDebug, "received kernel log line: '%s'", line)
+		if !klogErrorRx.MatchString(line) {
+			continue
+		}
+		match := klogDeviceRx.FindStringSubmatch(line)
+		if match == nil {
+			continue
+		}
+
+		event := DriveErrorEvent{
+			DevicePath: "/dev/" + match[1],
+			LogLine:    line,
+		}
+		queue <- []Event{event}
+	}
+
+	//NOTE: the loop above will never return, so I don't bother with cmd.Wait()
+}

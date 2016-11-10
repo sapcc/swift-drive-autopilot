@@ -183,6 +183,16 @@ func (e DriveRemovedEvent) Handle(c *Converger) {
 }
 
 //Handle implements the Event interface.
+func (e DriveErrorEvent) Handle(c *Converger) {
+	for _, d := range c.Drives {
+		if d.DevicePath == e.DevicePath {
+			d.MarkAsBroken()
+			return
+		}
+	}
+}
+
+//Handle implements the Event interface.
 func (e DriveReinstatedEvent) Handle(c *Converger) {
 	//do we know this drive?
 	for _, d := range c.Drives {
