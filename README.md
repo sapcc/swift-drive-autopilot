@@ -122,12 +122,35 @@ derivation schemes may be supported in the future.
 ### Runtime interface
 
 `swift-drive-autopilot` maintains the directory `/run/swift-storage/state` to
-store and advertise state information. Currently, the following files will be
+store and advertise state information. (If a chroot is configured, then this
+path refers to inside the chroot.) Currently, the following files will be
 written:
 
-* `flag-ready` is an empty file whose existence marks that
-  `swift-drive-autopilot` has run at least once. This flag can be used to delay
-  the startup of Swift services until storage is available.
+* `flag-ready` is an empty file whose existence marks that the autopilot has
+  handled each available drive at least once. This flag can be used to delay the
+  startup of Swift services until storage is available.
+
+* `please-unmount` is a directory containing an empty file for each drive that
+  was unmounted by the autopilot. The intention of this mechanism is to
+  propagate unmounting of broken drives to Swift services running in separate
+  mount namespaces. For example, if the other service sees
+  `/run/swift-storage/state/please-unmount/foo`, it shall unmount
+  `/srv/node/foo` from its local mount namespace.
+
+  `please-unmount` can be ignored unless you have Swift services running in
+  multiple unshared mount namespaces, typically because of containers and
+  because your orchestrator cannot setup shared mount namespaces (e.g.
+  Kubernetes). In plain Docker, pass `/srv/node` to the Swift service with the
+  `shared` option, and mounts/unmounts by the autopilot propagate automatically.
+
+  If the `please-unmount` mechanism is used, you are advised to clean this
+  directory when restarting the autopilot or after having fixed a broken drive.
+  The autopilot will not remove any entries in this directory on its own.
+
+There is also `/run/swift-storage/broken`, a directory containing symlinks to
+all drives deemed broken by the autopilot. When the autopilot finds a broken
+device, its log will explain why the device is considered broken, and how to
+reinstate the device into the cluster after resolving the issue.
 
 ### In Docker
 

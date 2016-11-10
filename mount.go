@@ -144,6 +144,10 @@ func (m *MountPoint) Deactivate() {
 
 	m.Active = false
 	Log(LogInfo, "unmounted %s", mountPath)
+
+	if m.Location == "/srv/node" {
+		Run("touch", "/run/swift-storage/state/please-unmount/"+m.Name)
+	}
 }
 
 //Chown changes the ownership of the mount point path to the given user and

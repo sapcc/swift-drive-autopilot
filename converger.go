@@ -83,7 +83,6 @@ func (c *Converger) Converge() {
 	c.CheckForUnexpectedMounts()
 
 	//mark storage as ready for consumption by Swift
-	Command{ExitOnError: true}.Run("mkdir", "-p", "/run/swift-storage/state")
 	Command{ExitOnError: true}.Run("touch", "/run/swift-storage/state/flag-ready")
 }
 

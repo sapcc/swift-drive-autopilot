@@ -35,7 +35,9 @@ func main() {
 	}
 
 	//prepare directories that the converger wants to write to
-	Command{ExitOnError: true}.Run("mkdir", "-p", "/run/swift-storage/broken")
+	Command{ExitOnError: true}.Run(
+		"mkdir", "-p", "/run/swift-storage/broken", "/run/swift-storage/state/please-unmount",
+	)
 
 	//start the collectors
 	queue := make(chan []Event, 10)
