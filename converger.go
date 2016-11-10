@@ -80,9 +80,33 @@ func (c *Converger) Converge() {
 		}
 	}
 
+	c.CheckForUnexpectedMounts()
+
 	//mark storage as ready for consumption by Swift
 	Command{ExitOnError: true}.Run("mkdir", "-p", "/run/swift-storage/state")
 	Command{ExitOnError: true}.Run("touch", "/run/swift-storage/state/flag-ready")
+}
+
+//CheckForUnexpectedMounts prints error messages for every unexpected mount
+//below /srv/node.
+func (c *Converger) CheckForUnexpectedMounts() {
+	for _, mount := range c.ActiveMounts {
+		if mount.Location != "/srv/node" || !mount.Active {
+			continue
+		}
+
+		found := false
+		for _, drive := range c.Drives {
+			if drive.FinalMount.Active && drive.FinalMount.Name == mount.Name {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			Log(LogError, "unexpected mount at %s", mount.Path())
+		}
+	}
 }
 
 //Handle implements the Event interface.
@@ -148,7 +172,10 @@ func (e DriveRemovedEvent) Handle(c *Converger) {
 
 	//shutdown all active mounts
 	//TODO: flag unmount to other containers
-	drive.FinalMount.Deactivate()
+	if drive.FinalMount.Active {
+		drive.FinalMount.Deactivate()
+		c.ActiveMounts.MarkAsDeactivated(drive.FinalMount.Path())
+	}
 	drive.TemporaryMount.Deactivate()
 	drive.CloseLUKS()
 

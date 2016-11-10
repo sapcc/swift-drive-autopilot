@@ -233,7 +233,7 @@ func (d *Drive) CleanupDuplicateMounts() {
 //If the drive is broken (or discovered to be broken during this operation),
 //no new mappings and mounts will be performed.
 func (d *Drive) Converge(c *Converger) {
-	if d.Converged {
+	if d.Converged || d.Broken {
 		return
 	}
 
@@ -248,4 +248,13 @@ func (d *Drive) Converge(c *Converger) {
 	d.MountSomewhere()
 
 	d.Converged = true
+
+	//if the device was marked as broken during this run, we need to update
+	//c.ActiveMounts to avoid a false-negative in c.CheckForUnexpectedMounts()
+	if d.Broken {
+		c.ActiveMounts.MarkAsDeactivated(d.FinalMount.Path())
+		//NOTE: This might suppress an actual unexpected mount for one event
+		//loop iteration, but the error will show up at most 30 seconds later
+		//during the scheduled healthcheck.
+	}
 }

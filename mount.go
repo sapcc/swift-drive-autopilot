@@ -226,3 +226,13 @@ func ScanMountPoints() SystemMountPoints {
 
 	return SystemMountPoints(result)
 }
+
+//MarkAsDeactivated can be used to update a SystemMountPoints list when a
+//mountpoint has been deactivated.
+func (mounts SystemMountPoints) MarkAsDeactivated(mountPath string) {
+	for _, m := range mounts {
+		if m.Path() == mountPath {
+			m.Active = false
+		}
+	}
+}
