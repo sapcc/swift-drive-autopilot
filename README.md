@@ -26,12 +26,7 @@ following steps:
 5. examine each device's `swift-id` file, and if it is present and unique,
    bind-mount it to `/srv/node/$id`
 
-### Event-based behavior
-
-The autopilot consists of two types of threads: *Collectors* watch for
-interesting events, and trigger the *converger* which will then react on the
-events to ensure the desired state of the drives. The following events are
-recognized:
+The autopilot then continues to run and will react to various types of events:
 
 1. A new device file appears. It will be decrypted and mounted (and formatted
    if necessary).
@@ -43,8 +38,14 @@ recognized:
    device will be marked as unhealthy and unmounted from `/srv/node`. The
    other mappings and mounts are left intact for the administrator to inspect.
 
+   This means that you do not need `swift-drive-audit` if you're using the
+   autopilot.
+
 4. Mounts of managed devices disappear unexpectedly. The offending device will
    be marked as unhealthy (see previous point).
+
+Internally, events are collected by *collector* threads, and handled by the
+single *converger* thread.
 
 ### Operational considerations
 
