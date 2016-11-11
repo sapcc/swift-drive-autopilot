@@ -34,71 +34,20 @@ func main() {
 		Log(LogFatal, "chdir to %s: %s", workingDir, err.Error())
 	}
 
-	//list drives
-	drives := ListDrives()
-	drives.ScanOpenLUKSContainers()
+	//prepare directories that the converger wants to write to
+	Command{ExitOnError: true}.Run("mkdir", "-p",
+		"/run/swift-storage/broken",
+		"/run/swift-storage/state/please-unmount",
+		"/var/cache/swift",
+	)
 
-	failed := false
-	if len(Config.Keys) > 0 {
-		for _, drive := range drives {
-			//create LUKS containers on unformatted drives
-			if !drive.FormatLUKSIfRequired() {
-				failed = true //but keep going for the drives that work
-				continue
-			}
-			//open LUKS containers if required
-			if !drive.OpenLUKS() {
-				failed = true //but keep going for the drives that work
-				continue
-			}
-		}
-	}
+	//start the collectors
+	queue := make(chan []Event, 10)
+	go CollectDriveEvents(queue)
+	go CollectReinstatements(queue)
+	go ScheduleWakeups(queue)
+	go WatchKernelLog(queue)
 
-	//try to mount all drives to /run/swift-storage (if not yet mounted)
-	drives.ScanMountPoints()
-	for _, drive := range drives {
-		if !drive.EnsureFilesystem() {
-			failed = true //but keep going for the drives that work
-			continue
-		}
-		if !drive.MountSomewhere() {
-			failed = true //but keep going for the drives that work
-			continue
-		}
-	}
-
-	//map mountpoints from /run/swift-storage to /srv/node
-	if !drives.ScanSwiftIDs() {
-		failed = true //but keep going for the drives that work
-	}
-
-	for _, drive := range drives {
-		if drive.FinalMount.Activate(drive.ActiveDevicePath()) {
-			Log(LogInfo, "%s is mounted on %s", drive.DevicePath, drive.FinalMount.Path())
-		} else {
-			failed = true //but keep going for the drives that work
-			continue
-		}
-
-		owner := Config.Owner
-		if !drive.FinalMount.Chown(owner.User, owner.Group) {
-			failed = true
-		}
-	}
-
-	//mark storage as ready for consumption by Swift
-	_, ok := Run("mkdir", "-p", "/run/swift-storage/state")
-	if !ok {
-		failed = true
-	}
-	_, ok = Run("touch", "/run/swift-storage/state/flag-ready")
-	if !ok {
-		failed = true
-	}
-
-	//signal intermittent failures to the caller
-	if failed {
-		Log(LogInfo, "completed with errors, see above")
-		os.Exit(1)
-	}
+	//the converger runs in the main thread
+	RunConverger(queue)
 }

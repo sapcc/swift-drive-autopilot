@@ -78,12 +78,14 @@ type Command struct {
 //Run executes the given command, possibly within the chroot (if
 //configured in Config.ChrootPath, and if the first argument is true).
 func (c Command) Run(cmd ...string) (stdout string, success bool) {
+	cmdName := cmd[0]
+
 	//if we are executing mount, we need to make sure that we are in the
 	//correct mount namespace; for cryptsetup, we even need to be in the
 	//correct IPC namespace (device-mapper wants to talk to udev)
 	if !c.NoNsenter {
 		switch cmd[0] {
-		case "mount":
+		case "mount", "umount":
 			cmd = append([]string{"nsenter", "--mount=/proc/1/ns/mnt", "--"}, cmd...)
 		case "cryptsetup":
 			cmd = append([]string{"nsenter", "--mount=/proc/1/ns/mnt", "--ipc=/proc/1/ns/ipc", "--"}, cmd...)
@@ -114,7 +116,7 @@ func (c Command) Run(cmd ...string) (stdout string, success bool) {
 	if !c.SkipLog {
 		for _, line := range strings.Split(string(stderrBuf.Bytes()), "\n") {
 			if line != "" {
-				log.Printf("Output from %s: %s\n", cmd[0], line)
+				log.Printf("Output from %s: %s\n", cmdName, line)
 			}
 		}
 		if err != nil {

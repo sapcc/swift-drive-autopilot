@@ -16,14 +16,43 @@ following steps:
 
 1. enumerate all storage drives (using a configurable list of globs)
 
-2. create an XFS filesystem on devices that do not have a filesystem yet
+2. (optional) create a LUKS encryption container on fresh devices, or unlock an
+   existing one
 
-2. mount each device below `/run/swift-storage` with a temporary name
+3. create an XFS filesystem on devices that do not have a filesystem yet
 
-3. examine each device's `swift-id` file, and if it is present and unique,
+4. mount each device below `/run/swift-storage` with a temporary name
+
+5. examine each device's `swift-id` file, and if it is present and unique,
    bind-mount it to `/srv/node/$id`
 
-Support for data-at-rest encryption using dm-crypt/LUKS is coming soon.
+The autopilot then continues to run and will react to various types of events:
+
+1. A new device file appears. It will be decrypted and mounted (and formatted
+   if necessary).
+
+2. A device file disappears. Any active mounts or mappings will be cleaned up.
+   (This is especially helpful with hot-swappable hard drives.)
+
+3. The kernel log contains a line like `error on /dev/sda`. The offending
+   device will be marked as unhealthy and unmounted from `/srv/node`. The
+   other mappings and mounts are left intact for the administrator to inspect.
+
+   This means that you do not need `swift-drive-audit` if you're using the
+   autopilot.
+
+4. Mounts of managed devices disappear unexpectedly. The offending device will
+   be marked as unhealthy (see previous point).
+
+Internally, events are collected by *collector* threads, and handled by the
+single *converger* thread.
+
+### Operational considerations
+
+`swift-drive-autopilot` runs under the assumption that a few disks are better
+than no disks. If some operation relating to a single disk fails, the autopilot
+will log an error and keep going. This means that it is absolutely crucial that
+you have proper alerting in place for log messages with the `ERROR` label.
 
 ## Installation
 
@@ -93,13 +122,43 @@ derivation schemes may be supported in the future.
 
 ### Runtime interface
 
+The autopilot advertises its state by writing the following files and
+directories:
 `swift-drive-autopilot` maintains the directory `/run/swift-storage/state` to
-store and advertise state information. Currently, the following files will be
+store and advertise state information. (If a chroot is configured, then this
+path refers to inside the chroot.) Currently, the following files will be
 written:
 
-* `flag-ready` is an empty file whose existence marks that
-  `swift-drive-autopilot` has run at least once. This flag can be used to delay
-  the startup of Swift services until storage is available.
+* `/run/swift-storage/state/flag-ready` is an empty file whose existence marks
+  that the autopilot has handled each available drive at least once. This flag
+  can be used to delay the startup of Swift services until storage is available.
+
+* `/run/swift-storage/state/please-unmount` is a directory containing an empty
+  file for each drive that was unmounted by the autopilot. The intention of this
+  mechanism is to propagate unmounting of broken drives to Swift services
+  running in separate mount namespaces. For example, if the other service sees
+  `/run/swift-storage/state/please-unmount/foo`, it shall unmount
+  `/srv/node/foo` from its local mount namespace.
+
+  `/run/swift-storage/state/please-unmount` can be ignored unless you have Swift
+  services running in multiple unshared mount namespaces, typically because of
+  containers and because your orchestrator cannot setup shared mount namespaces
+  (e.g.  Kubernetes). In plain Docker, pass `/srv/node` to the Swift service
+  with the `shared` option, and mounts/unmounts by the autopilot will propagate
+  automatically.
+
+  If the `please-unmount` mechanism is used, you are advised to clean this
+  directory when restarting the autopilot or after having fixed a broken drive.
+  The autopilot will not remove any entries in this directory on its own.
+
+* `/run/swift-storage/broken` is a directory containing symlinks to all drives
+  deemed broken by the autopilot. When the autopilot finds a broken device, its
+  log will explain why the device is considered broken, and how to reinstate the
+  device into the cluster after resolving the issue.
+
+* Since the autopilot also does the job of `swift-drive-audit`, it honors its
+  interface and writes `/var/cache/swift/drive.recon`. Drive errors detected by
+  the autopilot will thus show up in `swift-recon --driveaudit`.
 
 ### In Docker
 
