@@ -35,8 +35,10 @@ func main() {
 	}
 
 	//prepare directories that the converger wants to write to
-	Command{ExitOnError: true}.Run(
-		"mkdir", "-p", "/run/swift-storage/broken", "/run/swift-storage/state/please-unmount",
+	Command{ExitOnError: true}.Run("mkdir", "-p",
+		"/run/swift-storage/broken",
+		"/run/swift-storage/state/please-unmount",
+		"/var/cache/swift",
 	)
 
 	//start the collectors

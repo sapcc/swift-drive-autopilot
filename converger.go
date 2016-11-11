@@ -22,7 +22,10 @@ package main
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"encoding/json"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -81,6 +84,7 @@ func (c *Converger) Converge() {
 	}
 
 	c.CheckForUnexpectedMounts()
+	c.WriteDriveAudit()
 
 	//mark storage as ready for consumption by Swift
 	Command{ExitOnError: true}.Run("touch", "/run/swift-storage/state/flag-ready")
@@ -105,6 +109,40 @@ func (c *Converger) CheckForUnexpectedMounts() {
 		if !found {
 			Log(LogError, "unexpected mount at %s", mount.Path())
 		}
+	}
+}
+
+//WriteDriveAudit writes /var/cache/swift/drive.recon in the same format as
+//emitted by swift-drive-audit.
+func (c *Converger) WriteDriveAudit() {
+	data := make(map[string]int)
+	total := 0
+
+	for _, drive := range c.Drives {
+		var mountPath string
+		if drive.FinalMount.Name == "" {
+			mountPath = drive.TemporaryMount.Path()
+		} else {
+			mountPath = drive.FinalMount.Path()
+		}
+
+		if drive.Broken {
+			data[mountPath] = 1
+			total++
+		} else {
+			data[mountPath] = 0
+		}
+	}
+	data["drive_audit_errors"] = total
+	jsonStr, _ := json.Marshal(data)
+
+	path := "/var/cache/swift/drive.recon"
+	if Config.ChrootPath != "" {
+		path = filepath.Join(Config.ChrootPath, strings.TrimPrefix(path, "/"))
+	}
+	err := ioutil.WriteFile(path, jsonStr, 0644)
+	if err != nil {
+		Log(LogError, err.Error())
 	}
 }
 
