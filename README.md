@@ -120,6 +120,20 @@ one is used when creating new LUKS containers.
 Currently, the `secret` will be used as encryption key directly. Other key
 derivation schemes may be supported in the future.
 
+```yaml
+swift-id-pool: [ "swift1", "swift2", "swift3", "swift4", "swift5", "swift6" ]
+```
+
+If `swift-id-pool` is set, when a new drive is formatted, it will be assigned an
+unused `swift-id` from this pool. This allows a new node to go from unformatted
+drives to a fully operational Swift drive setup without any human intervention.
+
+Automatic assignment will only happen during the initial formatting (i.e. when
+no LUKS container or filesystem or active mount is found on the drive).
+Automatic assignment will *not* happen if there is any broken drive (since the
+autopilot cannot check the broken drive's `swift-id`, any automatic assignment
+could result in a duplicate `swift-id`).
+
 ### Runtime interface
 
 The autopilot advertises its state by writing the following files and

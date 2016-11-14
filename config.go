@@ -40,6 +40,7 @@ type Configuration struct {
 		//specify the key derivation method
 		Secret string `yaml:"secret"`
 	} `yaml:"keys"`
+	SwiftIDPool []string `yaml:"swift-id-pool"`
 }
 
 //Config is the global Configuration instance that's filled by main() at

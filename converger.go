@@ -71,8 +71,9 @@ func (c *Converger) Converge() {
 		drive.Converge(c)
 	}
 
-	//map mountpoints from /run/swift-storage to /srv/node
+	//discover and auto-assign swift-ids of drives
 	Drives(c.Drives).ScanSwiftIDs()
+	c.AutoAssignSwiftIDs()
 
 	for _, drive := range c.Drives {
 		if !drive.Broken {
@@ -88,6 +89,67 @@ func (c *Converger) Converge() {
 
 	//mark storage as ready for consumption by Swift
 	Command{ExitOnError: true}.Run("touch", "/run/swift-storage/state/flag-ready")
+}
+
+//AutoAssignSwiftIDs will try to do exactly that.
+func (c *Converger) AutoAssignSwiftIDs() {
+	//tracks assigned swift-ids
+	assigned := make(map[string]bool)
+
+	for _, drive := range c.Drives {
+		//do not do anything if any drive is broken (if a drive is broken, we
+		//cannot look at its swift-id and thus cannot ensure that we don't
+		//assign it to another drive)
+		if drive.Broken {
+			//complain about all the drives for which we could not assign a swift-id
+			for _, drive := range c.Drives {
+				if drive.StartedOutEmpty && !drive.Broken {
+					Log(LogError, "tried to assign swift-id to %s, but some drives are broken", drive.DevicePath)
+				}
+			}
+			return
+		}
+
+		//mark assigned swift-ids
+		assigned[drive.FinalMount.Name] = true
+	}
+
+	//look for drives that are eligible for automatic swift-id assignment
+	for _, drive := range c.Drives {
+		if !drive.StartedOutEmpty || !drive.TemporaryMount.Active {
+			continue
+		}
+
+		//try to find an unused swift-id
+		var swiftID string
+		for _, id := range Config.SwiftIDPool {
+			if !assigned[id] {
+				swiftID = id
+				break
+			}
+		}
+
+		if swiftID == "" {
+			Log(LogError, "tried to assign swift-id to %s, but pool is exhausted", drive.DevicePath)
+			continue
+		}
+
+		Log(LogInfo, "assigning swift-id '%s' to %s", swiftID, drive.DevicePath)
+
+		//try to write the assignment to disk
+		path := filepath.Join(drive.TemporaryMount.Path(), "swift-id")
+		if Config.ChrootPath != "" {
+			path = filepath.Join(Config.ChrootPath, strings.TrimPrefix(path, "/"))
+		}
+		err := ioutil.WriteFile(path, []byte(swiftID+"\n"), 0644)
+		if err != nil {
+			Log(LogError, err.Error())
+			continue
+		}
+
+		assigned[swiftID] = true
+		drive.FinalMount.Name = swiftID
+	}
 }
 
 //CheckForUnexpectedMounts prints error messages for every unexpected mount

@@ -149,6 +149,8 @@ func (d *Drive) CheckLUKS(activeMappings map[string]string) {
 		//existing mapping is now discovered for the first time -> update Drive struct
 		d.MappedDevicePath = actualMappedPath
 		Log(LogInfo, "discovered %s to be mapped to %s already", d.DevicePath, d.MappedDevicePath)
+		//device cannot be empty if a LUKS mapping is active
+		d.StartedOutEmpty = false
 	case actualMappedPath:
 		//no change
 	default:

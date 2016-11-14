@@ -69,6 +69,10 @@ type Drive struct {
 	//Converged is set when Drive.Converge() runs, to ensure that it does not
 	//run multiple times in a single event loop iteration.
 	Converged bool
+	//StartedOutEmpty is set during Drive.Converge() if the device did not
+	//contain a filesystem, LUKS container, or active mount when
+	//Drive.Converge() started. This flag triggers swift-id auto-assignment.
+	StartedOutEmpty bool
 }
 
 //Drives is a list of Drive structs with some extra methods.
@@ -164,6 +168,9 @@ func (d *Drive) EnsureFilesystem() {
 		return
 	}
 	Log(LogDebug, "XFS filesystem created on %s", devicePath)
+
+	//do not attempt to format again during the next Converge
+	d.Type = DeviceTypeFilesystem
 }
 
 //MountSomewhere will mount the given device below `/run/swift-storage` if it
@@ -208,6 +215,11 @@ func (d *Drive) CheckMounts(activeMounts SystemMountPoints) {
 	if !success {
 		d.MarkAsBroken()
 	}
+
+	//drive cannot be empty if it is mounted
+	if d.TemporaryMount.Active || d.FinalMount.Active {
+		d.StartedOutEmpty = false
+	}
 }
 
 //CleanupDuplicateMounts will deactivate the temporary mount if the final mount
@@ -228,7 +240,7 @@ func (d *Drive) CleanupDuplicateMounts() {
 //If the drive is not broken, its LUKS container (if any) will be created
 //and/or opened, and its filesystem will be mounted. The only thing missing
 //will be the final mount (since this step needs knowledge of all drives to
-//check for swift-id collisions).
+//check for swift-id collisions) and the swift-id auto-assignment.
 //
 //If the drive is broken (or discovered to be broken during this operation),
 //no new mappings and mounts will be performed.
@@ -236,6 +248,16 @@ func (d *Drive) Converge(c *Converger) {
 	if d.Converged || d.Broken {
 		return
 	}
+
+	//before converging, check if device is empty and initialize the
+	//StartedOutEmpty flag accordingly (note that StartedOutEmpty might be
+	//reset by CheckLUKS or CheckMounts if an active mapping or mount is found
+	//for this drive)
+	ok := d.Classify()
+	if !ok {
+		return
+	}
+	d.StartedOutEmpty = d.Type == DeviceTypeUnknown
 
 	d.CheckLUKS(c.ActiveLUKSMappings)
 	if len(Config.Keys) > 0 {
