@@ -124,7 +124,7 @@ func (c *Converger) AutoAssignSwiftIDs() {
 		}
 
 		if swiftID == "" {
-			Log(LogInfo, "tried to assign swift-id to %s, but pool is exhausted", drive.DevicePath)
+			Log(LogError, "tried to assign swift-id to %s, but pool is exhausted", drive.DevicePath)
 			continue
 		}
 
