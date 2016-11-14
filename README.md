@@ -133,21 +133,21 @@ written:
   that the autopilot has handled each available drive at least once. This flag
   can be used to delay the startup of Swift services until storage is available.
 
-* `/run/swift-storage/state/please-unmount` is a directory containing an empty
-  file for each drive that was unmounted by the autopilot. The intention of this
-  mechanism is to propagate unmounting of broken drives to Swift services
-  running in separate mount namespaces. For example, if the other service sees
-  `/run/swift-storage/state/please-unmount/foo`, it shall unmount
-  `/srv/node/foo` from its local mount namespace.
+* `/run/swift-storage/state/unmount-propagation` is a directory containing an
+  empty file for each drive that was unmounted by the autopilot. The intention
+  of this mechanism is to propagate unmounting of broken drives to Swift
+  services running in separate mount namespaces. For example, if the other
+  service sees `/run/swift-storage/state/unmount-propagation/foo`, it shall
+  unmount `/srv/node/foo` from its local mount namespace.
 
-  `/run/swift-storage/state/please-unmount` can be ignored unless you have Swift
-  services running in multiple unshared mount namespaces, typically because of
-  containers and because your orchestrator cannot setup shared mount namespaces
-  (e.g.  Kubernetes). In plain Docker, pass `/srv/node` to the Swift service
-  with the `shared` option, and mounts/unmounts by the autopilot will propagate
-  automatically.
+  `/run/swift-storage/state/unmount-propagation` can be ignored unless you have
+  Swift services running in multiple unshared mount namespaces, typically
+  because of containers and because your orchestrator cannot setup shared mount
+  namespaces (e.g.  Kubernetes). In plain Docker, pass `/srv/node` to the Swift
+  service with the `shared` option, and mounts/unmounts by the autopilot will
+  propagate automatically.
 
-  If the `please-unmount` mechanism is used, you are advised to clean this
+  If the `unmount-propagation` mechanism is used, you are advised to clean this
   directory when restarting the autopilot or after having fixed a broken drive.
   The autopilot will not remove any entries in this directory on its own.
 

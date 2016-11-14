@@ -146,7 +146,7 @@ func (m *MountPoint) Deactivate() {
 	Log(LogInfo, "unmounted %s", mountPath)
 
 	if m.Location == "/srv/node" {
-		Run("touch", "/run/swift-storage/state/please-unmount/"+m.Name)
+		Run("touch", "/run/swift-storage/state/unmount-propagation/"+m.Name)
 	}
 }
 
