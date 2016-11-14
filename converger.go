@@ -101,6 +101,12 @@ func (c *Converger) AutoAssignSwiftIDs() {
 		//cannot look at its swift-id and thus cannot ensure that we don't
 		//assign it to another drive)
 		if drive.Broken {
+			//complain about all the drives for which we could not assign a swift-id
+			for _, drive := range c.Drives {
+				if drive.StartedOutEmpty && !drive.Broken {
+					Log(LogError, "tried to assign swift-id to %s, but some drives are broken", drive.DevicePath)
+				}
+			}
 			return
 		}
 
