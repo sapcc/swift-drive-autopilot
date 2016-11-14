@@ -168,6 +168,9 @@ func (d *Drive) EnsureFilesystem() {
 		return
 	}
 	Log(LogDebug, "XFS filesystem created on %s", devicePath)
+
+	//do not attempt to format again during the next Converge
+	d.Type = DeviceTypeFilesystem
 }
 
 //MountSomewhere will mount the given device below `/run/swift-storage` if it
