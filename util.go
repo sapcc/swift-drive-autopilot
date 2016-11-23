@@ -135,3 +135,33 @@ func (c Command) Run(cmd ...string) (stdout string, success bool) {
 func Run(cmd ...string) (string, bool) {
 	return Command{}.Run(cmd...)
 }
+
+//Chown changes the ownership of the path to the given user and
+//group. Both arguments may either be a name or a numeric ID (but still given
+//as a string in decimal).
+func Chown(path, user, group string) {
+	var (
+		command string
+		arg     string
+	)
+
+	if path == "" {
+		Log(LogFatal, "Cannot chown empty path")
+	}
+
+	//set only those things which were given
+	if user == "" {
+		if group == "" {
+			return // nothing to do
+		}
+		command, arg = "chgrp", group
+	} else {
+		command, arg = "chown", user
+		if group != "" {
+			arg += ":" + group
+		}
+	}
+
+	Log(LogDebug, "%s %s to %s", command, path, arg)
+	Run(command, arg, path)
+}
