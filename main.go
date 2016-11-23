@@ -41,6 +41,9 @@ func main() {
 		"/var/cache/swift",
 	)
 
+	//swift cache path must be accesible from user swift
+	Chown("/var/cache/swift", Config.Owner.User, Config.Owner.Group)
+
 	//start the collectors
 	queue := make(chan []Event, 10)
 	go CollectDriveEvents(queue)

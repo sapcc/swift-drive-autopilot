@@ -100,7 +100,7 @@ chown:
   group: "swift"
 ```
 
-If `chown` is set, mountpoints below `/srv/node` will be chown'ed to this user
+If `chown` is set, mountpoints below `/srv/node` and `/var/cache/swift` will be chown'ed to this user
 and/or group after mounting. Give the UID/GID or names of the Swift user and
 group here.
 

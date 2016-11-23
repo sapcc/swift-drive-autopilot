@@ -154,27 +154,8 @@ func (m *MountPoint) Deactivate() {
 //group. Both arguments may either be a name or a numeric ID (but still given
 //as a string in decimal).
 func (m MountPoint) Chown(user, group string) {
-	var (
-		command string
-		arg     string
-	)
-
-	//set only those things which were given
-	if user == "" {
-		if group == "" {
-			return // nothing to do
-		}
-		command, arg = "chgrp", group
-	} else {
-		command, arg = "chown", user
-		if group != "" {
-			arg += ":" + group
-		}
-	}
-
 	mountPath := m.Path()
-	Log(LogDebug, "%s %s to %s", command, mountPath, arg)
-	Run(command, arg, mountPath)
+	Chown(mountPath, user, group)
 }
 
 //SystemMountPoint is an extension of MountPoint that reflects the state of an actual mount point as reported by mount().
