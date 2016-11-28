@@ -49,7 +49,12 @@ func RunConverger(queue chan []Event) {
 
 		//initialize short-lived state for this event loop iteration
 		c.ActiveLUKSMappings = ScanLUKSMappings()
+		Log(LogDebug, "ActiveLUKSMappings = %#v", c.ActiveLUKSMappings)
 		c.ActiveMounts = ScanMountPoints()
+		for _, mount := range c.ActiveMounts {
+			Log(LogDebug, "ActiveMounts += %#v", mount)
+		}
+
 		for _, drive := range c.Drives {
 			drive.Converged = false
 		}
