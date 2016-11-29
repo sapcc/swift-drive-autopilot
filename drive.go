@@ -108,7 +108,7 @@ func (d *Drive) MarkAsBroken() {
 		Log(LogInfo, "To reinstate this drive into the cluster, delete the symlink at "+brokenFlagPath)
 	}
 
-	d.FinalMount.Deactivate()
+	d.FinalMount.Deactivate(d.DevicePath)
 }
 
 //Classify will call file(1) on the drive's device file (or the mapped device
@@ -231,7 +231,7 @@ func (d *Drive) CleanupDuplicateMounts() {
 	}
 
 	if d.TemporaryMount.Active && d.FinalMount.Active {
-		d.TemporaryMount.Deactivate()
+		d.TemporaryMount.Deactivate(d.DevicePath)
 	}
 }
 

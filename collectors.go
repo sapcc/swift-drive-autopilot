@@ -167,31 +167,12 @@ func CollectReinstatements(queue chan []Event) {
 		//enumerate broken devices linked in /run/swift-storage/broken
 		newBrokenDevices := make(map[string]bool)
 
-		dir, err := os.Open("run/swift-storage/broken")
-		if err != nil {
-			Log(LogError, err.Error())
-			continue
-		}
-		fis, err := dir.Readdir(-1)
-		if err != nil {
-			Log(LogError, err.Error())
-			continue
-		}
-
-		failed := false
-		for _, fi := range fis {
-			if (fi.Mode() & os.ModeType) != os.ModeSymlink {
-				continue
-			}
-			devicePath, err := os.Readlink("run/swift-storage/broken/" + fi.Name())
-			if err != nil {
-				Log(LogError, err.Error())
-				failed = true
-				break
-			}
-			newBrokenDevices[devicePath] = true
-		}
-		if failed {
+		success := ForeachSymlinkIn("run/swift-storage/broken",
+			func(name, devicePath string) {
+				newBrokenDevices[devicePath] = true
+			},
+		)
+		if !success {
 			continue
 		}
 

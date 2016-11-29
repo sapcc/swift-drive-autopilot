@@ -24,6 +24,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -164,4 +165,37 @@ func Chown(path, user, group string) {
 
 	Log(LogDebug, "%s %s to %s", command, path, arg)
 	Run(command, arg, path)
+}
+
+//ForeachSymlinkIn finds all symlinks in the given directory, and calls the
+//handler once for each symlink (with its file name and link target). Any
+//errors because of filesystem operations will be logged to LogError and false
+//will be returned if any such error occurred.
+func ForeachSymlinkIn(path string, handler func(name, target string)) (success bool) {
+	dir, err := os.Open(path)
+	if err != nil {
+		Log(LogError, err.Error())
+		return false
+	}
+	fis, err := dir.Readdir(-1)
+	if err != nil {
+		Log(LogError, err.Error())
+		return false
+	}
+
+	success = true
+	for _, fi := range fis {
+		if (fi.Mode() & os.ModeType) != os.ModeSymlink {
+			continue
+		}
+		linkTarget, err := os.Readlink(filepath.Join(path, fi.Name()))
+		if err == nil {
+			handler(fi.Name(), linkTarget)
+		} else {
+			Log(LogError, err.Error())
+			success = false
+		}
+	}
+
+	return
 }

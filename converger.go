@@ -277,10 +277,10 @@ func (e DriveRemovedEvent) Handle(c *Converger) {
 	//shutdown all active mounts
 	//TODO: flag unmount to other containers
 	if drive.FinalMount.Active {
-		drive.FinalMount.Deactivate()
+		drive.FinalMount.Deactivate(drive.DevicePath)
 		c.ActiveMounts.MarkAsDeactivated(drive.FinalMount.Path())
 	}
-	drive.TemporaryMount.Deactivate()
+	drive.TemporaryMount.Deactivate(drive.DevicePath)
 	drive.CloseLUKS()
 
 	//remove drive from list
@@ -304,7 +304,18 @@ func (e DriveReinstatedEvent) Handle(c *Converger) {
 		if d.DevicePath == e.DevicePath {
 			d.Broken = false
 			d.Converge(c)
-			return
+			break
 		}
 	}
+
+	//remove the unmount-propagation entry for this drive, if it still exists
+	path := "run/swift-storage/state/unmount-propagation"
+	_ = ForeachSymlinkIn(path, func(name, devicePath string) {
+		if devicePath == e.DevicePath {
+			err := os.Remove(path + "/" + name)
+			if err != nil {
+				Log(LogError, err.Error())
+			}
+		}
+	})
 }

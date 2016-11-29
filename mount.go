@@ -128,7 +128,7 @@ func (m *MountPoint) Activate(devicePath string) bool {
 }
 
 //Deactivate will unmount the given MountPoint if it is Active.
-func (m *MountPoint) Deactivate() {
+func (m *MountPoint) Deactivate(devicePath string) {
 	//already unmounted?
 	if !m.Active {
 		return
@@ -146,7 +146,7 @@ func (m *MountPoint) Deactivate() {
 	Log(LogInfo, "unmounted %s", mountPath)
 
 	if m.Location == "/srv/node" {
-		Run("touch", "/run/swift-storage/state/unmount-propagation/"+m.Name)
+		Run("ln", "-sTf", devicePath, "/run/swift-storage/state/unmount-propagation/"+m.Name)
 	}
 }
 
