@@ -116,7 +116,7 @@ func CollectDriveEvents(queue chan []Event) {
 				}
 
 				//ignore devices with partitions
-				pattern := devicePath + "#"
+				pattern := strings.TrimPrefix(devicePath+"[0-9]", "/")
 				submatches, err := filepath.Glob(pattern)
 				if err != nil {
 					Log(LogFatal, "glob(%#v) failed: %s", pattern, err.Error())
