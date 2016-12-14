@@ -69,6 +69,7 @@ func (e DriveRemovedEvent) LogMessage() string {
 //DriveRemovedEvent.
 func CollectDriveEvents(queue chan []Event) {
 	reportedEmptyGlob := false
+	reportedPartitionedDisk := make(map[string]bool)
 	//this map will track which drives we know about (i.e. for which drives we
 	//have sent DriveAddedEvent)
 	devicePaths := make(map[string]string)
@@ -112,6 +113,23 @@ func CollectDriveEvents(queue chan []Event) {
 				devicePath, err := filepath.EvalSymlinks(match)
 				if err != nil {
 					Log(LogFatal, "readlink(%#v) failed: %s", match, err.Error())
+				}
+
+				//ignore devices with partitions
+				pattern := devicePath + "#"
+				submatches, err := filepath.Glob(pattern)
+				if err != nil {
+					Log(LogFatal, "glob(%#v) failed: %s", pattern, err.Error())
+				}
+				if len(submatches) != 0 {
+					if !strings.HasPrefix(devicePath, "/") {
+						devicePath = "/" + devicePath
+					}
+					if !reportedPartitionedDisk[devicePath] {
+						Log(LogInfo, "ignoring drive %s because it contains partitions", devicePath)
+						reportedPartitionedDisk[devicePath] = true
+					}
+					continue
 				}
 
 				//make path absolute if necessary (the glob was a relative path!)
