@@ -303,6 +303,8 @@ func (e DriveReinstatedEvent) Handle(c *Converger) {
 	for _, d := range c.Drives {
 		if d.DevicePath == e.DevicePath {
 			d.Broken = false
+			//reset the classification - who knows what was done to fix the drive
+			d.Type = DeviceTypeNotScanned
 			d.Converge(c)
 			break
 		}
