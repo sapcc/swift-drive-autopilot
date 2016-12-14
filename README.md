@@ -80,11 +80,19 @@ YAML and the following options are supported:
 
 ```yaml
 drives:
-  - /dev/sd[c-z]
+  - /dev/sd[a-z]
 ```
 
 The only required field, `drives`, contains the paths of the Swift storage
 drives, as a list of shell globs.
+
+As a special rule, the autopilot will ignore all drives that contain valid
+partition tables. This rule allows one to use a very general glob, like
+`/dev/sd[a-z]`, without knowing the actual disk layout in advance. The system
+installation will usually reside on a partitioned disk (because of the need for
+special partitions such as boot and swap partition), so it will be ignored by
+the autopilot. Any other disks can be used for non-Swift purposes as long as
+they are partitioned into at least one partition.
 
 ```yaml
 chroot: /coreos
