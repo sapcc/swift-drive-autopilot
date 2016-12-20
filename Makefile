@@ -1,4 +1,12 @@
 all: swift-drive-autopilot
 
+# force people to use golangvend
+GOCC := env GOPATH=$(CURDIR)/.gopath go
+GOFLAGS := -ldflags '-s -w'
+
 swift-drive-autopilot: *.go
-	go build -ldflags '-s -w' -o $@ .
+	$(GOCC) build $(GOFLAGS) -o $@ github.com/sapcc/swift-drive-autopilot
+
+vendor:
+	@golangvend
+.PHONY: vendor
