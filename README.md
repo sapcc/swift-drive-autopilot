@@ -73,6 +73,10 @@ To build the Docker container:
 make && docker build .
 ```
 
+## Development setup
+
+Please see [HACKING.md](./HACKING.md).
+
 ## Usage
 
 Call with a configuration file as single argument. The configuration file is a
