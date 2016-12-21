@@ -5,6 +5,8 @@ Here's how I run the autopilot on my development box.
 General note: All commands can be executed as a regular user. Usage of `sudo` indicates when super-user privileges are
 required.
 
+General note 2: I'm assuming Linux here. Good luck getting `cryptsetup` to work on macOS. (Windows might work with the WSL.)
+
 ## Initial setup
 
 Since I don't have physical disks to spare for the purpose of testing, I use image files that are set up as loop
