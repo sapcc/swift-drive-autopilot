@@ -109,6 +109,14 @@ func (d *Drive) MarkAsBroken() {
 	}
 
 	d.FinalMount.Deactivate(d.DevicePath)
+	d.TemporaryMount.Deactivate(d.DevicePath)
+	d.CloseLUKS()
+
+	//reset FinalMount.Name (and thus require a re-reading of the swift-id file
+	//after the drive was reinstated)
+	if !d.FinalMount.Active {
+		d.FinalMount.Name = ""
+	}
 }
 
 //Classify will call file(1) on the drive's device file (or the mapped device
