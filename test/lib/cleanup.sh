@@ -24,6 +24,11 @@ if [ -d /srv/node ]; then
     as_root rm -rf -- /srv/node
 fi
 
+if [ -d /var/cache/swift ]; then
+    log_debug "Cleanup: /var/cache/swift"
+    as_root rm -rf -- /var/cache/swift
+fi
+
 log_debug "Cleanup: disk images in ${DIR}"
 ( cd "${DIR}"; rm -rf -- image? )
 
