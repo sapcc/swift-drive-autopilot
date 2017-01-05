@@ -25,7 +25,7 @@ import (
 )
 
 func runMatchPatterns(input string, patterns ...string) error {
-	return matchPatterns(bytes.NewReader([]byte(input)), patterns)
+	return matchPatterns(bytes.NewReader([]byte(input)), nil, patterns)
 }
 
 func TestPlainPatterns(t *testing.T) {

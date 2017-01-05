@@ -42,7 +42,7 @@ func main() {
 	}
 	patterns := filterEmptyPatterns(strings.Split(string(pattern), "\n"))
 
-	err = matchPatterns(os.Stdin, patterns)
+	err = matchPatterns(os.Stdin, os.Stdout, patterns)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
@@ -60,7 +60,7 @@ func filterEmptyPatterns(patterns []string) []string {
 	return result
 }
 
-func matchPatterns(input io.Reader, patterns []string) error {
+func matchPatterns(input io.Reader, output io.Writer, patterns []string) error {
 	vars := make(map[string]string)
 	reader := bufio.NewReader(input)
 	eof := false
@@ -71,6 +71,16 @@ func matchPatterns(input io.Reader, patterns []string) error {
 		eof = err == io.EOF
 		if err != nil && !eof {
 			return err
+		}
+
+		//skip empty input lines
+		if strings.TrimSpace(inputLine) == "" {
+			continue
+		}
+
+		//echo input line onto output writer if requested
+		if output != nil {
+			output.Write([]byte(inputLine))
 		}
 
 		//consume next pattern and compare
@@ -121,10 +131,9 @@ func matchPattern(line string, pattern string, vars map[string]string) error {
 			return `(.+)`
 		},
 	)
-	patternRxStr = "^" + patternRxStr + "$"
 
 	//check if line matches pattern
-	match := regexp.MustCompile(patternRxStr).FindStringSubmatch(line)
+	match := regexp.MustCompile("^" + patternRxStr + "$").FindStringSubmatch(line)
 	if match == nil {
 		return fmt.Errorf("log line does not match expectation\nexpected: %s\ncompiled: %s\n  actual: %s", pattern, patternRxStr, line)
 	}

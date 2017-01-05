@@ -1,11 +1,12 @@
 # logexpect
 
 ```bash
-swift-drive-autopilot ./config.yaml | logexpect ./expected.log
+swift-drive-autopilot ./config.yaml | logexpect ./expected.log > ./actual.log
 ```
 
 This small utility is used by the unit tests to compare log output from the
-swift-drive-autopilot to an expected pattern.
+swift-drive-autopilot to an expected pattern. It also acts like `tee(1)`, in
+that lines from standard input are echoed to standard output.
 
 A log output might look like this:
 
