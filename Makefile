@@ -7,6 +7,10 @@ GOFLAGS := -ldflags '-s -w'
 swift-drive-autopilot: *.go
 	$(GOCC) build $(GOFLAGS) -o $@ github.com/sapcc/swift-drive-autopilot
 
+test/logexpect: cmd/logexpect/*.go
+	$(GOCC) build $(GOFLAGS) -o $@ github.com/sapcc/swift-drive-autopilot/cmd/logexpect
+	$(GOCC) test github.com/sapcc/swift-drive-autopilot/cmd/logexpect
+
 vendor:
 	@golangvend
 .PHONY: vendor

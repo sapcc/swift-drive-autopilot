@@ -1,3 +1,9 @@
+# build artifacts
 swift-drive-autopilot
-test*
+test/logexpect
+
+# vendoring artifacts
 .golangvend-cache
+
+# development stuff
+test*.yaml
