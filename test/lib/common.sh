@@ -54,3 +54,28 @@ function run_and_expect {
         | "${THISDIR}/logexpect" "${DIR}/pattern" > "${DIR}/log"
     log_debug "Success!"
 }
+
+# Standard verification step: Expect a mountpoint at the given path.
+function expect_mountpoint {
+    if mount | grep -qF " on $1 type xfs "; then true; else
+        echo "expected $1 to be a mountpoint with an XFS filesystem, but it isn't" >&2
+        return 1
+    fi
+}
+
+# Standard verification step: Expect no mountpoint at the given path.
+function expect_no_mountpoint {
+    if mount | grep -qF " on $1 "; then
+        echo "expected $1 to not be a mountpoint, but it is" >&2
+        return 1
+    fi
+}
+
+# Standard verification step: Expect no mounts below /srv/node.
+function expect_no_mounts {
+    if mount | grep -qF 'on /srv/node'; then
+        echo "expected no mountpoints below /srv/node, but there are some:" >&2
+        mount | grep -F 'on /srv/node'
+        exit 1
+    fi
+}
