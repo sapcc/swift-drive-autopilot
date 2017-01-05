@@ -73,6 +73,12 @@ To build the Docker container:
 make && docker build .
 ```
 
+To run the integration tests: (Note that this actually runs the autopilot on your system and thus requires root or `sudo` for mounting, device-mapper etc.)
+
+```bash
+make check
+```
+
 ## Development setup
 
 Please see [HACKING.md](./HACKING.md).
