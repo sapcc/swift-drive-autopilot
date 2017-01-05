@@ -98,6 +98,11 @@ func (c *Converger) Converge() {
 
 //AutoAssignSwiftIDs will try to do exactly that.
 func (c *Converger) AutoAssignSwiftIDs() {
+	//can only do something if a swift-id-pool is given in the config
+	if len(Config.SwiftIDPool) == 0 {
+		return
+	}
+
 	//tracks assigned swift-ids
 	assigned := make(map[string]bool)
 

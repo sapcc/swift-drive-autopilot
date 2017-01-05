@@ -54,7 +54,7 @@ func (drives Drives) ScanSwiftIDs() (success bool) {
 		if err != nil {
 			if os.IsNotExist(err) {
 				//this is not an error if we can choose a swift-id in the next step
-				if drive.StartedOutEmpty {
+				if drive.StartedOutEmpty && len(Config.SwiftIDPool) > 0 {
 					Log(LogInfo, "no swift-id file found on new device %s (mounted at %s), will try to assign one", drive.DevicePath, mountPath)
 				} else {
 					Log(LogError, "no swift-id file found on device %s (mounted at %s)", drive.DevicePath, mountPath)
