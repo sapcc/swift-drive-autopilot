@@ -54,3 +54,12 @@ func SetupTestMode() {
 		os.Exit(0)
 	}(c)
 }
+
+//GetJobInterval is used by various collector jobs to tighten their work
+//schedule during integration tests.
+func GetJobInterval(normalInterval, testModeInterval time.Duration) time.Duration {
+	if os.Getenv("TEST_MODE") == "1" {
+		return testModeInterval
+	}
+	return normalInterval
+}

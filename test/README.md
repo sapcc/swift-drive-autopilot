@@ -23,3 +23,10 @@ Shared code for all testcases resides in the [`lib`](./lib) subdirectory:
 * `common.sh` contains shared initialization logic and a library of functions.
 * `cleanup.sh` cleans up resources from a previous testcase. It is idempotent;
   if nothing needs to be cleaned up, it will not do anything.
+
+The testcases are ordered and also roughly organized into blocks by their
+initial number:
+
+* Tests 01, 02, etc. test drive discovery and initial setup.
+* Tests 11, 12, etc. test reaction to events after the initial discovery and
+  setup (drive failures, reinstatements, etc.).

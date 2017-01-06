@@ -75,6 +75,7 @@ func CollectDriveEvents(queue chan []Event) {
 	devicePaths := make(map[string]string)
 
 	//work loop
+	interval := GetJobInterval(5*time.Second, 1*time.Second)
 	for {
 		var events []Event
 
@@ -154,7 +155,7 @@ func CollectDriveEvents(queue chan []Event) {
 		}
 
 		//sleep for 5 seconds before running globs again
-		time.Sleep(5 * time.Second)
+		time.Sleep(interval)
 	}
 }
 
@@ -179,6 +180,7 @@ func CollectReinstatements(queue chan []Event) {
 	//a device is removed from this set
 	brokenDevices := make(map[string]bool)
 
+	interval := GetJobInterval(5*time.Second, 1*time.Second)
 	for {
 		var events []Event
 
@@ -208,7 +210,7 @@ func CollectReinstatements(queue chan []Event) {
 		}
 
 		//sleep for 5 seconds before re-running
-		time.Sleep(5 * time.Second)
+		time.Sleep(interval)
 	}
 }
 
@@ -219,8 +221,9 @@ func CollectReinstatements(queue chan []Event) {
 //to invoke the consistency checks that the converger executes during each of
 //its event loop iterations.
 func ScheduleWakeups(queue chan []Event) {
+	interval := GetJobInterval(30*time.Second, 10*time.Second)
 	for {
-		time.Sleep(30 * time.Second)
+		time.Sleep(interval)
 		queue <- []Event{WakeupEvent{}}
 	}
 }
