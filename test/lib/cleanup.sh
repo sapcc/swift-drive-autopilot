@@ -38,5 +38,7 @@ if [ -d /var/cache/swift ]; then
 fi
 
 log_debug "Cleanup: disk images in ${DIR}"
-( cd "${DIR}"; rm -rf -- image? )
+( cd "${DIR}"; rm -f -- image? )
 
+log_debug "Cleanup: subshell progress indicator"
+( cd "${DIR}"; rm -f -- subshell-* )

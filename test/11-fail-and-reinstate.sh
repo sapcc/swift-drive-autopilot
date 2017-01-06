@@ -4,6 +4,7 @@ set -euo pipefail
 THISDIR="$(dirname "$(readlink -f $0)")"
 source "${THISDIR}/lib/common.sh"
 source "${THISDIR}/lib/cleanup.sh"
+rm -f -- "${DIR}/subshell-success"
 
 make_disk_images  1 2
 make_loop_devices 1 2
@@ -14,9 +15,15 @@ DEV1="$(readlink -f "${DIR}/loop1")"
 # read-only remount) and reinstatement
 (
     sleep 5
+    expect_mountpoint /srv/node/swift1
+    expect_mountpoint /srv/node/swift2
     as_root mount -o remount,ro /srv/node/swift1
+
     sleep 7
+    expect_no_mountpoint /srv/node/swift1
     reinstate_drive "${DEV1}"
+
+    report_subshell_success
 ) &
 
 with_config <<-EOF
@@ -49,3 +56,7 @@ INFO: mounted ${DEV1} to /run/swift-storage/{{hash1}}
 INFO: mounted ${DEV1} to /srv/node/swift1
 INFO: unmounted /run/swift-storage/{{hash1}}
 EOF
+
+expect_mountpoint /srv/node/swift1
+expect_mountpoint /srv/node/swift2
+expect_subshell_success

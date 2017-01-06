@@ -96,3 +96,21 @@ function expect_no_mounts {
         exit 1
     fi
 }
+
+# Standard execution step: As the subshell with given index, report success.
+#
+# This is necessary because a subshell spawned as `( COMMAND... )&` does not
+# report its exit code in a way that `set -e` could see. But each subshell has
+# `set -e`, too, so if it calls report_subshell_success at the end, that proves
+# that all commands before that executed successfully.
+function report_subshell_success {
+    touch "${DIR}/subshell-${1:-1}-success"
+}
+
+# Standard verification step: Expect that the subshell with given index completed successfully.
+function expect_subshell_success {
+    if [ ! -f "${DIR}/subshell-${1:-1}-success" ]; then
+        echo "subshell ${1:-1} exited prematurely; see error message above" >&2
+        exit 1
+    fi
+}

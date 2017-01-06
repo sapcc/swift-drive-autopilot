@@ -42,9 +42,15 @@ EOF
 # read-only remount) and reinstatement
 (
     sleep 5
+    expect_mountpoint /srv/node/swift1
+    expect_mountpoint /srv/node/swift2
     as_root mount -o remount,ro /srv/node/swift1
+
     sleep 7
+    expect_no_mountpoint /srv/node/swift1
     reinstate_drive "${DEV1}"
+
+    report_subshell_success
 ) &
 
 run_and_expect <<-EOF
@@ -68,3 +74,7 @@ INFO: mounted /dev/mapper/{{hash1}} to /run/swift-storage/{{hash1}}
 INFO: mounted /dev/mapper/{{hash1}} to /srv/node/swift1
 INFO: unmounted /run/swift-storage/{{hash1}}
 EOF
+
+expect_mountpoint /srv/node/swift1
+expect_mountpoint /srv/node/swift2
+expect_subshell_success
