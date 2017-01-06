@@ -49,6 +49,10 @@ var logLevelNames = []string{"FATAL", "ERROR", "INFO", "DEBUG"}
 
 var isDebug = os.Getenv("DEBUG") != ""
 
+func init() {
+	log.SetOutput(os.Stdout)
+}
+
 //Log writes a log message. LogDebug messages are only written if
 //the environment variable `DEBUG` is set.
 func Log(level LogLevel, msg string, args ...interface{}) {
