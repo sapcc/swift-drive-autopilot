@@ -1,9 +1,17 @@
 #!/bin/bash
 
-if mount | grep -qE 'on (/run/swift-storage|/srv/node)/'; then
-    mount | grep -E 'on (/run/swift-storage|/srv/node)/' | cut -d' ' -f3 | while read MOUNTPOINT; do
+if mount | grep -qE "on (/run/swift-storage|/srv/node|${DIR})/"; then
+    mount | grep -E "on (/run/swift-storage|/srv/node|${DIR})/" | cut -d' ' -f3 | while read MOUNTPOINT; do
         log_debug "Cleanup: mountpoint ${MOUNTPOINT}"
         as_root umount "${MOUNTPOINT}"
+    done
+fi
+
+# device names starting with "autopilot-test" are used by some testcases at test setup time
+if as_root dmsetup ls --target=crypt | grep -qE '^(autopilot-test|[0-9a-f]{32}\s)'; then
+    as_root dmsetup ls --target=crypt | grep -E '^(autopilot-test|[0-9a-f]{32}\s)' | cut -f1 | while read MAPNAME; do
+        log_debug "Cleanup: LUKS container /dev/mapper/${MAPNAME}"
+        as_root cryptsetup close "${MAPNAME}"
     done
 fi
 

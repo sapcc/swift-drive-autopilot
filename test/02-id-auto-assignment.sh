@@ -10,7 +10,7 @@ make_loop_devices 1 2
 
 with_config <<-EOF
     drives: [ '${DIR}/loop?' ]
-    swift-id-pool: [ swift1, swift2 ]
+    swift-id-pool: [ swift1, swift2, swift3 ]
 EOF
 
 run_and_expect <<-EOF
