@@ -19,10 +19,7 @@
 
 package main
 
-import (
-	"os"
-	"time"
-)
+import "os"
 
 func main() {
 	//set working directory to the chroot directory; this simplifies file
@@ -54,20 +51,8 @@ func main() {
 	go ScheduleWakeups(queue)
 	go WatchKernelLog(queue)
 
-	//During integration tests, the autopilot will be killed by SIGPIPE after
-	//`logexpect` has seen all the log lines that it wanted (or after it found
-	//the first error), but that only happens when a write() syscall is issued
-	//on stdout after `logexpect` has exited. This would usually only occur
-	//after 30 seconds, with the next "event received: scheduled healthcheck",
-	//but we don't want to wait so long. This goroutine will write empty lines
-	//to stdout all the time, and `logexpect` will ignore these.
 	if os.Getenv("TEST_MODE") == "1" {
-		go func() {
-			for {
-				time.Sleep(1 * time.Second)
-				os.Stdout.Write([]byte("\n"))
-			}
-		}()
+		SetupTestMode()
 	}
 
 	//the converger runs in the main thread
