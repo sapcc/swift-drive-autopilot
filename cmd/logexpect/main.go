@@ -42,7 +42,10 @@ func main() {
 	}
 	patterns := filterEmptyPatterns(strings.Split(string(pattern), "\n"))
 
-	err = matchPatterns(os.Stdin, os.Stdout, patterns)
+	//echo all reads from stdin onto stdout
+	in := io.TeeReader(os.Stdin, os.Stdout)
+
+	err = matchPatterns(in, patterns)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
@@ -60,7 +63,7 @@ func filterEmptyPatterns(patterns []string) []string {
 	return result
 }
 
-func matchPatterns(input io.Reader, output io.Writer, patterns []string) error {
+func matchPatterns(input io.Reader, patterns []string) error {
 	vars := make(map[string]string)
 	reader := bufio.NewReader(input)
 	eof := false
@@ -76,11 +79,6 @@ func matchPatterns(input io.Reader, output io.Writer, patterns []string) error {
 		//skip empty input lines
 		if strings.TrimSpace(inputLine) == "" {
 			continue
-		}
-
-		//echo input line onto output writer if requested
-		if output != nil {
-			output.Write([]byte(inputLine))
 		}
 
 		//consume next pattern and compare
