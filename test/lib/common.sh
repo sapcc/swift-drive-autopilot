@@ -1,10 +1,15 @@
 #!/bin/bash
 
-function log_debug {
-    if [ "${DEBUG:-0}" == 1 ]; then
+if [ "${DEBUG:-0}" == 1 ]; then
+    set -x
+    function log_debug {
         echo ">> $@"
-    fi
-}
+    }
+else
+    function log_debug {
+        return 0
+    }
+fi
 
 # choose temporary directory (this is the same for all test-runs, so that a
 # subsequent run can cleanup the assets from the previous one)
@@ -50,8 +55,8 @@ function with_config {
 function run_and_expect {
     cat > "${DIR}/pattern"
     log_debug "Starting autopilot (log output will be copied to ${DIR}/log)"
-    as_root env TEST_MODE=1 "${THISDIR}/../swift-drive-autopilot" "${DIR}/config.yaml" 2>&1 \
-        | "${THISDIR}/logexpect" "${DIR}/pattern" > "${DIR}/log"
+    as_root env TEST_MODE=1 "${THISDIR}/../swift-drive-autopilot" "${DIR}/config.yaml" \
+        | timeout 120s "${THISDIR}/logexpect" "${DIR}/pattern" > "${DIR}/log"
     log_debug "Success!"
 }
 
