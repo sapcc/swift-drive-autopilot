@@ -60,6 +60,18 @@ function run_and_expect {
     log_debug "Success!"
 }
 
+# Standard execution step: Find and remove the broken flag for the given drive.
+function reinstate_drive {
+    for BROKEN_LINK in /run/swift-storage/broken/*; do
+        if [ "$1" = "$(readlink -f "${BROKEN_LINK}")" ]; then
+            as_root rm "${BROKEN_LINK}"
+            return 0
+        fi
+    done
+    echo "cannot reinstate $1: no link found in /run/swift-storage/broken" >&2
+    return 1
+}
+
 # Standard verification step: Expect a mountpoint at the given path.
 function expect_mountpoint {
     if mount | grep -qF " on $1 type xfs "; then true; else

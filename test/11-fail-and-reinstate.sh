@@ -16,15 +16,7 @@ DEV1="$(readlink -f "${DIR}/loop1")"
     sleep 5
     as_root mount -o remount,ro /srv/node/swift1
     sleep 7
-    for BROKEN_LINK in /run/swift-storage/broken/*; do
-        DEVICE="$(readlink -f "${BROKEN_LINK}")"
-        if [ "${DEVICE}" = "${DEV1}" ]; then
-            as_root rm "${BROKEN_LINK}"
-        else
-            echo "expected ${DEV1} to be flagged as broken, but it's actually ${DEVICE}" >&2
-            exit 1
-        fi
-    done
+    reinstate_drive "${DEV1}"
 ) &
 
 with_config <<-EOF
