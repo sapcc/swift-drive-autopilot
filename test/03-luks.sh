@@ -49,6 +49,7 @@ INFO: mounted /dev/mapper/{{hash2}} to /srv/node/new
 INFO: unmounted /run/swift-storage/{{hash2}}
 EOF
 
+expect_open_luks_count 2
 expect_mountpoint /srv/node/existing
 expect_mountpoint /srv/node/new
 

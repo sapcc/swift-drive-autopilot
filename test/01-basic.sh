@@ -51,3 +51,4 @@ EOF
 expect_mountpoint    /srv/node/swift1
 expect_mountpoint    /srv/node/swift2
 expect_no_mountpoint /srv/node/swift3
+expect_open_luks_count 0

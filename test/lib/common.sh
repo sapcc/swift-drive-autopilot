@@ -97,6 +97,17 @@ function expect_no_mounts {
     fi
 }
 
+# Standard verification step: Count the number of LUKS containers currently
+# open and compare to the given number.
+function expect_open_luks_count {
+    ACTUAL="$(as_root dmsetup ls --target=crypt | grep -cE '^[0-9a-f]{32}\s' || true)"
+    if [ "${ACTUAL}" -ne "$1" ]; then
+        echo "expected $1 open LUKS containers, but found ${ACTUAL}:" >&2
+        as_root dmsetup ls --target=crypt | grep -E '^[0-9a-f]{32}\s'
+        exit 1
+    fi
+}
+
 # Standard execution step: As the subshell with given index, report success.
 #
 # This is necessary because a subshell spawned as `( COMMAND... )&` does not

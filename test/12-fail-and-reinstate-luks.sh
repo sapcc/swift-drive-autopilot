@@ -42,11 +42,13 @@ EOF
 # read-only remount) and reinstatement
 (
     sleep 5
+    expect_open_luks_count 2
     expect_mountpoint /srv/node/swift1
     expect_mountpoint /srv/node/swift2
     as_root mount -o remount,ro /srv/node/swift1
 
     sleep 7
+    expect_open_luks_count 1 # checks that MarkAsBroken closes the LUKS container
     expect_no_mountpoint /srv/node/swift1
     reinstate_drive "${DEV1}"
 
@@ -75,6 +77,7 @@ INFO: mounted /dev/mapper/{{hash1}} to /srv/node/swift1
 INFO: unmounted /run/swift-storage/{{hash1}}
 EOF
 
+expect_open_luks_count 2
 expect_mountpoint /srv/node/swift1
 expect_mountpoint /srv/node/swift2
 expect_subshell_success
