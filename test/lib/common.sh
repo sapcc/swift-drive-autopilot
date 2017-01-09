@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 if [ "${DEBUG:-0}" == 1 ]; then
     set -x
@@ -74,20 +75,24 @@ function reinstate_drive {
     return 1
 }
 
-# Standard verification step: Expect a mountpoint at the given path.
+# Standard verification step: Expect a mountpoint at the given path(s).
 function expect_mountpoint {
-    if mount | grep -qF " on $1 type xfs "; then true; else
-        echo "expected $1 to be a mountpoint with an XFS filesystem, but it isn't" >&2
-        return 1
-    fi
+    for MOUNTPOINT in "$@"; do
+        if mount | grep -qF " on ${MOUNTPOINT} type xfs "; then true; else
+            echo "expected ${MOUNTPOINT} to be a mountpoint with an XFS filesystem, but it isn't" >&2
+            return 1
+        fi
+    done
 }
 
-# Standard verification step: Expect no mountpoint at the given path.
+# Standard verification step: Expect no mountpoint at the given path(s).
 function expect_no_mountpoint {
-    if mount | grep -qF " on $1 "; then
-        echo "expected $1 to not be a mountpoint, but it is" >&2
-        return 1
-    fi
+    for MOUNTPOINT in "$@"; do
+        if mount | grep -qF " on ${MOUNTPOINT} "; then
+            echo "expected ${MOUNTPOINT} to not be a mountpoint, but it is" >&2
+            return 1
+        fi
+    done
 }
 
 # Standard verification step: Expect no mounts below /srv/node.
@@ -106,24 +111,6 @@ function expect_open_luks_count {
     if [ "${ACTUAL}" -ne "$1" ]; then
         echo "expected $1 open LUKS containers, but found ${ACTUAL}:" >&2
         as_root dmsetup ls --target=crypt | grep -E '^[0-9a-f]{32}\s'
-        exit 1
-    fi
-}
-
-# Standard execution step: As the subshell with given index, report success.
-#
-# This is necessary because a subshell spawned as `( COMMAND... )&` does not
-# report its exit code in a way that `set -e` could see. But each subshell has
-# `set -e`, too, so if it calls report_subshell_success at the end, that proves
-# that all commands before that executed successfully.
-function report_subshell_success {
-    touch "${DIR}/subshell-${1:-1}-success"
-}
-
-# Standard verification step: Expect that the subshell with given index completed successfully.
-function expect_subshell_success {
-    if [ ! -f "${DIR}/subshell-${1:-1}-success" ]; then
-        echo "subshell ${1:-1} exited prematurely; see error message above" >&2
         exit 1
     fi
 }

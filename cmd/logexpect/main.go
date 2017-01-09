@@ -91,6 +91,7 @@ func matchCommands(input io.Reader, commands []string) error {
 			if err != nil {
 				return err
 			}
+			continue
 		}
 
 		//what is this?

@@ -1,6 +1,4 @@
 #!/bin/bash
-set -euo pipefail
-
 cd "$(dirname "$(readlink -f $0)")"
 source ./lib/common.sh
 source ./lib/cleanup.sh

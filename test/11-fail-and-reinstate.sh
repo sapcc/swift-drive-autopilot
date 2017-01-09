@@ -1,6 +1,4 @@
 #!/bin/bash
-set -euo pipefail
-
 cd "$(dirname "$(readlink -f $0)")"
 source ./lib/common.sh
 source ./lib/cleanup.sh
@@ -9,21 +7,6 @@ make_disk_images  1 2
 make_loop_devices 1 2
 
 DEV1="$(readlink -f "${DIR}/loop1")"
-
-# spawn another subshell that will trigger the device failure (simulated by a
-# read-only remount) and reinstatement
-(
-    sleep 5
-    expect_mountpoint /srv/node/swift1
-    expect_mountpoint /srv/node/swift2
-    as_root mount -o remount,ro /srv/node/swift1
-
-    sleep 7
-    expect_no_mountpoint /srv/node/swift1
-    reinstate_drive "${DEV1}"
-
-    report_subshell_success
-) &
 
 with_config <<-EOF
     drives: [ '${DIR}/loop?' ]
@@ -44,18 +27,18 @@ run_and_expect <<-EOF
 > INFO: mounted {{dev2}} to /srv/node/swift2
 > INFO: unmounted /run/swift-storage/{{hash2}}
 
+$ source lib/common.sh; expect_mountpoint /srv/node/swift{1,2}; as_root mount -o remount,ro /srv/node/swift1
 > INFO: event received: scheduled consistency check
 > ERROR: mount of ${DEV1} at /srv/node/swift1 is read-only (could be due to a disk error)
 > INFO: flagging ${DEV1} as broken because of previous error
 > INFO: To reinstate this drive into the cluster, delete the symlink at /run/swift-storage/broken/{{hash1}}
 > INFO: unmounted /srv/node/swift1
 
+$ source lib/common.sh; expect_no_mountpoint /srv/node/swift1; reinstate_drive "${DEV1}"
 > INFO: event received: device reinstated: ${DEV1}
 > INFO: mounted ${DEV1} to /run/swift-storage/{{hash1}}
 > INFO: mounted ${DEV1} to /srv/node/swift1
 > INFO: unmounted /run/swift-storage/{{hash1}}
 EOF
 
-expect_mountpoint /srv/node/swift1
-expect_mountpoint /srv/node/swift2
-expect_subshell_success
+expect_mountpoint /srv/node/swift{1,2}
