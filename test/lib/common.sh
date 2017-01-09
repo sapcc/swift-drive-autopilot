@@ -52,11 +52,13 @@ function with_config {
 
 # Standard execution step: Send the function's stdin to the pattern file for
 # this test run, then execute swift-drive-autopilot and logexpect.
+#
+# Note that each test script sets its working directory to `$THIS_REPO/test`.
 function run_and_expect {
     cat > "${DIR}/pattern"
     log_debug "Starting autopilot (log output will be copied to ${DIR}/log)"
-    as_root env TEST_MODE=1 "${THISDIR}/../swift-drive-autopilot" "${DIR}/config.yaml" \
-        | timeout 120s "${THISDIR}/logexpect" "${DIR}/pattern" > "${DIR}/log"
+    as_root env TEST_MODE=1 ../swift-drive-autopilot "${DIR}/config.yaml" \
+        | timeout 120s ./logexpect "${DIR}/pattern" > "${DIR}/log"
     log_debug "Success!"
 }
 

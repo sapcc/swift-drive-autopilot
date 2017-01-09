@@ -1,10 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
-THISDIR="$(dirname "$(readlink -f $0)")"
-source "${THISDIR}/lib/common.sh"
-source "${THISDIR}/lib/cleanup.sh"
-rm -f -- "${DIR}/subshell-success"
+cd "$(dirname "$(readlink -f $0)")"
+source ./lib/common.sh
+source ./lib/cleanup.sh
 
 make_disk_images  1 2
 make_loop_devices 1 2
