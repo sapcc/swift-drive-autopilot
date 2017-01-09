@@ -1,12 +1,13 @@
 # logexpect
 
 ```bash
-swift-drive-autopilot ./config.yaml | logexpect ./expected.log > ./actual.log
+swift-drive-autopilot ./config.yaml | logexpect ./commandlist > ./actual.log
 ```
 
 This small utility is used by the unit tests to compare log output from the
-swift-drive-autopilot to an expected pattern. It also acts like `tee(1)`, in
-that lines from standard input are echoed to standard output.
+swift-drive-autopilot to an expectation. It also acts like `tee(1)`, in that
+lines from standard input are echoed to standard output, and can execute shell
+scripts to test complex assertions.
 
 A log output might look like this:
 
@@ -22,21 +23,24 @@ A log output might look like this:
 2017/01/05 13:54:01 ERROR: no swift-id file found on device /dev/loop3 (mounted at /run/swift-storage/b5eebc4fd85ddb560a78193515a858ea)
 ```
 
-And a pattern matching this log output may look like this:
+## Patterns
+
+And a command list matching this log output may look like this:
 
 ```
-INFO: event received: new device found: {{link1}} -> {{device1}}
-INFO: mounted {{device1}} to /run/swift-storage/{{hash1}}
-INFO: event received: new device found: {{link2}} -> {{device2}}
-INFO: mounted {{device2}} to /run/swift-storage/{{hash2}}
-ERROR: no swift-id file found on device {{device1}} (mounted at /run/swift-storage/{{hash1}})
-ERROR: no swift-id file found on device {{device2}} (mounted at /run/swift-storage/{{hash2}})
-INFO: event received: scheduled consistency check
-ERROR: no swift-id file found on device {{device1}} (mounted at /run/swift-storage/{{hash1}})
-ERROR: no swift-id file found on device {{device2}} (mounted at /run/swift-storage/{{hash2}})
+> INFO: event received: new device found: {{link1}} -> {{device1}}
+> INFO: mounted {{device1}} to /run/swift-storage/{{hash1}}
+> INFO: event received: new device found: {{link2}} -> {{device2}}
+> INFO: mounted {{device2}} to /run/swift-storage/{{hash2}}
+> ERROR: no swift-id file found on device {{device1}} (mounted at /run/swift-storage/{{hash1}})
+> ERROR: no swift-id file found on device {{device2}} (mounted at /run/swift-storage/{{hash2}})
+> INFO: event received: scheduled consistency check
+> ERROR: no swift-id file found on device {{device1}} (mounted at /run/swift-storage/{{hash1}})
+> ERROR: no swift-id file found on device {{device2}} (mounted at /run/swift-storage/{{hash2}})
 ```
 
-So when comparing the input to the pattern, the following steps are performed:
+A command starting with `>` is a *pattern*. When comparing the input to the
+pattern, the following steps are performed:
 
 1. The timestamps at the beginning of each log line are stripped.
 2. Each occurrence of a variable like `{{foo}}` in the pattern will be compared
@@ -49,3 +53,10 @@ reported and the exit code will be 1.
 
 If the pattern contains less lines than the standard input, `logexpect` will
 exit as soon as all patterns have matched.
+
+## Assertions
+
+A command starting with `$` is a *command* that will be executed in
+`/bin/bash`. This is used by the autopilot tests to trigger external events and
+to test assertions while the autopilot is running. If the command fails,
+`logexpect` will exit with non-zero exit code.

@@ -17,12 +17,12 @@ EOF
 # so this should not perform final mounts)
 
 run_and_expect <<-EOF
-INFO: event received: new device found: ${DIR}/loop1 -> {{dev1}}
-INFO: mounted {{dev1}} to /run/swift-storage/{{hash1}}
-INFO: event received: new device found: ${DIR}/loop2 -> {{dev2}}
-INFO: mounted {{dev2}} to /run/swift-storage/{{hash2}}
-ERROR: no swift-id file found on device {{dev1}} (mounted at /run/swift-storage/{{hash1}})
-ERROR: no swift-id file found on device {{dev2}} (mounted at /run/swift-storage/{{hash2}})
+> INFO: event received: new device found: ${DIR}/loop1 -> {{dev1}}
+> INFO: mounted {{dev1}} to /run/swift-storage/{{hash1}}
+> INFO: event received: new device found: ${DIR}/loop2 -> {{dev2}}
+> INFO: mounted {{dev2}} to /run/swift-storage/{{hash2}}
+> ERROR: no swift-id file found on device {{dev1}} (mounted at /run/swift-storage/{{hash1}})
+> ERROR: no swift-id file found on device {{dev2}} (mounted at /run/swift-storage/{{hash2}})
 EOF
 
 expect_no_mounts
@@ -38,14 +38,14 @@ for TEMP_MOUNTPOINT in /run/swift-storage/????????????????????????????????; do
 done
 
 run_and_expect <<-EOF
-INFO: event received: new device found: ${DIR}/loop1 -> {{dev1}}
-INFO: discovered {{dev1}} to be mounted at /run/swift-storage/{{hash1}} already
-INFO: event received: new device found: ${DIR}/loop2 -> {{dev2}}
-INFO: discovered {{dev2}} to be mounted at /run/swift-storage/{{hash2}} already
-INFO: mounted {{dev1}} to /srv/node/{{id1}}
-INFO: unmounted /run/swift-storage/{{hash1}}
-INFO: mounted {{dev2}} to /srv/node/{{id2}}
-INFO: unmounted /run/swift-storage/{{hash2}}
+> INFO: event received: new device found: ${DIR}/loop1 -> {{dev1}}
+> INFO: discovered {{dev1}} to be mounted at /run/swift-storage/{{hash1}} already
+> INFO: event received: new device found: ${DIR}/loop2 -> {{dev2}}
+> INFO: discovered {{dev2}} to be mounted at /run/swift-storage/{{hash2}} already
+> INFO: mounted {{dev1}} to /srv/node/{{id1}}
+> INFO: unmounted /run/swift-storage/{{hash1}}
+> INFO: mounted {{dev2}} to /srv/node/{{id2}}
+> INFO: unmounted /run/swift-storage/{{hash2}}
 EOF
 
 expect_mountpoint    /srv/node/swift1

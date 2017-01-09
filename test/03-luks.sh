@@ -35,18 +35,18 @@ with_config <<-EOF
 EOF
 
 run_and_expect <<-EOF
-INFO: event received: new device found: ${DIR}/loop1 -> ${DEV1}
-INFO: LUKS container at ${DEV1} opened as /dev/mapper/{{hash1}}
-INFO: mounted /dev/mapper/{{hash1}} to /run/swift-storage/{{hash1}}
-INFO: event received: new device found: ${DIR}/loop2 -> ${DEV2}
-INFO: LUKS container at ${DEV2} opened as /dev/mapper/{{hash2}}
-INFO: mounted /dev/mapper/{{hash2}} to /run/swift-storage/{{hash2}}
-INFO: no swift-id file found on new device ${DEV2} (mounted at /run/swift-storage/{{hash2}}), will try to assign one
-INFO: assigning swift-id 'new' to ${DEV2}
-INFO: mounted /dev/mapper/{{hash1}} to /srv/node/existing
-INFO: unmounted /run/swift-storage/{{hash1}}
-INFO: mounted /dev/mapper/{{hash2}} to /srv/node/new
-INFO: unmounted /run/swift-storage/{{hash2}}
+> INFO: event received: new device found: ${DIR}/loop1 -> ${DEV1}
+> INFO: LUKS container at ${DEV1} opened as /dev/mapper/{{hash1}}
+> INFO: mounted /dev/mapper/{{hash1}} to /run/swift-storage/{{hash1}}
+> INFO: event received: new device found: ${DIR}/loop2 -> ${DEV2}
+> INFO: LUKS container at ${DEV2} opened as /dev/mapper/{{hash2}}
+> INFO: mounted /dev/mapper/{{hash2}} to /run/swift-storage/{{hash2}}
+> INFO: no swift-id file found on new device ${DEV2} (mounted at /run/swift-storage/{{hash2}}), will try to assign one
+> INFO: assigning swift-id 'new' to ${DEV2}
+> INFO: mounted /dev/mapper/{{hash1}} to /srv/node/existing
+> INFO: unmounted /run/swift-storage/{{hash1}}
+> INFO: mounted /dev/mapper/{{hash2}} to /srv/node/new
+> INFO: unmounted /run/swift-storage/{{hash2}}
 EOF
 
 expect_open_luks_count 2

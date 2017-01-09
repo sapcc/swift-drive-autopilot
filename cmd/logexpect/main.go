@@ -25,36 +25,37 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"regexp"
 	"strings"
 )
 
 func main() {
 	if len(os.Args) != 2 {
-		fmt.Fprintf(os.Stderr, "usage: %s <pattern-file>", os.Args[0])
+		fmt.Fprintf(os.Stderr, "usage: %s <command-file>", os.Args[0])
 		os.Exit(1)
 	}
 
-	pattern, err := ioutil.ReadFile(os.Args[1])
+	commandBytes, err := ioutil.ReadFile(os.Args[1])
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}
-	patterns := filterEmptyPatterns(strings.Split(string(pattern), "\n"))
+	commands := filterEmptyCommands(strings.Split(string(commandBytes), "\n"))
 
 	//echo all reads from stdin onto stdout
 	in := io.TeeReader(os.Stdin, os.Stdout)
 
-	err = matchPatterns(in, patterns)
+	err = matchCommands(in, commands)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}
 }
 
-func filterEmptyPatterns(patterns []string) []string {
-	result := make([]string, 0, len(patterns))
-	for _, str := range patterns {
+func filterEmptyCommands(commands []string) []string {
+	result := make([]string, 0, len(commands))
+	for _, str := range commands {
 		str = strings.TrimSpace(str)
 		if str != "" {
 			result = append(result, str)
@@ -63,36 +64,42 @@ func filterEmptyPatterns(patterns []string) []string {
 	return result
 }
 
-func matchPatterns(input io.Reader, patterns []string) error {
+func matchCommands(input io.Reader, commands []string) error {
 	vars := make(map[string]string)
 	reader := bufio.NewReader(input)
 	eof := false
 
-	for len(patterns) > 0 && !eof {
-		//get next input line
-		inputLine, err := reader.ReadString('\n')
-		eof = err == io.EOF
-		if err != nil && !eof {
-			return err
-		}
+	for len(commands) > 0 && !eof {
+		//fetch next command
+		command := commands[0]
+		commands = commands[1:]
 
-		//skip empty input lines
-		if strings.TrimSpace(inputLine) == "" {
+		//if it's a pattern, match with input
+		if strings.HasPrefix(command, ">") {
+			pattern := strings.TrimPrefix(command, ">")
+			err := matchPattern(reader, pattern, vars)
+			eof = err == io.EOF
+			if err != nil && !eof {
+				return err
+			}
 			continue
 		}
 
-		//consume next pattern and compare
-		pattern := patterns[0]
-		patterns = patterns[1:]
-		err = matchPattern(inputLine, pattern, vars)
-		if err != nil {
-			return err
+		//if it's a command, execute
+		if strings.HasPrefix(command, "$") {
+			err := executeScript(strings.TrimPrefix(command, "$"))
+			if err != nil {
+				return err
+			}
 		}
+
+		//what is this?
+		return fmt.Errorf("malformed command (neither a pattern nor a script): %s", command)
 	}
 
-	//check if pattern was exhausted
-	if len(patterns) > 0 {
-		return fmt.Errorf("unexpected EOF\nexpected: %s", patterns[0])
+	//check if command list was exhausted
+	if len(commands) > 0 {
+		return fmt.Errorf("unexpected EOF while executing command: %s", commands[0])
 	}
 	return nil
 }
@@ -102,7 +109,22 @@ var variableRx = regexp.MustCompile(`\\{\\{[a-zA-Z][a-zA-Z0-9_]+\\}\\}`)
 var timestampRx = regexp.MustCompile(`^\d{4}/\d{2}/\d{2}\s*\d{2}:\d{2}:\d{2}\s*`)
 var whitespaceRx = regexp.MustCompile(`\s+`)
 
-func matchPattern(line string, pattern string, vars map[string]string) error {
+func matchPattern(reader *bufio.Reader, pattern string, vars map[string]string) error {
+	//get next input line
+	line, err := reader.ReadString('\n')
+	eof := err == io.EOF
+	if err != nil && !eof {
+		return err
+	}
+
+	//skip empty input lines
+	if strings.TrimSpace(line) == "" {
+		if eof {
+			return io.EOF
+		}
+		return matchPattern(reader, pattern, vars)
+	}
+
 	//everybody hates whitespace
 	line = whitespaceRx.ReplaceAllString(strings.TrimSpace(line), " ")
 	pattern = whitespaceRx.ReplaceAllString(strings.TrimSpace(pattern), " ")
@@ -150,5 +172,19 @@ func matchPattern(line string, pattern string, vars map[string]string) error {
 
 	}
 
+	if eof {
+		return io.EOF
+	}
 	return nil
+}
+
+func executeScript(script string) error {
+	script = strings.TrimSpace(script)
+
+	cmd := exec.Command("/bin/bash", "-c", script)
+	cmd.Stdin = nil
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	return cmd.Run()
 }

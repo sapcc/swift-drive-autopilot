@@ -24,8 +24,8 @@ import (
 	"testing"
 )
 
-func runMatchPatterns(input string, patterns ...string) error {
-	return matchPatterns(bytes.NewReader([]byte(input)), patterns)
+func runMatchCommands(input string, patterns ...string) error {
+	return matchCommands(bytes.NewReader([]byte(input)), patterns)
 }
 
 func TestPlainPatterns(t *testing.T) {
@@ -35,9 +35,9 @@ func TestPlainPatterns(t *testing.T) {
 		more input than needed
 		much more input than needed
 	`
-	err := runMatchPatterns(input,
-		"hello",
-		"world",
+	err := runMatchCommands(input,
+		"> hello",
+		"> world",
 	)
 	if err != nil {
 		t.Error(err)
@@ -48,9 +48,9 @@ func TestTimestampTrimming(t *testing.T) {
 	input := `2017/01/05 13:53:31 INFO: hello
 		2017/01/05 13:53:32 ERROR: world
 	`
-	err := runMatchPatterns(input,
-		"INFO: hello",
-		"ERROR: world",
+	err := runMatchCommands(input,
+		"> INFO: hello",
+		"> ERROR: world",
 	)
 	if err != nil {
 		t.Error(err)
@@ -63,28 +63,28 @@ func TestVariables(t *testing.T) {
 		device is really keks
 		device is not kuller
 	`
-	err := runMatchPatterns(input,
-		"device is {{dev}}",
-		"device is really {{dev}}",
-		"device is not {{other}}",
+	err := runMatchCommands(input,
+		"> device is {{dev}}",
+		"> device is really {{dev}}",
+		"> device is not {{other}}",
 	)
 	if err != nil {
 		t.Error(err)
 	}
 
 	//check that variable reoccurrence with different value fails
-	err = runMatchPatterns(input,
-		"device is {{dev}}",
-		"device is really {{dev}}",
-		"device is not {{dev}}",
+	err = runMatchCommands(input,
+		"> device is {{dev}}",
+		"> device is really {{dev}}",
+		"> device is not {{dev}}",
 	)
 	if err == nil {
 		t.Error("same variable should not match different strings at different times")
 	}
 
 	//check multiple occurrence of one variable in the same line
-	err = runMatchPatterns("to be or not to be - that is the question",
-		"{{issue}} or not {{issue}} - that is the question",
+	err = runMatchCommands("to be or not to be - that is the question",
+		"> {{issue}} or not {{issue}} - that is the question",
 	)
 	if err != nil {
 		t.Error(err)
