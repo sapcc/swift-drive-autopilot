@@ -41,7 +41,7 @@ $ source lib/common.sh; expect_open_luks_count 2; expect_mountpoint /srv/node/sw
 > INFO: unmounted /srv/node/swift1
 > INFO: LUKS container /dev/mapper/{{hash1}} closed
 
-$ source lib/common.sh; expect_open_luks_count 1; expect_no_mountpoint /srv/node/swift1; reinstate_drive "${DEV1}"
+$ source lib/common.sh; expect_open_luks_count 1; expect_no_mountpoint /srv/node/swift1; expect_symlink /run/swift-storage/broken/* "${DEV1}"; expect_symlink /run/swift-storage/state/unmount-propagation/swift1 "${DEV1}"; reinstate_drive "${DEV1}"
 > INFO: event received: device reinstated: ${DEV1}
 > INFO: LUKS container at ${DEV1} opened as /dev/mapper/{{hash1}}
 > INFO: mounted /dev/mapper/{{hash1}} to /run/swift-storage/{{hash1}}
@@ -51,3 +51,4 @@ EOF
 
 expect_open_luks_count 2
 expect_mountpoint /srv/node/swift{1,2}
+expect_deleted    /run/swift-storage/broken/* /run/swift-storage/state/unmount-propagation/*

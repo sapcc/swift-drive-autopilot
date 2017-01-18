@@ -34,7 +34,7 @@ $ source lib/common.sh; expect_mountpoint /srv/node/swift{1,2}; as_root mount -o
 > INFO: To reinstate this drive into the cluster, delete the symlink at /run/swift-storage/broken/{{hash1}}
 > INFO: unmounted /srv/node/swift1
 
-$ source lib/common.sh; expect_no_mountpoint /srv/node/swift1; reinstate_drive "${DEV1}"
+$ source lib/common.sh; expect_no_mountpoint /srv/node/swift1; expect_symlink /run/swift-storage/broken/* "${DEV1}"; expect_symlink /run/swift-storage/state/unmount-propagation/swift1 "${DEV1}"; reinstate_drive "${DEV1}"
 > INFO: event received: device reinstated: ${DEV1}
 > INFO: mounted ${DEV1} to /run/swift-storage/{{hash1}}
 > INFO: mounted ${DEV1} to /srv/node/swift1
@@ -42,3 +42,4 @@ $ source lib/common.sh; expect_no_mountpoint /srv/node/swift1; reinstate_drive "
 EOF
 
 expect_mountpoint /srv/node/swift{1,2}
+expect_deleted    /run/swift-storage/broken/* /run/swift-storage/state/unmount-propagation/*

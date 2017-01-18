@@ -137,3 +137,27 @@ function expect_file_with_content {
         exit 1
     fi
 }
+
+# Standard verification step: Expect that the given path ($1) contains a symlink
+# to the given target ($2).
+function expect_symlink {
+    if [ ! -L "$1" ]; then
+        echo "expected symlink at $1, but cannot find it" >&2
+        exit 1
+    fi
+    if [ "$(readlink -f "$1")" != "$2" ]; then
+        echo "expected symlink at $1 with target \"$2\", but actual target is \"$(readlink -f "$1")\"" >&2
+        exit 1
+    fi
+}
+
+# Standard verification step: Expect that the given files/symlinks/directories
+# were deleted.
+function expect_deleted {
+    for LOCATION in "$@"; do
+        if [ -e "${LOCATION}" ]; then
+            echo "expected path $2 to be deleted, but it still exists" >&2
+            exit 1
+        fi
+    done
+}
