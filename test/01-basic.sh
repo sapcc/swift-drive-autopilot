@@ -25,8 +25,9 @@ EOF
 
 expect_no_mounts
 
-expect_directories       /run/swift-storage/broken /run/swift-storage/state/unmount-propagation
-expect_file_with_content /run/swift-storage/state/flag-ready ''
+expect_directories         /run/swift-storage/broken /run/swift-storage/state/unmount-propagation /var/cache/swift
+expect_ownership root:root /run/swift-storage/broken /run/swift-storage/state/unmount-propagation /var/cache/swift
+expect_file_with_content   /run/swift-storage/state/flag-ready ''
 
 ################################################################################
 # phase 2: assign swift-ids and check final mount
@@ -51,4 +52,5 @@ EOF
 
 expect_mountpoint    /srv/node/swift1 /srv/node/swift2
 expect_no_mountpoint /srv/node/swift3 /run/swift-storage/*
+expect_ownership     root:root /srv/node/swift1 /srv/node/swift2
 expect_open_luks_count 0

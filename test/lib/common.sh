@@ -161,3 +161,18 @@ function expect_deleted {
         fi
     done
 }
+
+# Standard verification step: Expect that the given files/symlinks/directories
+# ($2, ...) belongs to the given user:group ($1).
+function expect_ownership {
+    local EXPECT STAT
+    EXPECT="$1"
+    shift
+    for LOCATION in "$@"; do
+        STAT="$(stat -c '%U:%G' "${LOCATION}")"
+        if [ "${STAT}" != "${EXPECT}" ]; then
+            echo "expected ${LOCATION} to belong to ${EXPECT}, but belongs to ${STAT}" >&2
+            exit 1
+        fi
+    done
+}
