@@ -26,6 +26,11 @@ run_and_expect <<-EOF
 > INFO: unmounted /run/swift-storage/{{hash2}}
 EOF
 
-expect_mountpoint    /srv/node/swift1
-expect_mountpoint    /srv/node/swift2
-expect_no_mountpoint /srv/node/swift3
+expect_mountpoint    /srv/node/swift1 /srv/node/swift2
+expect_no_mountpoint /srv/node/swift3 /run/swift-storage/*
+
+expect_directories   /run/swift-storage/broken /run/swift-storage/state/unmount-propagation
+
+expect_file_with_content /run/swift-storage/state/flag-ready ''
+expect_file_with_content /srv/node/swift1/swift-id           'swift1'
+expect_file_with_content /srv/node/swift2/swift-id           'swift2'

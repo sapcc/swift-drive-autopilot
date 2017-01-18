@@ -114,3 +114,26 @@ function expect_open_luks_count {
         exit 1
     fi
 }
+
+# Standard verification step: Expect that directories exist at the given paths.
+function expect_directories {
+    for LOCATION in "$@"; do
+        if [ ! -d "${LOCATION}" ]; then
+            echo "expected directory at ${LOCATION}, but cannot find it" >&2
+            exit 1
+        fi
+    done
+}
+
+# Standard verification step: Expect that the given path ($1) contains a regular
+# file with the given content ($2).
+function expect_file_with_content {
+    if [ ! -f "$1" ]; then
+        echo "expected file at $1, but cannot find it" >&2
+        exit 1
+    fi
+    if [ "$(cat "$1")" != "$2" ]; then
+        echo "expected file at $1 with content \"$2\", but actual content is \"$(cat "$1")\"" >&2
+        exit 1
+    fi
+}
