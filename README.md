@@ -156,6 +156,10 @@ Automatic assignment will *not* happen if there is any broken drive (since the
 autopilot cannot check the broken drive's `swift-id`, any automatic assignment
 could result in a duplicate `swift-id`).
 
+IDs are assigned in the order in which they appear in the YAML file. If there
+are only four drives, using the configuration above, they will definitely be
+identified as `swift1` through `swift4`.
+
 ### Runtime interface
 
 The autopilot advertises its state by writing the following files and

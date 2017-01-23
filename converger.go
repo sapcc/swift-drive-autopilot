@@ -131,6 +131,10 @@ func (c *Converger) AutoAssignSwiftIDs() {
 		}
 
 		//try to find an unused swift-id
+		//
+		//WARNING: IDs are GUARANTEED by our interface contract to be assigned
+		//in the order in which they appear in the configuration (see docs for
+		//`swift-id-pool` in README).
 		var swiftID string
 		for _, id := range Config.SwiftIDPool {
 			if !assigned[id] {
