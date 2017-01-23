@@ -68,7 +68,6 @@ func (e DriveRemovedEvent) LogMessage() string {
 //CollectDriveEvents is a collector thread that emits DriveAddedEvent and
 //DriveRemovedEvent.
 func CollectDriveEvents(queue chan []Event) {
-	reportedEmptyGlob := false
 	reportedPartitionedDisk := make(map[string]bool)
 	//this map will track which drives we know about (i.e. for which drives we
 	//have sent DriveAddedEvent)
@@ -99,14 +98,6 @@ func CollectDriveEvents(queue chan []Event) {
 			matches, err := filepath.Glob(pattern)
 			if err != nil {
 				Log(LogFatal, "glob(%#v) failed: %s", pattern, err.Error())
-			}
-			if len(matches) == 0 {
-				//this could hint at a misconfiguration, but could also just
-				//mean that all drives are disconnected at the moment
-				if !reportedEmptyGlob {
-					Log(LogError, "glob(%#v) does not match anything", pattern)
-					reportedEmptyGlob = true
-				}
 			}
 
 			for _, match := range matches {

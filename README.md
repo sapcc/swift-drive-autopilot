@@ -91,6 +91,7 @@ YAML and the following options are supported:
 ```yaml
 drives:
   - /dev/sd[a-z]
+  - /dev/sd[a-z][a-z]
 ```
 
 The only required field, `drives`, contains the paths of the Swift storage
@@ -103,6 +104,9 @@ installation will usually reside on a partitioned disk (because of the need for
 special partitions such as boot and swap partition), so it will be ignored by
 the autopilot. Any other disks can be used for non-Swift purposes as long as
 they are partitioned into at least one partition.
+
+For this reason, the two globs shown above with will be appropriate for most
+systems of all sizes.
 
 ```yaml
 chroot: /coreos
