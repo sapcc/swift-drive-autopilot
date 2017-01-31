@@ -20,6 +20,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -67,6 +68,13 @@ func (drives Drives) ScanSwiftIDs() (success bool) {
 		}
 		swiftID := strings.TrimSpace(string(idBytes))
 
+		//recognize spare disks
+		drive.Spare = swiftID == "spare"
+		if drive.Spare {
+			drive.FinalMount.Name = "" //to skip it during the final mount
+			continue                   //skip collision check
+		}
+
 		//does this swift-id conflict with where the device is currently mounted?
 		if drive.FinalMount.Active && drive.FinalMount.Name != swiftID {
 			Log(LogError,
@@ -112,6 +120,7 @@ func (c *Converger) AutoAssignSwiftIDs() {
 
 	//tracks assigned swift-ids
 	assigned := make(map[string]bool)
+	spareIdx := 0
 
 	for _, drive := range c.Drives {
 		//do not do anything if any drive is broken (if a drive is broken, we
@@ -128,7 +137,15 @@ func (c *Converger) AutoAssignSwiftIDs() {
 		}
 
 		//mark assigned swift-ids
-		assigned[drive.FinalMount.Name] = true
+		if drive.Spare {
+			//count how many spare disks exist by giving them names like "spare/0", "spare/1", etc.
+			//(this is the same format in which spare disks are presented in the Config.SwiftIDPool)
+			name := fmt.Sprintf("spare/%d", spareIdx)
+			assigned[name] = true
+			spareIdx++
+		} else {
+			assigned[drive.FinalMount.Name] = true
+		}
 	}
 
 	//look for drives that are eligible for automatic swift-id assignment
@@ -142,17 +159,22 @@ func (c *Converger) AutoAssignSwiftIDs() {
 		//WARNING: IDs are GUARANTEED by our interface contract to be assigned
 		//in the order in which they appear in the configuration (see docs for
 		//`swift-id-pool` in README).
-		var swiftID string
+		var poolID string
 		for _, id := range Config.SwiftIDPool {
 			if !assigned[id] {
-				swiftID = id
+				poolID = id
 				break
 			}
 		}
 
-		if swiftID == "" {
+		if poolID == "" {
 			Log(LogError, "tried to assign swift-id to %s, but pool is exhausted", drive.DevicePath)
 			continue
+		}
+
+		swiftID := poolID
+		if strings.HasPrefix(poolID, "spare/") {
+			swiftID = "spare"
 		}
 
 		Log(LogInfo, "assigning swift-id '%s' to %s", swiftID, drive.DevicePath)
@@ -168,7 +190,12 @@ func (c *Converger) AutoAssignSwiftIDs() {
 			continue
 		}
 
-		assigned[swiftID] = true
-		drive.FinalMount.Name = swiftID
+		assigned[poolID] = true
+		drive.Spare = swiftID == "spare"
+		if drive.Spare {
+			drive.FinalMount.Name = "" //to skip it during the final mount
+		} else {
+			drive.FinalMount.Name = swiftID
+		}
 	}
 }
