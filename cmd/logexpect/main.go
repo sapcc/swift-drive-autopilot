@@ -87,7 +87,7 @@ func matchCommands(input io.Reader, commands []string) error {
 
 		//if it's a command, execute
 		if strings.HasPrefix(command, "$") {
-			err := executeScript(strings.TrimPrefix(command, "$"))
+			err := executeScript(strings.TrimPrefix(command, "$"), vars)
 			if err != nil {
 				return err
 			}
@@ -105,8 +105,9 @@ func matchCommands(input io.Reader, commands []string) error {
 	return nil
 }
 
-//the backslashes in variableRx are necessary because this regexp works on QuoteMeta(pattern)
-var variableRx = regexp.MustCompile(`\\{\\{[a-zA-Z][a-zA-Z0-9_]+\\}\\}`)
+//the backslashes in variableRxQuoted are necessary because this regexp works on QuoteMeta(pattern)
+var variableRxQuoted = regexp.MustCompile(`\\{\\{[a-zA-Z][a-zA-Z0-9_]+\\}\\}`)
+var variableRx = regexp.MustCompile(`{{[a-zA-Z][a-zA-Z0-9_]+}}`)
 var timestampRx = regexp.MustCompile(`^\d{4}/\d{2}/\d{2}\s*\d{2}:\d{2}:\d{2}\s*`)
 var whitespaceRx = regexp.MustCompile(`\s+`)
 
@@ -135,7 +136,7 @@ func matchPattern(reader *bufio.Reader, pattern string, vars map[string]string) 
 
 	//compile pattern into a regex
 	var captures []string
-	patternRxStr := variableRx.ReplaceAllStringFunc(
+	patternRxStr := variableRxQuoted.ReplaceAllStringFunc(
 		regexp.QuoteMeta(pattern),
 		func(match string) string {
 			//get variable name from match
@@ -179,10 +180,27 @@ func matchPattern(reader *bufio.Reader, pattern string, vars map[string]string) 
 	return nil
 }
 
-func executeScript(script string) error {
+func executeScript(script string, vars map[string]string) error {
 	script = strings.TrimSpace(script)
 
-	cmd := exec.Command("/bin/bash", "-c", script)
+	//if script contains any variable references like {{foo}}, replace them with the actual values
+	var err error
+	compiledScript := variableRx.ReplaceAllStringFunc(script, func(match string) string {
+		//get variable name from match
+		name := strings.TrimPrefix(strings.TrimSuffix(match, "}}"), "{{")
+
+		value, ok := vars[name]
+		if ok {
+			return value
+		}
+		err = fmt.Errorf("unknown variable \"%s\" in shell script input: %s", name, script)
+		return ""
+	})
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command("/bin/bash", "-c", compiledScript)
 	cmd.Stdin = nil
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
