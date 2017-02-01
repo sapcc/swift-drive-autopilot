@@ -47,9 +47,9 @@ The autopilot then continues to run and will react to various types of events:
 4. Mounts of managed devices disappear unexpectedly. The offending device will
    be marked as unhealthy (see previous point).
 
-5. After a failure of one of the active disks, an operator locates a spare disk
-   and changes its `swift-id` to that of the failed disk. The autopilot will
-   mount the new disk in the place of the old one.
+5. After a failure of one of the active disks, an operator removes the failed
+   disk, locates a spare disk and changes its `swift-id` to that of the failed
+   disk. The autopilot will mount the new disk in the place of the old one.
 
 Internally, events are collected by *collector* threads, and handled by the
 single *converger* thread.
