@@ -73,6 +73,11 @@ type Drive struct {
 	//contain a filesystem, LUKS container, or active mount when
 	//Drive.Converge() started. This flag triggers swift-id auto-assignment.
 	StartedOutEmpty bool
+	//Spare is set during Drives.ScanSwiftIDs() or Drives.AutoAssignSwiftIDs()
+	//to indicate if this is a spare disk. A spare disk is characterized by
+	//having the swift-id "spare". Spare disks will never have their FinalMount
+	//activated (until their swift-id is adjusted by an operator manually).
+	Spare bool
 }
 
 //Drives is a list of Drive structs with some extra methods.

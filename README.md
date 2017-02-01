@@ -24,7 +24,10 @@ following steps:
 4. mount each device below `/run/swift-storage` with a temporary name
 
 5. examine each device's `swift-id` file, and if it is present and unique,
-   bind-mount it to `/srv/node/$id`
+   mount it to `/srv/node/$id`
+
+As a special case, disks with a `swift-id` of `"spare"` will not be mounted
+into `/srv/node`, but will be held back as spare disks.
 
 The autopilot then continues to run and will react to various types of events:
 
@@ -43,6 +46,10 @@ The autopilot then continues to run and will react to various types of events:
 
 4. Mounts of managed devices disappear unexpectedly. The offending device will
    be marked as unhealthy (see previous point).
+
+5. After a failure of one of the active disks, an operator removes the failed
+   disk, locates a spare disk and changes its `swift-id` to that of the failed
+   disk. The autopilot will mount the new disk in the place of the old one.
 
 Internally, events are collected by *collector* threads, and handled by the
 single *converger* thread.
@@ -159,6 +166,18 @@ could result in a duplicate `swift-id`).
 IDs are assigned in the order in which they appear in the YAML file. If there
 are only four drives, using the configuration above, they will definitely be
 identified as `swift1` through `swift4`.
+
+As a special case, the special ID `spare` may be given multiple times. The
+ordering still matters, so disks will be assigned or reserved as spare in the
+order that you wish. For example:
+
+```yaml
+# This will always keep two spare disks.
+swift-id-pool: [ "spare", "spare", "swift1", "swift2", "swift3", "swift4", "swift5", "swift6", ... ]
+
+# Something like this will keep one spare disk per three active disks.
+swift-id-pool: [ "swift1", "swift2", "swift3", "spare", "swift4", "swift5", "swift6", "spare", ... ]
+```
 
 ### Runtime interface
 

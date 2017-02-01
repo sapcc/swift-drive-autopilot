@@ -63,4 +63,16 @@ func init() {
 	if err != nil {
 		Log(LogFatal, "parse configuration: %s", err.Error())
 	}
+
+	//if there are multiple "spare" entries in the SwiftIDPool, disambiguate
+	//them into "spare/0", "spare/1", and so on
+	if len(Config.SwiftIDPool) > 0 {
+		spareIdx := 0
+		for idx, str := range Config.SwiftIDPool {
+			if str == "spare" {
+				Config.SwiftIDPool[idx] = fmt.Sprintf("spare/%d", spareIdx)
+				spareIdx++
+			}
+		}
+	}
 }
