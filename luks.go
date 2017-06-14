@@ -127,7 +127,7 @@ func getBackingDevicePath(mapName string) string {
 		//resolve any symlinks to get the actual devicePath
 		//when the luks container is created on top of multipathing, cryptsetup status might report the /dev/mapper/mapth device
 		//also the luksFormat was called on actual device
-		devicePath, err := filepath.EvalSymlinks(match)
+		devicePath, err := filepath.EvalSymlinks(match[1])
 		if err != nil {
 			Log(LogFatal, "readlink(%#v) failed: %s", match, err.Error())
 		}
