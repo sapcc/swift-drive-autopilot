@@ -123,21 +123,8 @@ func getBackingDevicePath(mapName string) string {
 	match := backingDeviceRx.FindStringSubmatch(stdout)
 	if match == nil {
 		Log(LogFatal, "cannot find backing device for /dev/mapper/%s", mapName)
-	} else {
-		//resolve any symlinks to get the actual devicePath
-		//when the luks container is created on top of multipathing, cryptsetup status might report the /dev/mapper/mapth device
-		//also the luksFormat was called on actual device
-		devicePath, err := filepath.EvalSymlinks(match[1])
-		if err != nil {
-			Log(LogFatal, "readlink(%#v) failed: %s", match, err.Error())
-		}
-		if devicePath != match[1] {
-			Log(LogDebug, "backing device path for %s is %s -> %s", mapName, match[1], devicePath)
-			return devicePath
-		} else {
-			Log(LogDebug, "backing device path for %s is %s", mapName, match[1])
-		}
 	}
+	Log(LogDebug, "backing device path for %s is %s", mapName, match[1])
 	return match[1]
 }
 
