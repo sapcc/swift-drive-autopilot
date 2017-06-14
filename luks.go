@@ -124,6 +124,7 @@ func getBackingDevicePath(mapName string) string {
 	if match == nil {
 		Log(LogFatal, "cannot find backing device for /dev/mapper/%s", mapName)
 	}
+	Log(LogDebug, "backing device path for %s is %s", mapName, match)
 	return match[1]
 }
 
