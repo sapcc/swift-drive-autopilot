@@ -104,7 +104,7 @@ func CollectDriveEvents(queue chan []Event) {
 				devicePath := match
 				//don't follow /dev/mapper devices, because luks container created on the actual device
 				//still refer to the /dev/mapper one
-				if !strings.HasPrefix(match, "/dev/mapper") {
+				if !strings.HasPrefix(match, "dev/mapper/") {
 					//resolve any symlinks to get the actual devicePath
 					devicePath, err = filepath.EvalSymlinks(match)
 					if err != nil {
