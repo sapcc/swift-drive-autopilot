@@ -19,7 +19,12 @@
 
 package main
 
-import "os"
+import (
+	"net/http"
+	"os"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+)
 
 func main() {
 	//set working directory to the chroot directory; this simplifies file
@@ -43,6 +48,16 @@ func main() {
 
 	//swift cache path must be accesible from user swift
 	Chown("/var/cache/swift", Config.Owner.User, Config.Owner.Group)
+
+	//start the metrics endpoint
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		Log(LogInfo, "listening on "+Config.MetricsListenAddress+" for metric shipping")
+		err := http.ListenAndServe(Config.MetricsListenAddress, nil)
+		if err != nil {
+			Log(LogFatal, "cannot listen on %s for metric shipping: %s", Config.MetricsListenAddress, err.Error())
+		}
+	}()
 
 	//start the collectors
 	queue := make(chan []Event, 10)

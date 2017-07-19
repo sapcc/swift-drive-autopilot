@@ -27,6 +27,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 //Converger contains the internal state of the converger thread.
@@ -61,7 +63,10 @@ func RunConverger(queue chan []Event) {
 
 		//handle events
 		for _, event := range events {
-			Log(LogInfo, "event received: "+event.LogMessage())
+			if msg := event.LogMessage(); msg != "" {
+				Log(LogInfo, "event received: "+msg)
+			}
+			eventCounter.With(prometheus.Labels{"type": event.EventType()}).Add(1)
 			event.Handle(c)
 		}
 

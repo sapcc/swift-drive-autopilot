@@ -40,7 +40,8 @@ type Configuration struct {
 		//specify the key derivation method
 		Secret string `yaml:"secret"`
 	} `yaml:"keys"`
-	SwiftIDPool []string `yaml:"swift-id-pool"`
+	SwiftIDPool          []string `yaml:"swift-id-pool"`
+	MetricsListenAddress string   `yaml:"metrics-listen-address"`
 }
 
 //Config is the global Configuration instance that's filled by main() at

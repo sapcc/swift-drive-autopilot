@@ -116,6 +116,20 @@ For this reason, the two globs shown above with will be appropriate for most
 systems of all sizes.
 
 ```yaml
+metrics-listen-address: ":9102"
+```
+
+If given, expose a Prometheus metrics endpoint on this port below the path
+`/metrics`. The following metrics are provided:
+
+- `swift_drive_autopilot_events`: counter for handled events (sorted by `type`,
+  e.g. `type=drive-added`)
+
+If Prometheus is used for alerting, it is useful to set an alert on
+`rate(swift_drive_autopilot_events[type="consistency-check"])`. Consistency
+check events should occur twice a minute.
+
+```yaml
 chroot: /coreos
 ```
 

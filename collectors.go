@@ -35,6 +35,7 @@ import (
 //the converger thread.
 type Event interface {
 	LogMessage() string
+	EventType() string //for counter metric that counts events
 	Handle(c *Converger)
 }
 
@@ -55,6 +56,11 @@ func (e DriveAddedEvent) LogMessage() string {
 	return fmt.Sprintf("new device found: %s -> %s", e.FoundAtPath, e.DevicePath)
 }
 
+//EventType implements the Event interface.
+func (e DriveAddedEvent) EventType() string {
+	return "drive-added"
+}
+
 //DriveRemovedEvent is an Event that fires when a drive's device file disappears.
 type DriveRemovedEvent struct {
 	DevicePath string
@@ -63,6 +69,11 @@ type DriveRemovedEvent struct {
 //LogMessage implements the Event interface.
 func (e DriveRemovedEvent) LogMessage() string {
 	return "device removed: " + e.DevicePath
+}
+
+//EventType implements the Event interface.
+func (e DriveRemovedEvent) EventType() string {
+	return "drive-removed"
 }
 
 //CollectDriveEvents is a collector thread that emits DriveAddedEvent and
@@ -168,6 +179,11 @@ func (e DriveReinstatedEvent) LogMessage() string {
 	return "device reinstated: " + e.DevicePath
 }
 
+//EventType implements the Event interface.
+func (e DriveReinstatedEvent) EventType() string {
+	return "drive-reinstated"
+}
+
 //CollectReinstatements watches /run/swift-storage/broken and issues a
 //DriveReinstatedEvent whenever a broken-flag in there is deleted by an
 //administrator.
@@ -228,8 +244,17 @@ func ScheduleWakeups(queue chan []Event) {
 type WakeupEvent struct{}
 
 //LogMessage implements the Event interface.
+//
+//The WakeupEvent does not produce an "event received" log message because it
+//would spam the log continuously. Instead, the continued execution of
+//consistency checks is tracked by the Prometheus metric that counts events.
 func (e WakeupEvent) LogMessage() string {
-	return "scheduled consistency check"
+	return ""
+}
+
+//EventType implements the Event interface.
+func (e WakeupEvent) EventType() string {
+	return "consistency-check"
 }
 
 //Handle implements the Event interface.
@@ -249,6 +274,11 @@ type DriveErrorEvent struct {
 //LogMessage implements the Event interface.
 func (e DriveErrorEvent) LogMessage() string {
 	return "potential device error for " + e.DevicePath + " seen in kernel log: " + e.LogLine
+}
+
+//EventType implements the Event interface.
+func (e DriveErrorEvent) EventType() string {
+	return "drive-error"
 }
 
 var klogErrorRx = regexp.MustCompile(`(?i)\berror\b`)
