@@ -39,3 +39,5 @@ fi
 
 log_debug "Cleanup: disk images in ${DIR}"
 ( cd "${DIR}"; rm -f -- image? )
+log_debug "Cleanup: loop device links in ${DIR}"
+( cd "${DIR}"; rm -f -- loop? )
