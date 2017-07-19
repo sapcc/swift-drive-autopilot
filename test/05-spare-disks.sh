@@ -34,7 +34,7 @@ run_and_expect <<-EOF
 > INFO: mounted {{dev3}} to /srv/node/swift2
 > INFO: unmounted /run/swift-storage/{{hash3}}
 
-$ source lib/common.sh; expect_mountpoint /srv/node/swift{1,2} /run/swift-storage/{{hash2}}; expect_no_mountpoint /srv/node/swift3; expect_file_with_content /run/swift-storage/{{hash2}}/swift-id 'spare'
+$ source lib/common.sh; expect_mountpoint /srv/node/swift{1,2} /run/swift-storage/{{hash2}}; expect_no_mountpoint /srv/node/swift3; expect_deleted /srv/node/spare; expect_file_with_content /run/swift-storage/{{hash2}}/swift-id 'spare'
 > INFO: event received: scheduled consistency check
 
 $ source lib/common.sh; rm ${DIR}/loop3
@@ -61,4 +61,5 @@ $ source lib/common.sh; expect_mountpoint /srv/node/swift{1,2} /run/swift-storag
 EOF
 
 expect_mountpoint    /srv/node/swift1 /srv/node/swift2
-expect_no_mountpoint /srv/node/swift3 /srv/node/spare
+expect_no_mountpoint /srv/node/swift3
+expect_deleted       /srv/node/spare
