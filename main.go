@@ -68,7 +68,7 @@ func main() {
 	go ScheduleWakeups(queue)
 	go WatchKernelLog(queue)
 
-	if os.Getenv("TEST_MODE") == "1" {
+	if InTestMode() {
 		SetupTestMode()
 	}
 

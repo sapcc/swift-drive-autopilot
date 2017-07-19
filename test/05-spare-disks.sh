@@ -61,4 +61,4 @@ $ source lib/common.sh; expect_mountpoint /srv/node/swift{1,2} /run/swift-storag
 EOF
 
 expect_mountpoint    /srv/node/swift1 /srv/node/swift2
-expect_no_mountpoint /srv/node/swift3
+expect_no_mountpoint /srv/node/swift3 /srv/node/spare

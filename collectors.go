@@ -249,6 +249,9 @@ type WakeupEvent struct{}
 //would spam the log continuously. Instead, the continued execution of
 //consistency checks is tracked by the Prometheus metric that counts events.
 func (e WakeupEvent) LogMessage() string {
+	if InTestMode() {
+		return "scheduled consistency check"
+	}
 	return ""
 }
 
