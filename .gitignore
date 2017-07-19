@@ -1,6 +1,6 @@
 # build artifacts
-swift-drive-autopilot
-test/logexpect
+build/
+.gopath/pkg/
 
 # vendoring artifacts
 .golangvend-cache

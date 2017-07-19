@@ -1,21 +1,37 @@
-all: swift-drive-autopilot
+PKG    = github.com/sapcc/swift-drive-autopilot
+PREFIX := /usr
+
+all: build/swift-drive-autopilot
 
 # force people to use golangvend
-GOCC := env GOPATH=$(CURDIR)/.gopath go
-GOFLAGS := -ldflags '-s -w'
+GO            := GOPATH=$(CURDIR)/.gopath GOBIN=$(CURDIR)/build go
+GO_BUILDFLAGS :=
+GO_LDFLAGS    := -s -w
 
-swift-drive-autopilot: *.go
-	$(GOCC) build $(GOFLAGS) -o $@ github.com/sapcc/swift-drive-autopilot
+# This target uses the incremental rebuild capabilities of the Go compiler to speed things up.
+# If no source files have changed, `go install` exits quickly without doing anything.
+build/swift-drive-autopilot: FORCE
+	$(GO) install $(GO_BUILDFLAGS) -ldflags '$(GO_LDFLAGS)' '$(PKG)'
+build/logexpect: FORCE
+	$(GO) install $(GO_BUILDFLAGS) -ldflags '$(GO_LDFLAGS)' '$(PKG)/cmd/logexpect'
 
-test: swift-drive-autopilot test/logexpect
+test: FORCE all build/logexpect
+	$(GO) test '$(PKG)/cmd/logexpect'
 	./test/run.sh
 check: test # just a synonym
 
-test/logexpect: cmd/logexpect/*.go
-	$(GOCC) build $(GOFLAGS) -o $@ github.com/sapcc/swift-drive-autopilot/cmd/logexpect
-	$(GOCC) test github.com/sapcc/swift-drive-autopilot/cmd/logexpect
+install: FORCE all
+	install -D -m 0755 build/swift-drive-autopilot "$(DESTDIR)$(PREFIX)/bin/swift-drive-autopilot"
+
+build/docker.tar: FORCE
+	rm -f -- '$(CURDIR)/build/install'
+	make GO_LDFLAGS="-s -w -linkmode external -extldflags -static" DESTDIR='$(CURDIR)/build/install' PREFIX='' install
+	wget -O build/install/bin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.2.0_amd64
+	chmod +x /bin/dumb-init
+	( cd build/install && tar cf - . ) > build/docker.tar
 
 vendor:
+	@# vendoring by https://github.com/holocm/golangvend
 	@golangvend
 
-.PHONY: vendor test check
+.PHONY: vendor test check FORCE

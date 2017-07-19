@@ -13,7 +13,7 @@ for TESTCASE in ??-*.sh; do
         echo
         echo -e "\e[1;31mTestcase ${TESTCASE} FAILED.\e[0m"
         echo "To rerun in debug mode, execute the following from the repo root:"
-        echo "    make all test/logexpect && env DEBUG=1 ./test/${TESTCASE}"
+        echo "    make all build/logexpect && env DEBUG=1 ./test/${TESTCASE}"
         echo
         exit 1
     fi

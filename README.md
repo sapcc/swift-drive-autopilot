@@ -77,7 +77,7 @@ go get github.com/sapcc/swift-drive-autopilot
 To build the Docker container:
 
 ```bash
-make && docker build .
+make build/docker.tar && docker build .
 ```
 
 To run the integration tests: (Note that this actually runs the autopilot on your system and thus requires root or `sudo` for mounting, device-mapper etc.)

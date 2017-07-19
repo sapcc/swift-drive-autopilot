@@ -58,8 +58,8 @@ function with_config {
 function run_and_expect {
     cat > "${DIR}/pattern"
     log_debug "Starting autopilot (log output will be copied to ${DIR}/log)"
-    as_root env TEST_MODE=1 ../swift-drive-autopilot "${DIR}/config.yaml" \
-        | timeout 120s ./logexpect "${DIR}/pattern" > "${DIR}/log"
+    as_root env TEST_MODE=1 ../build/swift-drive-autopilot "${DIR}/config.yaml" \
+        | timeout 120s ../build/logexpect "${DIR}/pattern" > "${DIR}/log"
     log_debug "Success!"
 }
 
