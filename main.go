@@ -50,14 +50,16 @@ func main() {
 	Chown("/var/cache/swift", Config.Owner.User, Config.Owner.Group)
 
 	//start the metrics endpoint
-	go func() {
-		http.Handle("/metrics", promhttp.Handler())
-		Log(LogInfo, "listening on "+Config.MetricsListenAddress+" for metric shipping")
-		err := http.ListenAndServe(Config.MetricsListenAddress, nil)
-		if err != nil {
-			Log(LogFatal, "cannot listen on %s for metric shipping: %s", Config.MetricsListenAddress, err.Error())
-		}
-	}()
+	if Config.MetricsListenAddress != "" {
+		go func() {
+			http.Handle("/metrics", promhttp.Handler())
+			Log(LogInfo, "listening on "+Config.MetricsListenAddress+" for metric shipping")
+			err := http.ListenAndServe(Config.MetricsListenAddress, nil)
+			if err != nil {
+				Log(LogFatal, "cannot listen on %s for metric shipping: %s", Config.MetricsListenAddress, err.Error())
+			}
+		}()
+	}
 
 	//start the collectors
 	queue := make(chan []Event, 10)
