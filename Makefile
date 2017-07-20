@@ -24,7 +24,7 @@ install: FORCE all
 	install -D -m 0755 build/swift-drive-autopilot "$(DESTDIR)$(PREFIX)/bin/swift-drive-autopilot"
 
 build/docker.tar: FORCE
-	rm -f -- '$(CURDIR)/build/install'
+	rm -rf -- '$(CURDIR)/build/install'
 	make GO_LDFLAGS="-s -w -linkmode external -extldflags -static" DESTDIR='$(CURDIR)/build/install' PREFIX='' install
 	wget -O build/install/bin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.2.0_amd64
 	chmod +x build/install/bin/dumb-init
