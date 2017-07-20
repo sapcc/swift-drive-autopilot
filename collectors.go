@@ -76,6 +76,11 @@ func (e DriveRemovedEvent) EventType() string {
 	return "drive-removed"
 }
 
+//When a drive has a partition table, there will be a line like "Disklabel
+//type: gpt" in the output of `sfdisk -l /dev/XXX`. For unpartitioned devices,
+//this line is missing.
+var driveWithPartitionTableRx = regexp.MustCompile(`(?mi)^Disklabel type`)
+
 //CollectDriveEvents is a collector thread that emits DriveAddedEvent and
 //DriveRemovedEvent.
 func CollectDriveEvents(queue chan []Event) {
@@ -120,12 +125,8 @@ func CollectDriveEvents(queue chan []Event) {
 				}
 
 				//ignore devices with partitions
-				pattern := strings.TrimPrefix(devicePath+"[0-9]", "/")
-				submatches, err := filepath.Glob(pattern)
-				if err != nil {
-					Log(LogFatal, "glob(%#v) failed: %s", pattern, err.Error())
-				}
-				if len(submatches) != 0 {
+				stdout, _ := Command{ExitOnError: true}.Run("sfdisk", "-l", devicePath)
+				if driveWithPartitionTableRx.MatchString(stdout) {
 					if !reportedPartitionedDisk[devicePath] {
 						Log(LogInfo, "ignoring drive %s because it contains partitions", devicePath)
 						reportedPartitionedDisk[devicePath] = true
