@@ -115,29 +115,28 @@ func CollectDriveEvents(queue chan []Event) {
 				devicePath := match
 				//don't follow /dev/mapper devices, because luks container created on the actual device
 				//still refer to the /dev/mapper one
-				//skip partition lookup as well
 				if !strings.HasPrefix(match, "dev/mapper/") {
 					//resolve any symlinks to get the actual devicePath
 					devicePath, err = filepath.EvalSymlinks(match)
 					if err != nil {
 						Log(LogFatal, "readlink(%#v) failed: %s", match, err.Error())
 					}
-					//ignore devices with partitions
-					pattern := strings.TrimPrefix(devicePath+"[0-9]", "/")
-					submatches, err := filepath.Glob(pattern)
-					if err != nil {
-						Log(LogFatal, "glob(%#v) failed: %s", pattern, err.Error())
+				}
+				//ignore devices with partitions
+				pattern := strings.TrimPrefix(devicePath+"[0-9]", "/")
+				submatches, err := filepath.Glob(pattern)
+				if err != nil {
+					Log(LogFatal, "glob(%#v) failed: %s", pattern, err.Error())
+				}
+				if len(submatches) != 0 {
+					if !strings.HasPrefix(devicePath, "/") {
+						devicePath = "/" + devicePath
 					}
-					if len(submatches) != 0 {
-						if !strings.HasPrefix(devicePath, "/") {
-							devicePath = "/" + devicePath
-						}
-						if !reportedPartitionedDisk[devicePath] {
-							Log(LogInfo, "ignoring drive %s because it contains partitions", devicePath)
-							reportedPartitionedDisk[devicePath] = true
-						}
-						continue
+					if !reportedPartitionedDisk[devicePath] {
+						Log(LogInfo, "ignoring drive %s because it contains partitions", devicePath)
+						reportedPartitionedDisk[devicePath] = true
 					}
+					continue
 				}
 
 				//make path absolute if necessary (the glob was a relative path!)
