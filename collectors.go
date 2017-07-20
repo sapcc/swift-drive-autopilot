@@ -112,16 +112,12 @@ func CollectDriveEvents(queue chan []Event) {
 			}
 
 			for _, match := range matches {
-				devicePath := match
-				//don't follow /dev/mapper devices, because luks container created on the actual device
-				//still refer to the /dev/mapper one
-				if !strings.HasPrefix(match, "/dev/mapper") {
-					//resolve any symlinks to get the actual devicePath
-					devicePath, err = filepath.EvalSymlinks(match)
-					if err != nil {
-						Log(LogFatal, "readlink(%#v) failed: %s", match, err.Error())
-					}
+				//resolve any symlinks to get the actual devicePath
+				devicePath, err := filepath.EvalSymlinks(match)
+				if err != nil {
+					Log(LogFatal, "readlink(%#v) failed: %s", match, err.Error())
 				}
+
 				//ignore devices with partitions
 				pattern := strings.TrimPrefix(devicePath+"[0-9]", "/")
 				submatches, err := filepath.Glob(pattern)
