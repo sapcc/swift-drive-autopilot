@@ -112,10 +112,11 @@ func CollectDriveEvents(queue chan []Event) {
 			}
 
 			for _, match := range matches {
-				//resolve any symlinks to get the actual devicePath
-				devicePath, err := filepath.EvalSymlinks(match)
+				//resolve any symlinks to get the actual devicePath (this also makes
+				//the path absolute again)
+				devicePath, err := EvalSymlinksInChroot(match)
 				if err != nil {
-					Log(LogFatal, "readlink(%#v) failed: %s", match, err.Error())
+					Log(LogFatal, err.Error())
 				}
 
 				//ignore devices with partitions
@@ -125,19 +126,11 @@ func CollectDriveEvents(queue chan []Event) {
 					Log(LogFatal, "glob(%#v) failed: %s", pattern, err.Error())
 				}
 				if len(submatches) != 0 {
-					if !strings.HasPrefix(devicePath, "/") {
-						devicePath = "/" + devicePath
-					}
 					if !reportedPartitionedDisk[devicePath] {
 						Log(LogInfo, "ignoring drive %s because it contains partitions", devicePath)
 						reportedPartitionedDisk[devicePath] = true
 					}
 					continue
-				}
-
-				//make path absolute if necessary (the glob was a relative path!)
-				if !strings.HasPrefix(devicePath, "/") {
-					devicePath = "/" + devicePath
 				}
 
 				//report drive unless it was already found in a previous run
