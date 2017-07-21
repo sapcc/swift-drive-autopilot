@@ -126,11 +126,19 @@ func CollectDriveEvents(queue chan []Event) {
 
 				//ignore devices with partitions
 				stdout, _ := Command{ExitOnError: true}.Run("sfdisk", "-l", devicePath)
-				if driveWithPartitionTableRx.MatchString(stdout) {
+				switch {
+				case driveWithPartitionTableRx.MatchString(stdout):
 					if !reportedPartitionedDisk[devicePath] {
 						Log(LogInfo, "ignoring drive %s because it contains partitions", devicePath)
 						reportedPartitionedDisk[devicePath] = true
 					}
+					continue
+				case strings.TrimSpace(stdout) == "":
+					//if `sfdisk -l` does not print anything at all, then the device is
+					//not readable and should be ignored (e.g. on some servers, we have
+					///dev/sdX which is a KVM remote volume that's usually not
+					//accessible, i.e. open() fails with ENOMEDIUM; we want to ignore those)
+					Log(LogInfo, "ignoring drive %s because it is not readable", devicePath)
 					continue
 				}
 
