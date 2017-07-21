@@ -85,6 +85,7 @@ var driveWithPartitionTableRx = regexp.MustCompile(`(?mi)^Disklabel type`)
 //DriveRemovedEvent.
 func CollectDriveEvents(queue chan []Event) {
 	reportedPartitionedDisk := make(map[string]bool)
+	reportedUnreadableDisk := make(map[string]bool)
 	//this map will track which drives we know about (i.e. for which drives we
 	//have sent DriveAddedEvent)
 	devicePaths := make(map[string]string)
@@ -138,7 +139,10 @@ func CollectDriveEvents(queue chan []Event) {
 					//not readable and should be ignored (e.g. on some servers, we have
 					///dev/sdX which is a KVM remote volume that's usually not
 					//accessible, i.e. open() fails with ENOMEDIUM; we want to ignore those)
-					Log(LogInfo, "ignoring drive %s because it is not readable", devicePath)
+					if !reportedUnreadableDisk[devicePath] {
+						Log(LogInfo, "ignoring drive %s because it is not readable", devicePath)
+						reportedUnreadableDisk[devicePath] = true
+					}
 					continue
 				}
 
