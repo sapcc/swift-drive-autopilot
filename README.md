@@ -74,10 +74,11 @@ The binary can also be installed with `go get`:
 go get github.com/sapcc/swift-drive-autopilot
 ```
 
-To build the Docker container:
+To build the Docker container: (Note that this requires a fairly recent Docker since a [multi-staged
+build](https://docs.docker.com/engine/userguide/eng-image/multistage-build/) is used.)
 
 ```bash
-make build/docker.tar && docker build .
+docker build .
 ```
 
 To run the integration tests: (Note that this actually runs the autopilot on your system and thus requires root or `sudo` for mounting, device-mapper etc.)
