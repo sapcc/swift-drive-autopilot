@@ -7,7 +7,7 @@ RUN apk add --no-cache curl make openssl && \
 
 COPY . .
 ARG VERSION
-RUN make install DESTDIR=/pkg/
+RUN make install PREFIX=/pkg
 
 ################################################################################
 
