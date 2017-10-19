@@ -120,7 +120,7 @@ func (c Command) Run(cmd ...string) (stdout string, success bool) {
 	err := execCmd.Run()
 
 	if !c.SkipLog {
-		for _, line := range strings.Split(string(stderrBuf.Bytes()), "\n") {
+		for _, line := range strings.Split(stderrBuf.String(), "\n") {
 			if line != "" {
 				log.Printf("Output from %s: %s\n", cmdName, line)
 			}
@@ -134,7 +134,7 @@ func (c Command) Run(cmd ...string) (stdout string, success bool) {
 		}
 	}
 
-	return string(stdoutBuf.Bytes()), err == nil
+	return stdoutBuf.String(), err == nil
 }
 
 //Run is a shortcut for Command.Run() that just takes a command line.
