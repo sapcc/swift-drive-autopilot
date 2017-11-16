@@ -285,7 +285,7 @@ func (e DriveErrorEvent) EventType() string {
 	return "drive-error"
 }
 
-var klogErrorRx = regexp.MustCompile(`(?i)\berror\b`)
+var klogErrorRx = regexp.MustCompile(`(?i)\b(?:error|metadata corruption detected|unmount and run xfs_repair)\b`)
 var klogDeviceRx = regexp.MustCompile(`\b(sd[a-z]{1,2})\b`)
 
 //WatchKernelLog is a collector job that sends DriveErrorEvent when the kernel
