@@ -126,7 +126,7 @@ func CollectDriveEvents(queue chan []Event) {
 				}
 
 				//ignore devices with partitions
-				stdout, _ := Command{ExitOnError: true}.Run("sfdisk", "-l", devicePath)
+				stdout, _ := Command{ExitOnError: false}.Run("sfdisk", "-l", devicePath)
 				switch {
 				case driveWithPartitionTableRx.MatchString(stdout):
 					if !reportedPartitionedDisk[devicePath] {
