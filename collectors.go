@@ -81,29 +81,37 @@ func (e DriveRemovedEvent) EventType() string {
 //this line is missing.
 var driveWithPartitionTableRx = regexp.MustCompile(`(?mi)^Disklabel type`)
 
+type driveState struct {
+	Path string
+	//at most one of these will be true
+	Eligible    bool
+	Unreadable  bool
+	Partitioned bool
+}
+
 //CollectDriveEvents is a collector thread that emits DriveAddedEvent and
 //DriveRemovedEvent.
 func CollectDriveEvents(queue chan []Event) {
-	reportedPartitionedDisk := make(map[string]bool)
-	reportedUnreadableDisk := make(map[string]bool)
-	//this map will track which drives we know about (i.e. for which drives we
-	//have sent DriveAddedEvent)
-	devicePaths := make(map[string]string)
+	knownDrives := make(map[string]driveState)
 
 	//work loop
 	interval := GetJobInterval(5*time.Second, 1*time.Second)
 	for {
 		var events []Event
 
-		//check if any of the known drives have been removed
-		for globbedPath, devicePath := range devicePaths {
+		//check if any of the reported drives have been removed
+		for globbedPath, deviceInfo := range knownDrives {
+			if !deviceInfo.Eligible {
+				continue
+			}
+
 			_, err := os.Stat(globbedPath)
 			switch {
 			case os.IsNotExist(err):
-				events = append(events, DriveRemovedEvent{DevicePath: devicePath})
-				delete(devicePaths, globbedPath)
+				events = append(events, DriveRemovedEvent{DevicePath: deviceInfo.Path})
+				delete(knownDrives, globbedPath)
 			case err != nil:
-				Log(LogFatal, "stat(%s) failed: %s", devicePath, err.Error())
+				Log(LogFatal, "stat(%s) failed: %s", globbedPath, err.Error())
 			}
 		}
 
@@ -117,10 +125,15 @@ func CollectDriveEvents(queue chan []Event) {
 				Log(LogFatal, "glob(%#v) failed: %s", pattern, err.Error())
 			}
 
-			for _, match := range matches {
+			for _, globbedPath := range matches {
+				//ignore drives that were already found in a previous run
+				if _, exists := knownDrives[globbedPath]; exists {
+					continue
+				}
+
 				//resolve any symlinks to get the actual devicePath (this also makes
 				//the path absolute again)
-				devicePath, err := EvalSymlinksInChroot(match)
+				devicePath, err := EvalSymlinksInChroot(globbedPath)
 				if err != nil {
 					Log(LogFatal, err.Error())
 				}
@@ -129,30 +142,33 @@ func CollectDriveEvents(queue chan []Event) {
 				stdout, _ := Command{ExitOnError: false}.Run("sfdisk", "-l", devicePath)
 				switch {
 				case driveWithPartitionTableRx.MatchString(stdout):
-					if !reportedPartitionedDisk[devicePath] {
-						Log(LogInfo, "ignoring drive %s because it contains partitions", devicePath)
-						reportedPartitionedDisk[devicePath] = true
+					Log(LogInfo, "ignoring drive %s because it contains partitions", devicePath)
+					knownDrives[globbedPath] = driveState{
+						Path:        devicePath,
+						Partitioned: true,
 					}
-					continue
+
 				case strings.TrimSpace(stdout) == "":
 					//if `sfdisk -l` does not print anything at all, then the device is
 					//not readable and should be ignored (e.g. on some servers, we have
 					///dev/sdX which is a KVM remote volume that's usually not
 					//accessible, i.e. open() fails with ENOMEDIUM; we want to ignore those)
-					if !reportedUnreadableDisk[devicePath] {
-						Log(LogInfo, "ignoring drive %s because it is not readable", devicePath)
-						reportedUnreadableDisk[devicePath] = true
+					Log(LogInfo, "ignoring drive %s because it is not readable", devicePath)
+					knownDrives[globbedPath] = driveState{
+						Path:       devicePath,
+						Unreadable: true,
 					}
-					continue
-				}
 
-				//report drive unless it was already found in a previous run
-				if devicePaths[match] == "" {
+				default:
+					//drive is eligible -> report it
 					events = append(events, DriveAddedEvent{
 						DevicePath:  devicePath,
-						FoundAtPath: "/" + match,
+						FoundAtPath: "/" + globbedPath,
 					})
-					devicePaths[match] = devicePath
+					knownDrives[globbedPath] = driveState{
+						Path:     devicePath,
+						Eligible: true,
+					}
 				}
 			}
 		}
