@@ -33,6 +33,7 @@ $ source lib/common.sh; expect_mountpoint /srv/node/swift{1,2}; as_root mount -o
 > INFO: flagging ${DEV1} as broken because of previous error
 > INFO: To reinstate this drive into the cluster, delete the symlink at /run/swift-storage/broken/{{hash1}}
 > INFO: unmounted /srv/node/swift1
+> INFO: event received: scheduled consistency check
 
 $ source lib/common.sh; expect_no_mountpoint /srv/node/swift1; expect_symlink /run/swift-storage/broken/* "${DEV1}"; expect_symlink /run/swift-storage/state/unmount-propagation/swift1 "${DEV1}"; reinstate_drive "${DEV1}"
 > INFO: event received: device reinstated: ${DEV1}

@@ -40,6 +40,7 @@ $ source lib/common.sh; expect_open_luks_count 2; expect_mountpoint /srv/node/sw
 > INFO: To reinstate this drive into the cluster, delete the symlink at /run/swift-storage/broken/{{hash1}}
 > INFO: unmounted /srv/node/swift1
 > INFO: LUKS container /dev/mapper/{{hash1}} closed
+> INFO: event received: scheduled consistency check
 
 $ source lib/common.sh; expect_open_luks_count 1; expect_no_mountpoint /srv/node/swift1; expect_symlink /run/swift-storage/broken/* "${DEV1}"; expect_symlink /run/swift-storage/state/unmount-propagation/swift1 "${DEV1}"; reinstate_drive "${DEV1}"
 > INFO: event received: device reinstated: ${DEV1}
