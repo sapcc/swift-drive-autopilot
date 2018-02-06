@@ -13,7 +13,9 @@ RUN make install PREFIX=/pkg
 
 FROM alpine:latest
 MAINTAINER "Stefan Majewsky <stefan.majewsky@sap.com>"
-RUN apk add --no-cache file
+RUN apk add --no-cache file smartmontools
+# swift-drive-autopilot does not require smartmontools (yet), but it's useful
+# to have around for checking on broken disks.
 
 COPY --from=builder /pkg/ /usr/
 ENTRYPOINT ["/usr/bin/dumb-init", "--", "/usr/bin/swift-drive-autopilot"]
