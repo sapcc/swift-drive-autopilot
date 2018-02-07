@@ -27,6 +27,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 )
@@ -81,41 +82,18 @@ func (e DriveRemovedEvent) EventType() string {
 //this line is missing.
 var driveWithPartitionTableRx = regexp.MustCompile(`(?mi)^Disklabel type`)
 
-type driveState struct {
-	Path string
-	//at most one of these will be true
-	Eligible    bool
-	Unreadable  bool
-	Partitioned bool
-}
-
 //CollectDriveEvents is a collector thread that emits DriveAddedEvent and
 //DriveRemovedEvent.
 func CollectDriveEvents(queue chan []Event) {
-	knownDrives := make(map[string]driveState)
+	knownDrives := make(map[string]string)
 
 	//work loop
 	interval := GetJobInterval(5*time.Second, 1*time.Second)
 	for {
 		var events []Event
 
-		//check if any of the reported drives have been removed
-		for globbedPath, deviceInfo := range knownDrives {
-			if !deviceInfo.Eligible {
-				continue
-			}
-
-			_, err := os.Stat(globbedPath)
-			switch {
-			case os.IsNotExist(err):
-				events = append(events, DriveRemovedEvent{DevicePath: deviceInfo.Path})
-				delete(knownDrives, globbedPath)
-			case err != nil:
-				Log(LogFatal, "stat(%s) failed: %s", globbedPath, err.Error())
-			}
-		}
-
-		//expand globs to find new drives
+		//expand globs to find drives
+		existingDrives := make(map[string]string)
 		for _, pattern := range Config.DriveGlobs {
 			//make pattern relative to current directory (== chroot directory)
 			pattern = strings.TrimPrefix(pattern, "/")
@@ -125,53 +103,58 @@ func CollectDriveEvents(queue chan []Event) {
 				Log(LogFatal, "glob(%#v) failed: %s", pattern, err.Error())
 			}
 
-			for _, globbedPath := range matches {
-				//ignore drives that were already found in a previous run
-				if _, exists := knownDrives[globbedPath]; exists {
-					continue
-				}
-
+			for _, globbedRelPath := range matches {
 				//resolve any symlinks to get the actual devicePath (this also makes
 				//the path absolute again)
-				devicePath, err := EvalSymlinksInChroot(globbedPath)
+				devicePath, err := EvalSymlinksInChroot(globbedRelPath)
 				if err != nil {
 					Log(LogFatal, err.Error())
 				}
 
-				//ignore devices with partitions
-				stdout, _ := Command{ExitOnError: false}.Run("sfdisk", "-l", devicePath)
-				switch {
-				case driveWithPartitionTableRx.MatchString(stdout):
-					Log(LogInfo, "ignoring drive %s because it contains partitions", devicePath)
-					knownDrives[globbedPath] = driveState{
-						Path:        devicePath,
-						Partitioned: true,
-					}
-
-				case strings.TrimSpace(stdout) == "":
-					//if `sfdisk -l` does not print anything at all, then the device is
-					//not readable and should be ignored (e.g. on some servers, we have
-					///dev/sdX which is a KVM remote volume that's usually not
-					//accessible, i.e. open() fails with ENOMEDIUM; we want to ignore those)
-					Log(LogInfo, "ignoring drive %s because it is not readable", devicePath)
-					knownDrives[globbedPath] = driveState{
-						Path:       devicePath,
-						Unreadable: true,
-					}
-
-				default:
-					//drive is eligible -> report it
-					events = append(events, DriveAddedEvent{
-						DevicePath:  devicePath,
-						FoundAtPath: "/" + globbedPath,
-					})
-					knownDrives[globbedPath] = driveState{
-						Path:     devicePath,
-						Eligible: true,
-					}
-				}
+				existingDrives["/"+globbedRelPath] = devicePath
 			}
 		}
+
+		//check if any of the reported drives have been removed
+		for globbedPath, devicePath := range knownDrives {
+			if _, exists := existingDrives[globbedPath]; !exists {
+				events = append(events, DriveRemovedEvent{DevicePath: devicePath})
+				delete(knownDrives, globbedPath)
+			}
+		}
+
+		//handle new drives
+		for globbedPath, devicePath := range existingDrives {
+			//ignore drives that were already found in a previous run
+			if _, exists := knownDrives[globbedPath]; exists {
+				continue
+			}
+			knownDrives[globbedPath] = devicePath
+
+			//ignore devices with partitions
+			stdout, _ := Command{ExitOnError: false}.Run("sfdisk", "-l", devicePath)
+			switch {
+			case driveWithPartitionTableRx.MatchString(stdout):
+				Log(LogInfo, "ignoring drive %s because it contains partitions", devicePath)
+			case strings.TrimSpace(stdout) == "":
+				//if `sfdisk -l` does not print anything at all, then the device is
+				//not readable and should be ignored (e.g. on some servers, we have
+				///dev/sdX which is a KVM remote volume that's usually not
+				//accessible, i.e. open() fails with ENOMEDIUM; we want to ignore those)
+				Log(LogInfo, "ignoring drive %s because it is not readable", devicePath)
+			default:
+				//drive is eligible -> report it
+				events = append(events, DriveAddedEvent{
+					DevicePath:  devicePath,
+					FoundAtPath: globbedPath,
+				})
+			}
+		}
+
+		//sort events for deterministic behavior in tests
+		sort.Slice(events, func(i, j int) bool {
+			return events[i].LogMessage() < events[j].LogMessage()
+		})
 
 		//wake up the converger thread
 		if len(events) > 0 {
