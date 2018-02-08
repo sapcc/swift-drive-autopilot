@@ -43,7 +43,7 @@ func (m MountPoint) Path() string {
 //Check takes the actual mount name of this device below the mountpoint's
 //Location (or an empty string if the mount is not active), and checks whether
 //this is consistent with the internal state of the MountPoint struct.
-func (m *MountPoint) Check(devicePath string, activeMounts SystemMountPoints) (success bool) {
+func (m *MountPoint) Check(devicePath string, activeMounts SystemMountPoints, allowDifferentBaseName bool) (success bool) {
 	//check if there exists a mountpoint of the same device in the same location
 	var actualMount *SystemMountPoint
 	for _, am := range activeMounts {
@@ -68,12 +68,18 @@ func (m *MountPoint) Check(devicePath string, activeMounts SystemMountPoints) (s
 
 	if m.Active {
 		if actualMount.Name != m.Name {
-			Log(LogError,
-				"expected %s to be mounted at %s, but is actually mounted at /run/swift-storage/%s",
-				devicePath, m.Path(), actualMount.Name,
+			logLevel := LogError
+			if allowDifferentBaseName {
+				logLevel = LogInfo
+			}
+			Log(logLevel,
+				"expected %s to be mounted at %s, but is actually mounted at %s",
+				devicePath, m.Path(), actualMount.Path(),
 			)
-			m.Name = actualMount.Name //to ensure that a subsequent automatic umount works
-			return false
+			m.Name = actualMount.Name //to ensure that subsequent unmounting works correctly
+			if !allowDifferentBaseName {
+				return false
+			}
 		}
 		if actualMount.Options["ro"] {
 			Log(LogError, "mount of %s at %s is read-only (could be due to a disk error)", devicePath, m.Path())
@@ -84,7 +90,7 @@ func (m *MountPoint) Check(devicePath string, activeMounts SystemMountPoints) (s
 		//and now we know that it is already active (and under which name)
 		m.Name = actualMount.Name
 		m.Active = true
-		Log(LogInfo, "discovered %s to be mounted at %s/%s already", devicePath, m.Location, m.Name)
+		Log(LogInfo, "discovered %s to be mounted at %s already", devicePath, m.Path())
 	}
 	return true
 }

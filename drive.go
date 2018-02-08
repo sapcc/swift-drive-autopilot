@@ -221,8 +221,8 @@ func (d *Drive) CheckMounts(activeMounts SystemMountPoints) {
 	//check that the mountpoints recorded in this Drive are consistent with the
 	//actual system state
 	devicePath := d.ActiveDevicePath()
-	tempMountOk := d.TemporaryMount.Check(devicePath, activeMounts)
-	finalMountOk := d.FinalMount.Check(devicePath, activeMounts)
+	tempMountOk := d.TemporaryMount.Check(devicePath, activeMounts, true)
+	finalMountOk := d.FinalMount.Check(devicePath, activeMounts, false)
 
 	success := tempMountOk && finalMountOk
 	if !success {
