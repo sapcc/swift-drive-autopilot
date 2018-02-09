@@ -20,8 +20,6 @@
 package main
 
 import (
-	"crypto/md5"
-	"encoding/hex"
 	"encoding/json"
 	"io/ioutil"
 	"os"
@@ -159,10 +157,7 @@ func (c *Converger) WriteDriveAudit() {
 
 //Handle implements the Event interface.
 func (e DriveAddedEvent) Handle(c *Converger) {
-	//default value for TemporaryMount.Name is md5sum of devicePath
-	s := md5.Sum([]byte(e.DevicePath))
-	deviceID := hex.EncodeToString(s[:])
-
+	deviceID := GetDeviceIDFor(e.DevicePath)
 	//- MappedDevicePath will be initialized by ScanOpenLUKSContainers() or OpenLUKS()
 	//- MountPoint.Active will be initialized by ScanDriveMountPoints()
 	//- FinalMount.Name will be initialized by ScanDriveSwiftIDs()

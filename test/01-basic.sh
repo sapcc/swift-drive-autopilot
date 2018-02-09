@@ -16,8 +16,10 @@ EOF
 
 run_and_expect <<-EOF
 > INFO: event received: new device found: ${DIR}/loop1 -> {{dev1}}
+> ERROR: cannot determine serial number for {{dev1}}, will use device ID {{hash1}} instead
 > INFO: mounted {{dev1}} to /run/swift-storage/{{hash1}}
 > INFO: event received: new device found: ${DIR}/loop2 -> {{dev2}}
+> ERROR: cannot determine serial number for {{dev2}}, will use device ID {{hash2}} instead
 > INFO: mounted {{dev2}} to /run/swift-storage/{{hash2}}
 > ERROR: no swift-id file found on device {{dev1}} (mounted at /run/swift-storage/{{hash1}})
 > ERROR: no swift-id file found on device {{dev2}} (mounted at /run/swift-storage/{{hash2}})
@@ -41,8 +43,10 @@ done
 
 run_and_expect <<-EOF
 > INFO: event received: new device found: ${DIR}/loop1 -> {{dev1}}
+> ERROR: cannot determine serial number for {{dev1}}, will use device ID {{hash1}} instead
 > INFO: discovered {{dev1}} to be mounted at /run/swift-storage/{{hash1}} already
 > INFO: event received: new device found: ${DIR}/loop2 -> {{dev2}}
+> ERROR: cannot determine serial number for {{dev2}}, will use device ID {{hash2}} instead
 > INFO: discovered {{dev2}} to be mounted at /run/swift-storage/{{hash2}} already
 > INFO: mounted {{dev1}} to /srv/node/{{id1}}
 > INFO: unmounted /run/swift-storage/{{hash1}}

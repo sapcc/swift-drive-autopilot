@@ -18,10 +18,13 @@ EOF
 # 4. add more drives: should respect swift-id-pool order again and fill up the reserve instead of assigning/mounting "swift3"
 run_and_expect <<-EOF
 > INFO: event received: new device found: ${DIR}/loop1 -> {{dev1}}
+> ERROR: cannot determine serial number for {{dev1}}, will use device ID {{hash1}} instead
 > INFO: mounted {{dev1}} to /run/swift-storage/{{hash1}}
 > INFO: event received: new device found: ${DIR}/loop2 -> {{dev2}}
+> ERROR: cannot determine serial number for {{dev2}}, will use device ID {{hash2}} instead
 > INFO: mounted {{dev2}} to /run/swift-storage/{{hash2}}
 > INFO: event received: new device found: ${DIR}/loop3 -> {{dev3}}
+> ERROR: cannot determine serial number for {{dev3}}, will use device ID {{hash3}} instead
 > INFO: mounted {{dev3}} to /run/swift-storage/{{hash3}}
 > INFO: no swift-id file found on new device {{dev1}} (mounted at /run/swift-storage/{{hash1}}), will try to assign one
 > INFO: no swift-id file found on new device {{dev2}} (mounted at /run/swift-storage/{{hash2}}), will try to assign one
@@ -48,8 +51,10 @@ $ source lib/common.sh; expect_no_mountpoint /srv/node/swift2; echo swift2 | as_
 
 $ source lib/common.sh; make_loop_devices 4 5
 > INFO: event received: new device found: ${DIR}/loop4 -> {{dev4}}
+> ERROR: cannot determine serial number for {{dev4}}, will use device ID {{hash4}} instead
 > INFO: mounted {{dev4}} to /run/swift-storage/{{hash4}}
 > INFO: event received: new device found: ${DIR}/loop5 -> {{dev5}}
+> ERROR: cannot determine serial number for {{dev5}}, will use device ID {{hash5}} instead
 > INFO: mounted {{dev5}} to /run/swift-storage/{{hash5}}
 > INFO: no swift-id file found on new device {{dev4}} (mounted at /run/swift-storage/{{hash4}}), will try to assign one
 > INFO: no swift-id file found on new device {{dev5}} (mounted at /run/swift-storage/{{hash5}}), will try to assign one

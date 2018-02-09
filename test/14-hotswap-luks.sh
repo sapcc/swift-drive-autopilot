@@ -22,9 +22,11 @@ EOF
 
 run_and_expect <<-EOF
 > INFO: event received: new device found: ${DIR}/loop1 -> ${DEV1}
+> ERROR: cannot determine serial number for ${DEV1}, will use device ID {{hash1}} instead
 > INFO: LUKS container at ${DEV1} opened as /dev/mapper/{{hash1}}
 > INFO: mounted /dev/mapper/{{hash1}} to /run/swift-storage/{{hash1}}
 > INFO: event received: new device found: ${DIR}/loop2 -> ${DEV2}
+> ERROR: cannot determine serial number for ${DEV2}, will use device ID {{hash2}} instead
 > INFO: LUKS container at ${DEV2} opened as /dev/mapper/{{hash2}}
 > INFO: mounted /dev/mapper/{{hash2}} to /run/swift-storage/{{hash2}}
 > INFO: no swift-id file found on new device ${DEV1} (mounted at /run/swift-storage/{{hash1}}), will try to assign one
@@ -44,6 +46,7 @@ $ source lib/common.sh; expect_open_luks_count 2; expect_mountpoint /srv/node/sw
 
 $ source lib/common.sh; expect_open_luks_count 1; expect_no_mountpoint /srv/node/swift1; ln -s "${DEV1}" "${DIR}/loop1"
 > INFO: event received: new device found: ${DIR}/loop1 -> ${DEV1}
+> ERROR: cannot determine serial number for ${DEV1}, will use device ID {{hash1}} instead
 > INFO: LUKS container at ${DEV1} opened as /dev/mapper/{{hash1}}
 > INFO: mounted /dev/mapper/{{hash1}} to /run/swift-storage/{{hash1}}
 > INFO: mounted /dev/mapper/{{hash1}} to /srv/node/swift1

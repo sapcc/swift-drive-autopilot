@@ -20,8 +20,10 @@ EOF
 
 run_and_expect <<-EOF
 > INFO: event received: new device found: ${DIR}/loop1 -> ${DEV1}
+> ERROR: cannot determine serial number for ${DEV1}, will use device ID {{hash1}} instead
 > INFO: mounted ${DEV1} to /run/swift-storage/{{hash1}}
 > INFO: event received: new device found: ${DIR}/loop2 -> ${DEV2}
+> ERROR: cannot determine serial number for ${DEV2}, will use device ID {{hash2}} instead
 > INFO: mounted ${DEV2} to /run/swift-storage/{{hash2}}
 > INFO: no swift-id file found on new device ${DEV1} (mounted at /run/swift-storage/{{hash1}}), will try to assign one
 > INFO: no swift-id file found on new device ${DEV2} (mounted at /run/swift-storage/{{hash2}}), will try to assign one
@@ -38,6 +40,7 @@ $ source lib/common.sh; expect_mountpoint /srv/node/swift{1,2}; rm "${DIR}/loop1
 
 $ source lib/common.sh; expect_no_mountpoint /srv/node/swift1; ln -s "${DEV1}" "${DIR}/loop1"
 > INFO: event received: new device found: ${DIR}/loop1 -> ${DEV1}
+> ERROR: cannot determine serial number for ${DEV1}, will use device ID {{hash1}} instead
 > INFO: mounted ${DEV1} to /run/swift-storage/{{hash1}}
 > INFO: mounted ${DEV1} to /srv/node/swift1
 > INFO: unmounted /run/swift-storage/{{hash1}}

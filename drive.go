@@ -19,7 +19,12 @@
 
 package main
 
-import "strings"
+import (
+	"crypto/md5"
+	"encoding/hex"
+	"regexp"
+	"strings"
+)
 
 //DeviceType describes the contents of a device, to the granularity required by
 //this program.
@@ -44,8 +49,7 @@ type Drive struct {
 	//resolved, e.g. "/dev/sdc" instead of "/dev/disk/by-path/..."). The path
 	//is absolute and refers to a location in the chroot (if any).
 	DevicePath string
-	//DeviceID is hex.EncodeToString(md5.Sum(DevicePath)). This string is used
-	//to identify this drive in derived filenames.
+	//DeviceID identifies this drive in derived filenames.
 	DeviceID string
 	//MappedDevicePath is only set when the device at DevicePath is encrypted
 	//with LUKS. After the LUKS container is opened, MappedDevicePath is the
@@ -82,6 +86,29 @@ type Drive struct {
 
 //Drives is a list of Drive structs with some extra methods.
 type Drives []*Drive
+
+var serialNumberRx = regexp.MustCompile(`(?m)^Serial number:\s*(\S+)\s*$`)
+
+//GetDeviceIDFor determines the device ID for the given device.
+func GetDeviceIDFor(devicePath string) string {
+	//read serial number using smartctl
+	relDevicePath := strings.TrimPrefix(devicePath, "/")
+	stdout, ok := Command{SkipLog: true}.Run("smartctl", "-d", "scsi", "-i", relDevicePath)
+	if ok {
+		match := serialNumberRx.FindStringSubmatch(stdout)
+		if match != nil {
+			return match[1]
+		}
+	}
+
+	//fallback value for TemporaryMount.Name is md5sum of devicePath
+	s := md5.Sum([]byte(devicePath))
+	deviceID := hex.EncodeToString(s[:])
+	Log(LogError,
+		"cannot determine serial number for %s, will use device ID %s instead",
+		devicePath, deviceID)
+	return deviceID
+}
 
 //ActiveDevicePath is usually DevicePath, but if the drive is LUKS-encrypted
 //and the LUKS container has already been opened, MappedDevicePath is returned.
