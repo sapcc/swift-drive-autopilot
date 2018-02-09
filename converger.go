@@ -219,7 +219,6 @@ func (e DriveRemovedEvent) Handle(c *Converger) {
 	}
 
 	//shutdown all active mounts
-	//TODO: flag unmount to other containers
 	if drive.FinalMount.Active {
 		drive.FinalMount.Deactivate(drive.DevicePath)
 		c.ActiveMounts.MarkAsDeactivated(drive.FinalMount.Path())
