@@ -91,9 +91,10 @@ var serialNumberRx = regexp.MustCompile(`(?m)^Serial number:\s*(\S+)\s*$`)
 
 //GetDeviceIDFor determines the device ID for the given device.
 func GetDeviceIDFor(devicePath string) string {
-	//read serial number using smartctl
+	//read serial number using smartctl (using the relative path and skipping
+	//nsenter and chroot here since the host may not have smartctl in its PATH)
 	relDevicePath := strings.TrimPrefix(devicePath, "/")
-	stdout, ok := Command{SkipLog: true}.Run("smartctl", "-d", "scsi", "-i", relDevicePath)
+	stdout, ok := Command{SkipLog: true, NoChroot: true, NoNsenter: true}.Run("smartctl", "-d", "scsi", "-i", relDevicePath)
 	if ok {
 		match := serialNumberRx.FindStringSubmatch(stdout)
 		if match != nil {
