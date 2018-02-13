@@ -25,6 +25,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
 //ScanSwiftIDs inspects the "swift-id" file of all mounted drives and fills the
@@ -56,12 +58,12 @@ func (drives Drives) ScanSwiftIDs() (success bool) {
 			if os.IsNotExist(err) {
 				//this is not an error if we can choose a swift-id in the next step
 				if drive.StartedOutEmpty && len(Config.SwiftIDPool) > 0 {
-					Log(LogInfo, "no swift-id file found on new device %s (mounted at %s), will try to assign one", drive.DevicePath, mountPath)
+					util.LogInfo("no swift-id file found on new device %s (mounted at %s), will try to assign one", drive.DevicePath, mountPath)
 				} else {
-					Log(LogError, "no swift-id file found on device %s (mounted at %s)", drive.DevicePath, mountPath)
+					util.LogError("no swift-id file found on device %s (mounted at %s)", drive.DevicePath, mountPath)
 				}
 			} else {
-				Log(LogError, "read %s: %s", idPath, err.Error())
+				util.LogError("read %s: %s", idPath, err.Error())
 			}
 			success = false
 			continue
@@ -77,7 +79,7 @@ func (drives Drives) ScanSwiftIDs() (success bool) {
 
 		//does this swift-id conflict with where the device is currently mounted?
 		if drive.FinalMount.Active && drive.FinalMount.Name != swiftID {
-			Log(LogError,
+			util.LogError(
 				"drive %s is currently mounted at /srv/node/%s, but its swift-id says \"%s\" (not going to touch it)",
 				drive.DevicePath, drive.FinalMount.Name, swiftID)
 			drive.FinalMount.Name = "" //to skip it during the final mount
@@ -90,7 +92,7 @@ func (drives Drives) ScanSwiftIDs() (success bool) {
 		otherDrive, exists := drivesBySwiftID[swiftID]
 		if exists {
 			//no - do not mount any of them, just complain
-			Log(LogError, "found multiple drives with swift-id \"%s\" (not mounting any of them)", swiftID)
+			util.LogError("found multiple drives with swift-id \"%s\" (not mounting any of them)", swiftID)
 			//clear swift-id for all drives involved in the collision, to
 			//skip them during the final mount
 			drive.FinalMount.Name = ""
@@ -130,7 +132,7 @@ func (c *Converger) AutoAssignSwiftIDs() {
 			//complain about all the drives for which we could not assign a swift-id
 			for _, drive := range c.Drives {
 				if drive.StartedOutEmpty && !drive.Broken {
-					Log(LogError, "tried to assign swift-id to %s, but some drives are broken", drive.DevicePath)
+					util.LogError("tried to assign swift-id to %s, but some drives are broken", drive.DevicePath)
 				}
 			}
 			return
@@ -168,7 +170,7 @@ func (c *Converger) AutoAssignSwiftIDs() {
 		}
 
 		if poolID == "" {
-			Log(LogError, "tried to assign swift-id to %s, but pool is exhausted", drive.DevicePath)
+			util.LogError("tried to assign swift-id to %s, but pool is exhausted", drive.DevicePath)
 			continue
 		}
 
@@ -177,7 +179,7 @@ func (c *Converger) AutoAssignSwiftIDs() {
 			swiftID = "spare"
 		}
 
-		Log(LogInfo, "assigning swift-id '%s' to %s", swiftID, drive.DevicePath)
+		util.LogInfo("assigning swift-id '%s' to %s", swiftID, drive.DevicePath)
 
 		//try to write the assignment to disk
 		path := filepath.Join(drive.TemporaryMount.Path(), "swift-id")
@@ -186,7 +188,7 @@ func (c *Converger) AutoAssignSwiftIDs() {
 		}
 		err := ioutil.WriteFile(path, []byte(swiftID+"\n"), 0644)
 		if err != nil {
-			Log(LogError, err.Error())
+			util.LogError(err.Error())
 			continue
 		}
 

@@ -24,6 +24,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -58,11 +59,11 @@ func init() {
 	//read config file
 	configBytes, err := ioutil.ReadFile(os.Args[1])
 	if err != nil {
-		Log(LogFatal, "read configuration file: %s", err.Error())
+		util.LogFatal("read configuration file: %s", err.Error())
 	}
 	err = yaml.Unmarshal(configBytes, &Config)
 	if err != nil {
-		Log(LogFatal, "parse configuration: %s", err.Error())
+		util.LogFatal("parse configuration: %s", err.Error())
 	}
 
 	//if there are multiple "spare" entries in the SwiftIDPool, disambiguate

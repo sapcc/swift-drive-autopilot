@@ -24,6 +24,8 @@ import (
 	"encoding/hex"
 	"regexp"
 	"strings"
+
+	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
 //DeviceType describes the contents of a device, to the granularity required by
@@ -105,7 +107,7 @@ func GetDeviceIDFor(devicePath string) string {
 	//fallback value for TemporaryMount.Name is md5sum of devicePath
 	s := md5.Sum([]byte(devicePath))
 	deviceID := hex.EncodeToString(s[:])
-	Log(LogError,
+	util.LogError(
 		"cannot determine serial number for %s, will use device ID %s instead",
 		devicePath, deviceID)
 	return deviceID
@@ -133,12 +135,12 @@ func (d *Drive) MarkAsBroken() {
 	}
 
 	d.Broken = true
-	Log(LogInfo, "flagging %s as broken because of previous error", d.DevicePath)
+	util.LogInfo("flagging %s as broken because of previous error", d.DevicePath)
 
 	brokenFlagPath := d.BrokenFlagPath()
 	_, ok := Run("ln", "-sfT", d.DevicePath, brokenFlagPath)
 	if ok {
-		Log(LogInfo, "To reinstate this drive into the cluster, delete the symlink at "+brokenFlagPath)
+		util.LogInfo("To reinstate this drive into the cluster, delete the symlink at " + brokenFlagPath)
 	}
 
 	d.FinalMount.Deactivate(d.DevicePath)
@@ -208,7 +210,7 @@ func (d *Drive) EnsureFilesystem() {
 		d.MarkAsBroken()
 		return
 	}
-	Log(LogDebug, "XFS filesystem created on %s", devicePath)
+	util.LogDebug("XFS filesystem created on %s", devicePath)
 
 	//do not attempt to format again during the next Converge
 	d.Type = DeviceTypeFilesystem
@@ -239,7 +241,7 @@ func (d *Drive) CheckMounts(activeMounts SystemMountPoints) {
 	if d.MappedDevicePath != "" {
 		for _, m := range activeMounts {
 			if m.DevicePath == d.DevicePath {
-				Log(LogError, "%s contains an open LUKS container, but is also mounted directly", d.DevicePath)
+				util.LogError("%s contains an open LUKS container, but is also mounted directly", d.DevicePath)
 				d.MarkAsBroken()
 				return
 			}

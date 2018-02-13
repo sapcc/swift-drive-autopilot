@@ -27,6 +27,7 @@ import (
 	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
 //Converger contains the internal state of the converger thread.
@@ -49,10 +50,10 @@ func RunConverger(queue chan []Event) {
 
 		//initialize short-lived state for this event loop iteration
 		c.ActiveLUKSMappings = ScanLUKSMappings()
-		Log(LogDebug, "ActiveLUKSMappings = %#v", c.ActiveLUKSMappings)
+		util.LogDebug("ActiveLUKSMappings = %#v", c.ActiveLUKSMappings)
 		c.ActiveMounts = ScanMountPoints()
 		for _, mount := range c.ActiveMounts {
-			Log(LogDebug, "ActiveMounts += %#v", mount)
+			util.LogDebug("ActiveMounts += %#v", mount)
 		}
 
 		for _, drive := range c.Drives {
@@ -62,7 +63,7 @@ func RunConverger(queue chan []Event) {
 		//handle events
 		for _, event := range events {
 			if msg := event.LogMessage(); msg != "" {
-				Log(LogInfo, "event received: "+msg)
+				util.LogInfo("event received: " + msg)
 			}
 			eventCounter.With(prometheus.Labels{"type": event.EventType()}).Add(1)
 			event.Handle(c)
@@ -116,7 +117,7 @@ func (c *Converger) CheckForUnexpectedMounts() {
 		}
 
 		if !found {
-			Log(LogError, "unexpected mount at %s", mount.Path())
+			util.LogError("unexpected mount at %s", mount.Path())
 		}
 	}
 }
@@ -151,7 +152,7 @@ func (c *Converger) WriteDriveAudit() {
 	}
 	err := ioutil.WriteFile(path, jsonStr, 0644)
 	if err != nil {
-		Log(LogError, err.Error())
+		util.LogError(err.Error())
 	}
 }
 
@@ -185,12 +186,12 @@ func (e DriveAddedEvent) Handle(c *Converger) {
 	switch {
 	case err == nil:
 		//link still exists, so device is broken
-		Log(LogInfo, "%s was flagged as broken by a previous run of swift-drive-autopilot", drive.DevicePath)
+		util.LogInfo("%s was flagged as broken by a previous run of swift-drive-autopilot", drive.DevicePath)
 		drive.MarkAsBroken() //this will re-print the log message explaining how to reinstate the drive into the cluster
 	case os.IsNotExist(err):
 		//ignore this error (no broken-flag means everything's okay)
 	default:
-		Log(LogError, err.Error())
+		util.LogError(err.Error())
 	}
 
 	c.Drives = append(c.Drives, drive)
@@ -254,7 +255,7 @@ func (e DriveReinstatedEvent) Handle(c *Converger) {
 		if devicePath == e.DevicePath {
 			err := os.Remove(path + "/" + name)
 			if err != nil {
-				Log(LogError, err.Error())
+				util.LogError(err.Error())
 			}
 		}
 	})

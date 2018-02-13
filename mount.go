@@ -22,6 +22,8 @@ package main
 import (
 	"regexp"
 	"strings"
+
+	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
 //MountPoint describes a location where a Drive can be mounted.
@@ -58,7 +60,7 @@ func (m *MountPoint) Check(devicePath string, activeMounts SystemMountPoints, al
 		if !m.Active {
 			return true
 		}
-		Log(LogError,
+		util.LogError(
 			"expected %s to be mounted at %s, but is not mounted anymore",
 			devicePath, m.Path(),
 		)
@@ -68,11 +70,11 @@ func (m *MountPoint) Check(devicePath string, activeMounts SystemMountPoints, al
 
 	if m.Active {
 		if actualMount.Name != m.Name {
-			logLevel := LogError
+			logLevel := util.LogError
 			if allowDifferentBaseName {
-				logLevel = LogInfo
+				logLevel = util.LogInfo
 			}
-			Log(logLevel,
+			logLevel(
 				"expected %s to be mounted at %s, but is actually mounted at %s",
 				devicePath, m.Path(), actualMount.Path(),
 			)
@@ -82,7 +84,7 @@ func (m *MountPoint) Check(devicePath string, activeMounts SystemMountPoints, al
 			}
 		}
 		if actualMount.Options["ro"] {
-			Log(LogError, "mount of %s at %s is read-only (could be due to a disk error)", devicePath, m.Path())
+			util.LogError("mount of %s at %s is read-only (could be due to a disk error)", devicePath, m.Path())
 			return false
 		}
 	} else {
@@ -90,7 +92,7 @@ func (m *MountPoint) Check(devicePath string, activeMounts SystemMountPoints, al
 		//and now we know that it is already active (and under which name)
 		m.Name = actualMount.Name
 		m.Active = true
-		Log(LogInfo, "discovered %s to be mounted at %s already", devicePath, m.Path())
+		util.LogInfo("discovered %s to be mounted at %s already", devicePath, m.Path())
 	}
 	return true
 }
@@ -129,7 +131,7 @@ func (m *MountPoint) Activate(devicePath string) bool {
 	}
 
 	m.Active = true
-	Log(LogInfo, "mounted %s to %s", devicePath, mountPath)
+	util.LogInfo("mounted %s to %s", devicePath, mountPath)
 	return true
 }
 
@@ -149,7 +151,7 @@ func (m *MountPoint) Deactivate(devicePath string) {
 	}
 
 	m.Active = false
-	Log(LogInfo, "unmounted %s", mountPath)
+	util.LogInfo("unmounted %s", mountPath)
 
 	if m.Location == "/srv/node" {
 		Run("ln", "-sTf", devicePath, "/run/swift-storage/state/unmount-propagation/"+m.Name)

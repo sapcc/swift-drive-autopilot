@@ -23,6 +23,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
 //OpenLUKS will open a LUKS container on the given drive, and set
@@ -49,7 +51,7 @@ func (d *Drive) OpenLUKS() {
 	mapperName := d.TemporaryMount.Name
 	success := false
 	for idx, key := range Config.Keys {
-		Log(LogDebug, "trying to luksOpen %s as %s with key %d...", d.DevicePath, mapperName, idx)
+		util.LogDebug("trying to luksOpen %s as %s with key %d...", d.DevicePath, mapperName, idx)
 		_, ok := Command{
 			Stdin:   key.Secret + "\n",
 			SkipLog: true,
@@ -61,14 +63,14 @@ func (d *Drive) OpenLUKS() {
 	}
 
 	if !success {
-		Log(LogError, "exec(cryptsetup luksOpen %s %s) failed: none of the configured keys was accepted")
+		util.LogError("exec(cryptsetup luksOpen %s %s) failed: none of the configured keys was accepted")
 		d.MarkAsBroken()
 		return
 	}
 
 	d.MappedDevicePath = "/dev/mapper/" + mapperName
 	d.Type = DeviceTypeNotScanned //reset because Classification now refers to what's in the mapped device
-	Log(LogInfo, "LUKS container at %s opened as %s", d.DevicePath, d.MappedDevicePath)
+	util.LogInfo("LUKS container at %s opened as %s", d.DevicePath, d.MappedDevicePath)
 }
 
 //CloseLUKS will close the LUKS container on the given drive, if it exists and
@@ -82,7 +84,7 @@ func (d *Drive) CloseLUKS() {
 	mapperName := filepath.Base(d.MappedDevicePath)
 	_, ok := Run("cryptsetup", "close", mapperName)
 	if ok {
-		Log(LogInfo, "LUKS container %s closed", d.MappedDevicePath)
+		util.LogInfo("LUKS container %s closed", d.MappedDevicePath)
 		d.MappedDevicePath = ""
 	}
 }
@@ -122,20 +124,20 @@ func getBackingDevicePath(mapName string) string {
 	//look for a line like "  device:  /dev/sdb"
 	match := backingDeviceRx.FindStringSubmatch(stdout)
 	if match == nil {
-		Log(LogFatal, "cannot find backing device for /dev/mapper/%s", mapName)
+		util.LogFatal("cannot find backing device for /dev/mapper/%s", mapName)
 	} else {
 		//resolve any symlinks to get the actual devicePath
 		//when the luks container is created on top of multipathing, cryptsetup status might report the /dev/mapper/mpath device
 		//also the luksFormat was called on actual device
 		devicePath, err := EvalSymlinksInChroot(match[1])
 		if err != nil {
-			Log(LogFatal, err.Error())
+			util.LogFatal(err.Error())
 		}
 		if devicePath != match[1] {
-			Log(LogDebug, "backing device path for %s is %s -> %s", mapName, match[1], devicePath)
+			util.LogDebug("backing device path for %s is %s -> %s", mapName, match[1], devicePath)
 			return devicePath
 		}
-		Log(LogDebug, "backing device path for %s is %s", mapName, match[1])
+		util.LogDebug("backing device path for %s is %s", mapName, match[1])
 	}
 	return match[1]
 }
@@ -148,7 +150,7 @@ func (d *Drive) CheckLUKS(activeMappings map[string]string) {
 
 	if actualMapName == "" {
 		if d.MappedDevicePath != "" {
-			Log(LogError, "LUKS container in %s should be open at %s, but is not",
+			util.LogError("LUKS container in %s should be open at %s, but is not",
 				d.DevicePath, d.MappedDevicePath,
 			)
 			d.MarkAsBroken()
@@ -161,14 +163,14 @@ func (d *Drive) CheckLUKS(activeMappings map[string]string) {
 	case "":
 		//existing mapping is now discovered for the first time -> update Drive struct
 		d.MappedDevicePath = actualMappedPath
-		Log(LogInfo, "discovered %s to be mapped to %s already", d.DevicePath, d.MappedDevicePath)
+		util.LogInfo("discovered %s to be mapped to %s already", d.DevicePath, d.MappedDevicePath)
 		//device cannot be empty if a LUKS mapping is active
 		d.StartedOutEmpty = false
 	case actualMappedPath:
 		//no change
 	default:
 		//our internal state tells a different story!
-		Log(LogError, "LUKS container in %s should be open at %s, but is actually open at %s",
+		util.LogError("LUKS container in %s should be open at %s, but is actually open at %s",
 			d.DevicePath, d.MappedDevicePath, actualMappedPath,
 		)
 		d.MarkAsBroken()
@@ -188,7 +190,7 @@ func (d *Drive) FormatLUKSIfRequired() {
 
 	//sanity check
 	if len(Config.Keys) == 0 {
-		Log(LogFatal, "FormatLUKSIfRequired called on %s, but no keys specified!", d.DevicePath)
+		util.LogFatal("FormatLUKSIfRequired called on %s, but no keys specified!", d.DevicePath)
 	}
 
 	//is it safe to be formatted? (i.e. don't format when there is already a
@@ -202,7 +204,7 @@ func (d *Drive) FormatLUKSIfRequired() {
 
 	//format with the preferred key
 	key := Config.Keys[0]
-	Log(LogDebug, "running cryptsetup luksFormat %s with key 0...", d.DevicePath)
+	util.LogDebug("running cryptsetup luksFormat %s with key 0...", d.DevicePath)
 	_, ok := Command{Stdin: key.Secret + "\n"}.Run("cryptsetup", "luksFormat", d.DevicePath)
 
 	//update drive classification so that OpenLUKS() will now open this device

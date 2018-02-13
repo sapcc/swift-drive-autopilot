@@ -27,50 +27,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
-
-type ExecMode int
-
-const (
-	ExecNormal          ExecMode = 0
-	ExecChroot          ExecMode = 1
-	ExecChrootNoNsenter ExecMode = 2
-)
-
-type LogLevel int
-
-const (
-	LogFatal LogLevel = iota
-	LogError
-	LogInfo
-	LogDebug
-)
-
-var logLevelNames = []string{"FATAL", "ERROR", "INFO", "DEBUG"}
-
-var isDebug = os.Getenv("DEBUG") != ""
-
-func init() {
-	log.SetOutput(os.Stdout)
-}
-
-//Log writes a log message. LogDebug messages are only written if
-//the environment variable `DEBUG` is set.
-func Log(level LogLevel, msg string, args ...interface{}) {
-	if level == LogDebug && !isDebug {
-		return
-	}
-
-	if len(args) > 0 {
-		log.Printf(logLevelNames[level]+": "+msg+"\n", args...)
-	} else {
-		log.Println(logLevelNames[level] + ": " + msg)
-	}
-
-	if level == LogFatal {
-		os.Exit(1)
-	}
-}
 
 //Command contains optional parameters for Command.Run().
 type Command struct {
@@ -126,11 +85,11 @@ func (c Command) Run(cmd ...string) (stdout string, success bool) {
 			}
 		}
 		if err != nil {
-			logLevel := LogError
+			logLevel := util.LogError
 			if c.ExitOnError {
-				logLevel = LogFatal
+				logLevel = util.LogFatal
 			}
-			Log(logLevel, "exec(%s) failed: %s", strings.Join(cmd, " "), err.Error())
+			logLevel("exec(%s) failed: %s", strings.Join(cmd, " "), err.Error())
 		}
 	}
 
@@ -152,7 +111,7 @@ func Chown(path, user, group string) {
 	)
 
 	if path == "" {
-		Log(LogFatal, "Cannot chown empty path")
+		util.LogFatal("Cannot chown empty path")
 	}
 
 	//set only those things which were given
@@ -168,7 +127,7 @@ func Chown(path, user, group string) {
 		}
 	}
 
-	Log(LogDebug, "%s %s to %s", command, path, arg)
+	util.LogDebug("%s %s to %s", command, path, arg)
 	Run(command, arg, path)
 }
 
@@ -179,12 +138,12 @@ func Chown(path, user, group string) {
 func ForeachSymlinkIn(path string, handler func(name, target string)) (success bool) {
 	dir, err := os.Open(path)
 	if err != nil {
-		Log(LogError, err.Error())
+		util.LogError(err.Error())
 		return false
 	}
 	fis, err := dir.Readdir(-1)
 	if err != nil {
-		Log(LogError, err.Error())
+		util.LogError(err.Error())
 		return false
 	}
 
@@ -197,7 +156,7 @@ func ForeachSymlinkIn(path string, handler func(name, target string)) (success b
 		if err == nil {
 			handler(fi.Name(), linkTarget)
 		} else {
-			Log(LogError, err.Error())
+			util.LogError(err.Error())
 			success = false
 		}
 	}

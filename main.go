@@ -24,6 +24,8 @@ import (
 	"os"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
 func main() {
@@ -36,7 +38,7 @@ func main() {
 	}
 	err := os.Chdir(workingDir)
 	if err != nil {
-		Log(LogFatal, "chdir to %s: %s", workingDir, err.Error())
+		util.LogFatal("chdir to %s: %s", workingDir, err.Error())
 	}
 
 	//prepare directories that the converger wants to write to
@@ -53,10 +55,10 @@ func main() {
 	if Config.MetricsListenAddress != "" {
 		go func() {
 			http.Handle("/metrics", promhttp.Handler())
-			Log(LogInfo, "listening on "+Config.MetricsListenAddress+" for metric shipping")
+			util.LogInfo("listening on " + Config.MetricsListenAddress + " for metric shipping")
 			err := http.ListenAndServe(Config.MetricsListenAddress, nil)
 			if err != nil {
-				Log(LogFatal, "cannot listen on %s for metric shipping: %s", Config.MetricsListenAddress, err.Error())
+				util.LogFatal("cannot listen on %s for metric shipping: %s", Config.MetricsListenAddress, err.Error())
 			}
 		}()
 	}
