@@ -20,18 +20,10 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"io"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"regexp"
-	"sort"
-	"strings"
 	"time"
 
-	"github.com/sapcc/swift-drive-autopilot/pkg/command"
+	"github.com/sapcc/swift-drive-autopilot/pkg/os"
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
@@ -48,8 +40,9 @@ type Event interface {
 
 //DriveAddedEvent is an Event that fires when a new drive is found.
 type DriveAddedEvent struct {
-	DevicePath  string
-	FoundAtPath string //the DevicePath before symlinks were expanded
+	DevicePath   string
+	FoundAtPath  string //the DevicePath before symlinks were expanded
+	SerialNumber string //may be empty if it cannot be determined
 }
 
 //LogMessage implements the Event interface.
@@ -80,92 +73,32 @@ func (e DriveRemovedEvent) EventType() string {
 	return "drive-removed"
 }
 
-//When a drive has a partition table, there will be a line like "Disklabel
-//type: gpt" in the output of `sfdisk -l /dev/XXX`. For unpartitioned devices,
-//this line is missing.
-var driveWithPartitionTableRx = regexp.MustCompile(`(?mi)^Disklabel type`)
-
 //CollectDriveEvents is a collector thread that emits DriveAddedEvent and
 //DriveRemovedEvent.
-func CollectDriveEvents(queue chan []Event) {
-	knownDrives := make(map[string]string)
+func CollectDriveEvents(osi os.Interface, queue chan []Event) {
+	added := make(chan []os.Drive)
+	removed := make(chan []string)
+	go osi.CollectDrives(Config.DriveGlobs, added, removed)
 
-	//work loop
-	interval := util.GetJobInterval(5*time.Second, 1*time.Second)
 	for {
-		var events []Event
-
-		//expand globs to find drives
-		existingDrives := make(map[string]string)
-		for _, pattern := range Config.DriveGlobs {
-			//make pattern relative to current directory (== chroot directory)
-			pattern = strings.TrimPrefix(pattern, "/")
-
-			matches, err := filepath.Glob(pattern)
-			if err != nil {
-				util.LogFatal("glob(%#v) failed: %s", pattern, err.Error())
-			}
-
-			for _, globbedRelPath := range matches {
-				//resolve any symlinks to get the actual devicePath (this also makes
-				//the path absolute again)
-				devicePath, err := EvalSymlinksInChroot(globbedRelPath)
-				if err != nil {
-					util.LogFatal(err.Error())
+		select {
+		case drives := <-added:
+			events := make([]Event, len(drives))
+			for idx, drive := range drives {
+				events[idx] = DriveAddedEvent{
+					DevicePath:   drive.DevicePath,
+					FoundAtPath:  drive.FoundAtPath,
+					SerialNumber: drive.SerialNumber,
 				}
-
-				existingDrives["/"+globbedRelPath] = devicePath
 			}
-		}
-
-		//check if any of the reported drives have been removed
-		for globbedPath, devicePath := range knownDrives {
-			if _, exists := existingDrives[globbedPath]; !exists {
-				events = append(events, DriveRemovedEvent{DevicePath: devicePath})
-				delete(knownDrives, globbedPath)
+			queue <- events
+		case devicePaths := <-removed:
+			events := make([]Event, len(devicePaths))
+			for idx, devicePath := range devicePaths {
+				events[idx] = DriveRemovedEvent{DevicePath: devicePath}
 			}
-		}
-
-		//handle new drives
-		for globbedPath, devicePath := range existingDrives {
-			//ignore drives that were already found in a previous run
-			if _, exists := knownDrives[globbedPath]; exists {
-				continue
-			}
-			knownDrives[globbedPath] = devicePath
-
-			//ignore devices with partitions
-			stdout, _ := command.Command{ExitOnError: false}.Run("sfdisk", "-l", devicePath)
-			switch {
-			case driveWithPartitionTableRx.MatchString(stdout):
-				util.LogInfo("ignoring drive %s because it contains partitions", devicePath)
-			case strings.TrimSpace(stdout) == "":
-				//if `sfdisk -l` does not print anything at all, then the device is
-				//not readable and should be ignored (e.g. on some servers, we have
-				///dev/sdX which is a KVM remote volume that's usually not
-				//accessible, i.e. open() fails with ENOMEDIUM; we want to ignore those)
-				util.LogInfo("ignoring drive %s because it is not readable", devicePath)
-			default:
-				//drive is eligible -> report it
-				events = append(events, DriveAddedEvent{
-					DevicePath:  devicePath,
-					FoundAtPath: globbedPath,
-				})
-			}
-		}
-
-		//sort events for deterministic behavior in tests
-		sort.Slice(events, func(i, j int) bool {
-			return events[i].LogMessage() < events[j].LogMessage()
-		})
-
-		//wake up the converger thread
-		if len(events) > 0 {
 			queue <- events
 		}
-
-		//sleep for 5 seconds before running globs again
-		time.Sleep(interval)
 	}
 }
 
@@ -287,70 +220,18 @@ func (e DriveErrorEvent) EventType() string {
 	return "drive-error"
 }
 
-var klogErrorRx = regexp.MustCompile(`(?i)\b(?:error|metadata corruption detected|unmount and run xfs_repair)\b`)
-var klogDeviceRx = regexp.MustCompile(`\b(sd[a-z]{1,2})\b`)
-
 //WatchKernelLog is a collector job that sends DriveErrorEvent when the kernel
 //log contains an error regarding a SCSI disk.
-func WatchKernelLog(queue chan []Event) {
-	//assemble commandline for journalctl (similar to logic in Command.Run()
-	//which we cannot use here because we need a pipe on stdout)
-	command := []string{"journalctl", "-kf"}
-	if Config.ChrootPath != "" {
-		prefix := []string{
-			"chroot", Config.ChrootPath,
-			"nsenter", "--ipc=/proc/1/ns/ipc", "--",
+func WatchKernelLog(osi os.Interface, queue chan []Event) {
+	errors := make(chan []os.DriveError)
+	go osi.CollectDriveErrors(errors)
+
+	for errs := range errors {
+		for _, err := range errs {
+			queue <- []Event{DriveErrorEvent{
+				DevicePath: err.DevicePath,
+				LogLine:    err.Message,
+			}}
 		}
-		command = append(prefix, command...)
 	}
-	if os.Geteuid() != 0 {
-		command = append([]string{"sudo"}, command...)
-	}
-
-	cmd := exec.Command(command[0], command[1:]...)
-	cmd.Stderr = os.Stderr
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		util.LogFatal(err.Error())
-	}
-	err = cmd.Start()
-	if err != nil {
-		util.LogFatal(err.Error())
-	}
-
-	//wait for a few seconds before starting to read stuff, so that all the
-	//DriveAddedEvents have already been sent
-	time.Sleep(3 * time.Second)
-
-	reader := bufio.NewReader(stdout)
-	for {
-		line, err := reader.ReadString('\n')
-		if err != nil && err != io.EOF {
-			util.LogError(err.Error())
-		}
-		//NOTE: no special handling of io.EOF here; we will encounter it very
-		//frequently anyway while we're waiting for new log lines
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-
-		//we're looking for log lines with "error" and a disk device name like "sda"
-		util.LogDebug("received kernel log line: '%s'", line)
-		if !klogErrorRx.MatchString(line) {
-			continue
-		}
-		match := klogDeviceRx.FindStringSubmatch(line)
-		if match == nil {
-			continue
-		}
-
-		event := DriveErrorEvent{
-			DevicePath: "/dev/" + match[1],
-			LogLine:    line,
-		}
-		queue <- []Event{event}
-	}
-
-	//NOTE: the loop above will never return, so I don't bother with cmd.Wait()
 }

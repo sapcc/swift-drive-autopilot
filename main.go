@@ -21,11 +21,12 @@ package main
 
 import (
 	"net/http"
-	"os"
+	std_os "os"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
+	"github.com/sapcc/swift-drive-autopilot/pkg/os"
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
@@ -37,7 +38,7 @@ func main() {
 	if Config.ChrootPath != "" {
 		workingDir = Config.ChrootPath
 	}
-	err := os.Chdir(workingDir)
+	err := std_os.Chdir(workingDir)
 	if err != nil {
 		util.LogFatal("chdir to %s: %s", workingDir, err.Error())
 	}
@@ -65,11 +66,12 @@ func main() {
 	}
 
 	//start the collectors
+	osi := &os.Linux{}
 	queue := make(chan []Event, 10)
-	go CollectDriveEvents(queue)
+	go CollectDriveEvents(osi, queue)
 	go CollectReinstatements(queue)
 	go ScheduleWakeups(queue)
-	go WatchKernelLog(queue)
+	go WatchKernelLog(osi, queue)
 
 	if util.InTestMode() {
 		util.SetupTestMode()

@@ -159,7 +159,7 @@ func (c *Converger) WriteDriveAudit() {
 
 //Handle implements the Event interface.
 func (e DriveAddedEvent) Handle(c *Converger) {
-	deviceID := GetDeviceIDFor(e.DevicePath)
+	deviceID := GetDeviceIDFor(e.DevicePath, e.SerialNumber)
 	//- MappedDevicePath will be initialized by ScanOpenLUKSContainers() or OpenLUKS()
 	//- MountPoint.Active will be initialized by ScanDriveMountPoints()
 	//- FinalMount.Name will be initialized by ScanDriveSwiftIDs()
