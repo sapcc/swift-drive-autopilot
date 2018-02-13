@@ -90,7 +90,7 @@ func CollectDriveEvents(queue chan []Event) {
 	knownDrives := make(map[string]string)
 
 	//work loop
-	interval := GetJobInterval(5*time.Second, 1*time.Second)
+	interval := util.GetJobInterval(5*time.Second, 1*time.Second)
 	for {
 		var events []Event
 
@@ -194,7 +194,7 @@ func CollectReinstatements(queue chan []Event) {
 	//a device is removed from this set
 	brokenDevices := make(map[string]bool)
 
-	interval := GetJobInterval(5*time.Second, 1*time.Second)
+	interval := util.GetJobInterval(5*time.Second, 1*time.Second)
 	for {
 		var events []Event
 
@@ -235,7 +235,7 @@ func CollectReinstatements(queue chan []Event) {
 //to invoke the consistency checks that the converger executes during each of
 //its event loop iterations.
 func ScheduleWakeups(queue chan []Event) {
-	interval := GetJobInterval(30*time.Second, 10*time.Second)
+	interval := util.GetJobInterval(30*time.Second, 10*time.Second)
 	for {
 		time.Sleep(interval)
 		queue <- []Event{WakeupEvent{}}
@@ -251,7 +251,7 @@ type WakeupEvent struct{}
 //would spam the log continuously. Instead, the continued execution of
 //consistency checks is tracked by the Prometheus metric that counts events.
 func (e WakeupEvent) LogMessage() string {
-	if InTestMode() {
+	if util.InTestMode() {
 		return "scheduled consistency check"
 	}
 	return ""

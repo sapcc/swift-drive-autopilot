@@ -70,8 +70,8 @@ func main() {
 	go ScheduleWakeups(queue)
 	go WatchKernelLog(queue)
 
-	if InTestMode() {
-		SetupTestMode()
+	if util.InTestMode() {
+		util.SetupTestMode()
 	}
 
 	//the converger runs in the main thread
