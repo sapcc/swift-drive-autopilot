@@ -24,6 +24,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/sapcc/swift-drive-autopilot/pkg/command"
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
@@ -52,7 +53,7 @@ func (d *Drive) OpenLUKS() {
 	success := false
 	for idx, key := range Config.Keys {
 		util.LogDebug("trying to luksOpen %s as %s with key %d...", d.DevicePath, mapperName, idx)
-		_, ok := Command{
+		_, ok := command.Command{
 			Stdin:   key.Secret + "\n",
 			SkipLog: true,
 		}.Run("cryptsetup", "luksOpen", d.DevicePath, mapperName)
@@ -82,7 +83,7 @@ func (d *Drive) CloseLUKS() {
 	}
 
 	mapperName := filepath.Base(d.MappedDevicePath)
-	_, ok := Run("cryptsetup", "close", mapperName)
+	_, ok := command.Run("cryptsetup", "close", mapperName)
 	if ok {
 		util.LogInfo("LUKS container %s closed", d.MappedDevicePath)
 		d.MappedDevicePath = ""
@@ -93,7 +94,7 @@ func (d *Drive) CloseLUKS() {
 //as a map of backing device path to mapping name.
 func ScanLUKSMappings() (result map[string]string) {
 	result = make(map[string]string)
-	stdout, _ := Command{ExitOnError: true}.Run("dmsetup", "ls", "--target=crypt")
+	stdout, _ := command.Command{ExitOnError: true}.Run("dmsetup", "ls", "--target=crypt")
 
 	if strings.TrimSpace(stdout) == "No devices found" {
 		return
@@ -119,7 +120,7 @@ var backingDeviceRx = regexp.MustCompile(`(?m)^\s*device:\s*(\S+)\s*$`)
 
 //Ask cryptsetup for the device backing an open LUKS container.
 func getBackingDevicePath(mapName string) string {
-	stdout, _ := Command{ExitOnError: true}.Run("cryptsetup", "status", mapName)
+	stdout, _ := command.Command{ExitOnError: true}.Run("cryptsetup", "status", mapName)
 
 	//look for a line like "  device:  /dev/sdb"
 	match := backingDeviceRx.FindStringSubmatch(stdout)
@@ -205,7 +206,7 @@ func (d *Drive) FormatLUKSIfRequired() {
 	//format with the preferred key
 	key := Config.Keys[0]
 	util.LogDebug("running cryptsetup luksFormat %s with key 0...", d.DevicePath)
-	_, ok := Command{Stdin: key.Secret + "\n"}.Run("cryptsetup", "luksFormat", d.DevicePath)
+	_, ok := command.Command{Stdin: key.Secret + "\n"}.Run("cryptsetup", "luksFormat", d.DevicePath)
 
 	//update drive classification so that OpenLUKS() will now open this device
 	if ok {

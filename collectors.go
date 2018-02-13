@@ -31,6 +31,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sapcc/swift-drive-autopilot/pkg/command"
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
@@ -134,7 +135,7 @@ func CollectDriveEvents(queue chan []Event) {
 			knownDrives[globbedPath] = devicePath
 
 			//ignore devices with partitions
-			stdout, _ := Command{ExitOnError: false}.Run("sfdisk", "-l", devicePath)
+			stdout, _ := command.Command{ExitOnError: false}.Run("sfdisk", "-l", devicePath)
 			switch {
 			case driveWithPartitionTableRx.MatchString(stdout):
 				util.LogInfo("ignoring drive %s because it contains partitions", devicePath)

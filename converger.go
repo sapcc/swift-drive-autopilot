@@ -27,6 +27,7 @@ import (
 	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/sapcc/swift-drive-autopilot/pkg/command"
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
@@ -97,7 +98,7 @@ func (c *Converger) Converge() {
 	c.WriteDriveAudit()
 
 	//mark storage as ready for consumption by Swift
-	Command{ExitOnError: true}.Run("touch", "/run/swift-storage/state/flag-ready")
+	command.Command{ExitOnError: true}.Run("touch", "/run/swift-storage/state/flag-ready")
 }
 
 //CheckForUnexpectedMounts prints error messages for every unexpected mount

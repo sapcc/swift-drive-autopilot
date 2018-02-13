@@ -25,6 +25,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	"github.com/sapcc/swift-drive-autopilot/pkg/command"
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
@@ -42,7 +43,7 @@ func main() {
 	}
 
 	//prepare directories that the converger wants to write to
-	Command{ExitOnError: true}.Run("mkdir", "-p",
+	command.Command{ExitOnError: true}.Run("mkdir", "-p",
 		"/run/swift-storage/broken",
 		"/run/swift-storage/state/unmount-propagation",
 		"/var/cache/swift",

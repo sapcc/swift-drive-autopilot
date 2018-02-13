@@ -23,6 +23,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/sapcc/swift-drive-autopilot/pkg/command"
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
@@ -112,19 +113,19 @@ func (m *MountPoint) Activate(devicePath string) bool {
 	mountPath := m.Path()
 
 	//prepare new target directory
-	_, ok := Run("mkdir", "-m", "0700", "-p", mountPath)
+	_, ok := command.Run("mkdir", "-m", "0700", "-p", mountPath)
 	if !ok {
 		return false
 	}
 
 	//for the mount to appear both in the container and the host, it has to be
 	//performed twice, once for each mount namespace involved
-	_, ok = Run("mount", devicePath, mountPath)
+	_, ok = command.Run("mount", devicePath, mountPath)
 	if !ok {
 		return false
 	}
 	if Config.ChrootPath != "" {
-		_, ok = Command{NoNsenter: true}.Run("mount", devicePath, mountPath)
+		_, ok = command.Command{NoNsenter: true}.Run("mount", devicePath, mountPath)
 		if !ok {
 			return false
 		}
@@ -145,16 +146,16 @@ func (m *MountPoint) Deactivate(devicePath string) {
 	mountPath := m.Path()
 
 	//unmount both in the container and the host (same pattern as for Activate)
-	Run("umount", mountPath)
+	command.Run("umount", mountPath)
 	if Config.ChrootPath != "" {
-		Command{NoNsenter: true}.Run("umount", mountPath)
+		command.Command{NoNsenter: true}.Run("umount", mountPath)
 	}
 
 	m.Active = false
 	util.LogInfo("unmounted %s", mountPath)
 
 	if m.Location == "/srv/node" {
-		Run("ln", "-sTf", devicePath, "/run/swift-storage/state/unmount-propagation/"+m.Name)
+		command.Run("ln", "-sTf", devicePath, "/run/swift-storage/state/unmount-propagation/"+m.Name)
 	}
 }
 
@@ -182,7 +183,7 @@ var mountPointRx = regexp.MustCompile(`^(/run/swift-storage|/srv/node)/([^/]+)$`
 //already mounted below /run/swift-storage or /srv/node.
 func ScanMountPoints() SystemMountPoints {
 	var result []*SystemMountPoint
-	stdout, _ := Command{ExitOnError: true}.Run("mount")
+	stdout, _ := command.Command{ExitOnError: true}.Run("mount")
 
 	for _, line := range strings.Split(stdout, "\n") {
 		//line looks like "<device> on <mountpoint> type <type> (<options>)"

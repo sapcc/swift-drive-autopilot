@@ -25,6 +25,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/sapcc/swift-drive-autopilot/pkg/command"
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
@@ -96,7 +97,7 @@ func GetDeviceIDFor(devicePath string) string {
 	//read serial number using smartctl (using the relative path and skipping
 	//nsenter and chroot here since the host may not have smartctl in its PATH)
 	relDevicePath := strings.TrimPrefix(devicePath, "/")
-	stdout, ok := Command{SkipLog: true, NoChroot: true, NoNsenter: true}.Run("smartctl", "-d", "scsi", "-i", relDevicePath)
+	stdout, ok := command.Command{SkipLog: true, NoChroot: true, NoNsenter: true}.Run("smartctl", "-d", "scsi", "-i", relDevicePath)
 	if ok {
 		match := serialNumberRx.FindStringSubmatch(stdout)
 		if match != nil {
@@ -138,7 +139,7 @@ func (d *Drive) MarkAsBroken() {
 	util.LogInfo("flagging %s as broken because of previous error", d.DevicePath)
 
 	brokenFlagPath := d.BrokenFlagPath()
-	_, ok := Run("ln", "-sfT", d.DevicePath, brokenFlagPath)
+	_, ok := command.Run("ln", "-sfT", d.DevicePath, brokenFlagPath)
 	if ok {
 		util.LogInfo("To reinstate this drive into the cluster, delete the symlink at " + brokenFlagPath)
 	}
@@ -165,7 +166,7 @@ func (d *Drive) Classify() (success bool) {
 	//ask file(1) to identify the contents of this device
 	//BUT: do not run file(1) in the chroot (e.g. CoreOS does not have file(1))
 	devicePath := d.ActiveDevicePath()
-	desc, ok := Command{
+	desc, ok := command.Command{
 		NoChroot: true,
 	}.Run("file", "-bLs", Config.ChrootPath+devicePath)
 	if !ok {
@@ -205,7 +206,7 @@ func (d *Drive) EnsureFilesystem() {
 
 	//format device with XFS
 	devicePath := d.ActiveDevicePath()
-	_, ok := Run("mkfs.xfs", devicePath)
+	_, ok := command.Run("mkfs.xfs", devicePath)
 	if !ok {
 		d.MarkAsBroken()
 		return
