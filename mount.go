@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
+	"github.com/sapcc/swift-drive-autopilot/pkg/os"
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
@@ -100,7 +101,7 @@ func (m *MountPoint) Check(devicePath string, activeMounts SystemMountPoints, al
 
 //Activate will mount the given device to this MountPoint if the MountPoint is
 //not yet Active.
-func (m *MountPoint) Activate(devicePath string) bool {
+func (m *MountPoint) Activate(devicePath string, osi os.Interface) bool {
 	//ready to be mounted?
 	if m.Location == "" || m.Name == "" {
 		return false
@@ -111,24 +112,9 @@ func (m *MountPoint) Activate(devicePath string) bool {
 	}
 
 	mountPath := m.Path()
-
-	//prepare new target directory
-	_, ok := command.Run("mkdir", "-m", "0700", "-p", mountPath)
+	ok := osi.MountDevice(devicePath, mountPath, Config.ChrootPath != "")
 	if !ok {
 		return false
-	}
-
-	//for the mount to appear both in the container and the host, it has to be
-	//performed twice, once for each mount namespace involved
-	_, ok = command.Run("mount", devicePath, mountPath)
-	if !ok {
-		return false
-	}
-	if Config.ChrootPath != "" {
-		_, ok = command.Command{NoNsenter: true}.Run("mount", devicePath, mountPath)
-		if !ok {
-			return false
-		}
 	}
 
 	m.Active = true
@@ -137,19 +123,14 @@ func (m *MountPoint) Activate(devicePath string) bool {
 }
 
 //Deactivate will unmount the given MountPoint if it is Active.
-func (m *MountPoint) Deactivate(devicePath string) {
+func (m *MountPoint) Deactivate(devicePath string, osi os.Interface) {
 	//already unmounted?
 	if !m.Active {
 		return
 	}
 
 	mountPath := m.Path()
-
-	//unmount both in the container and the host (same pattern as for Activate)
-	command.Run("umount", mountPath)
-	if Config.ChrootPath != "" {
-		command.Command{NoNsenter: true}.Run("umount", mountPath)
-	}
+	osi.UnmountDevice(mountPath, Config.ChrootPath != "")
 
 	m.Active = false
 	util.LogInfo("unmounted %s", mountPath)

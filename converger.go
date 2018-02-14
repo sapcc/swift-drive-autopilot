@@ -89,10 +89,10 @@ func (c *Converger) Converge() {
 
 	for _, drive := range c.Drives {
 		if !drive.Broken {
-			if drive.FinalMount.Activate(drive.ActiveDevicePath()) {
+			if drive.FinalMount.Activate(drive.ActiveDevicePath(), c.OS) {
 				drive.FinalMount.Chown(Config.Owner.User, Config.Owner.Group)
 			}
-			drive.CleanupDuplicateMounts()
+			drive.CleanupDuplicateMounts(c.OS)
 		}
 	}
 
@@ -190,7 +190,7 @@ func (e DriveAddedEvent) Handle(c *Converger) {
 	case err == nil:
 		//link still exists, so device is broken
 		util.LogInfo("%s was flagged as broken by a previous run of swift-drive-autopilot", drive.DevicePath)
-		drive.MarkAsBroken() //this will re-print the log message explaining how to reinstate the drive into the cluster
+		drive.MarkAsBroken(c.OS) //this will re-print the log message explaining how to reinstate the drive into the cluster
 	case std_os.IsNotExist(err):
 		//ignore this error (no broken-flag means everything's okay)
 	default:
@@ -219,10 +219,10 @@ func (e DriveRemovedEvent) Handle(c *Converger) {
 
 	//shutdown all active mounts
 	if drive.FinalMount.Active {
-		drive.FinalMount.Deactivate(drive.DevicePath)
+		drive.FinalMount.Deactivate(drive.DevicePath, c.OS)
 		c.ActiveMounts.MarkAsDeactivated(drive.FinalMount.Path())
 	}
-	drive.TemporaryMount.Deactivate(drive.DevicePath)
+	drive.TemporaryMount.Deactivate(drive.DevicePath, c.OS)
 	drive.CloseLUKS()
 
 	//remove drive from list
@@ -233,7 +233,7 @@ func (e DriveRemovedEvent) Handle(c *Converger) {
 func (e DriveErrorEvent) Handle(c *Converger) {
 	for _, d := range c.Drives {
 		if d.DevicePath == e.DevicePath {
-			d.MarkAsBroken()
+			d.MarkAsBroken(c.OS)
 			return
 		}
 	}

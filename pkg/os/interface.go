@@ -40,6 +40,15 @@ type Interface interface {
 	//ClassifyDevice examines the contents of the given device to detect existing
 	//LUKS containers or filesystems.
 	ClassifyDevice(devicePath string) DeviceType
+	//FormatDevice creates an XFS filesystem on this device. Existing containers
+	//or filesystems will be overwritten.
+	FormatDevice(devicePath string) (ok bool)
+	//MountDevice mounts this device at the given location. If
+	//repeatInOwnNamespace is true, the mount is also performed in this process's
+	//own mount namespace.
+	MountDevice(devicePath, mountPath string, repeatInOwnNamespace bool) (ok bool)
+	//UnmountDevice unmounts the device that is mounted at the given location.
+	UnmountDevice(mountPath string, repeatInOwnNamespace bool) (ok bool)
 }
 
 //Drive contains information about a drive as detected by the OS.

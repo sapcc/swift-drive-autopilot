@@ -66,7 +66,7 @@ func (d *Drive) OpenLUKS(osi os.Interface) {
 
 	if !success {
 		util.LogError("exec(cryptsetup luksOpen %s %s) failed: none of the configured keys was accepted")
-		d.MarkAsBroken()
+		d.MarkAsBroken(osi)
 		return
 	}
 
@@ -147,7 +147,7 @@ func getBackingDevicePath(mapName string) string {
 //CheckLUKS takes the output from ScanLUKSMappings and fills the
 //MappedDevicePath of this Drive if it is mapped. False is returned if any
 //inconsistencies are found.
-func (d *Drive) CheckLUKS(activeMappings map[string]string) {
+func (d *Drive) CheckLUKS(activeMappings map[string]string, osi os.Interface) {
 	actualMapName := activeMappings[d.DevicePath]
 
 	if actualMapName == "" {
@@ -155,7 +155,7 @@ func (d *Drive) CheckLUKS(activeMappings map[string]string) {
 			util.LogError("LUKS container in %s should be open at %s, but is not",
 				d.DevicePath, d.MappedDevicePath,
 			)
-			d.MarkAsBroken()
+			d.MarkAsBroken(osi)
 		}
 		return
 	}
@@ -175,7 +175,7 @@ func (d *Drive) CheckLUKS(activeMappings map[string]string) {
 		util.LogError("LUKS container in %s should be open at %s, but is actually open at %s",
 			d.DevicePath, d.MappedDevicePath, actualMappedPath,
 		)
-		d.MarkAsBroken()
+		d.MarkAsBroken(osi)
 	}
 }
 
@@ -213,6 +213,6 @@ func (d *Drive) FormatLUKSIfRequired(osi os.Interface) {
 	if ok {
 		*d.Type = os.DeviceTypeLUKS
 	} else {
-		d.MarkAsBroken()
+		d.MarkAsBroken(osi)
 	}
 }
