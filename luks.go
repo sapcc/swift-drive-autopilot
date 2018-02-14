@@ -49,42 +49,36 @@ func (d *Drive) OpenLUKS(osi os.Interface) {
 		return
 	}
 
-	//try each key until one works
-	mapperName := d.TemporaryMount.Name
-	success := false
+	//decrypt drive
+	keyList := make([]string, len(Config.Keys))
 	for idx, key := range Config.Keys {
-		util.LogDebug("trying to luksOpen %s as %s with key %d...", d.DevicePath, mapperName, idx)
-		_, ok := command.Command{
-			Stdin:   key.Secret + "\n",
-			SkipLog: true,
-		}.Run("cryptsetup", "luksOpen", d.DevicePath, mapperName)
-		if ok {
-			success = true
-			break
-		}
+		keyList[idx] = key.Secret
 	}
-
-	if !success {
-		util.LogError("exec(cryptsetup luksOpen %s %s) failed: none of the configured keys was accepted")
+	mappingName := d.TemporaryMount.Name
+	mappedDevicePath, ok := osi.OpenLUKSContainer(d.DevicePath, mappingName, keyList)
+	if !ok {
+		util.LogError(
+			"exec(cryptsetup luksOpen %s %s) failed: none of the configured keys was accepted",
+			d.DevicePath, mappingName,
+		)
 		d.MarkAsBroken(osi)
 		return
 	}
 
-	d.MappedDevicePath = "/dev/mapper/" + mapperName
+	d.MappedDevicePath = mappedDevicePath
 	d.Type = nil //reset because Classification now refers to what's in the mapped device
 	util.LogInfo("LUKS container at %s opened as %s", d.DevicePath, d.MappedDevicePath)
 }
 
 //CloseLUKS will close the LUKS container on the given drive, if it exists and
 //is currently open.
-func (d *Drive) CloseLUKS() {
+func (d *Drive) CloseLUKS(osi os.Interface) {
 	//anything to do?
 	if d.MappedDevicePath == "" {
 		return
 	}
 
-	mapperName := filepath.Base(d.MappedDevicePath)
-	_, ok := command.Run("cryptsetup", "close", mapperName)
+	ok := osi.CloseLUKSContainer(filepath.Base(d.MappedDevicePath))
 	if ok {
 		util.LogInfo("LUKS container %s closed", d.MappedDevicePath)
 		d.MappedDevicePath = ""
@@ -205,10 +199,7 @@ func (d *Drive) FormatLUKSIfRequired(osi os.Interface) {
 	}
 
 	//format with the preferred key
-	key := Config.Keys[0]
-	util.LogDebug("running cryptsetup luksFormat %s with key 0...", d.DevicePath)
-	_, ok := command.Command{Stdin: key.Secret + "\n"}.Run("cryptsetup", "luksFormat", d.DevicePath)
-
+	ok := osi.CreateLUKSContainer(d.DevicePath, Config.Keys[0].Secret)
 	//update drive classification so that OpenLUKS() will now open this device
 	if ok {
 		*d.Type = os.DeviceTypeLUKS

@@ -126,7 +126,7 @@ func (d *Drive) MarkAsBroken(osi os.Interface) {
 
 	d.FinalMount.Deactivate(d.DevicePath, osi)
 	d.TemporaryMount.Deactivate(d.DevicePath, osi)
-	d.CloseLUKS()
+	d.CloseLUKS(osi)
 
 	//reset FinalMount.Name (and thus require a re-reading of the swift-id file
 	//after the drive was reinstated)

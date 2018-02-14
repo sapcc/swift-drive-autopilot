@@ -43,13 +43,13 @@ type Interface interface {
 	//FormatDevice creates an XFS filesystem on this device. Existing containers
 	//or filesystems will be overwritten.
 	FormatDevice(devicePath string) (ok bool)
+
 	//MountDevice mounts this device at the given location. If
 	//repeatInOwnNamespace is true, the mount is also performed in this process's
 	//own mount namespace.
 	MountDevice(devicePath, mountPath string, repeatInOwnNamespace bool) (ok bool)
 	//UnmountDevice unmounts the device that is mounted at the given location.
 	UnmountDevice(mountPath string, repeatInOwnNamespace bool) (ok bool)
-
 	//RefreshMountPoints examines the system to find any mounts that have changed
 	//since we last looked.
 	RefreshMountPoints()
@@ -57,6 +57,15 @@ type Interface interface {
 	GetMountPointsIn(mountPathPrefix string) []MountPoint
 	//GetMountPointsOf returns all active mount points for this device.
 	GetMountPointsOf(devicePath string) []MountPoint
+
+	//CreateLUKSContainer creates a LUKS container on the given device, using the
+	//given encryption key. Existing data on the device will be overwritten.
+	CreateLUKSContainer(devicePath, key string) (ok bool)
+	//OpenLUKSContainer opens the LUKS container on the given device. The given
+	//keys are tried in order until one works.
+	OpenLUKSContainer(devicePath, mappingName string, keys []string) (mappedDevicePath string, ok bool)
+	//CloseLUKSContainer closes the LUKS container with the given mapping name.
+	CloseLUKSContainer(mappingName string) (ok bool)
 }
 
 //Drive contains information about a drive as detected by the OS.

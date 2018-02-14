@@ -211,7 +211,7 @@ func (e DriveRemovedEvent) Handle(c *Converger) {
 		drive.FinalMount.Deactivate(drive.DevicePath, c.OS)
 	}
 	drive.TemporaryMount.Deactivate(drive.DevicePath, c.OS)
-	drive.CloseLUKS()
+	drive.CloseLUKS(c.OS)
 
 	//remove drive from list
 	c.Drives = otherDrives
