@@ -20,8 +20,7 @@
 package main
 
 import (
-	"regexp"
-	"strings"
+	"path/filepath"
 
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
 	"github.com/sapcc/swift-drive-autopilot/pkg/os"
@@ -47,12 +46,12 @@ func (m MountPoint) Path() string {
 //Check takes the actual mount name of this device below the mountpoint's
 //Location (or an empty string if the mount is not active), and checks whether
 //this is consistent with the internal state of the MountPoint struct.
-func (m *MountPoint) Check(devicePath string, activeMounts SystemMountPoints, allowDifferentBaseName bool) (success bool) {
+func (m *MountPoint) Check(devicePath string, osi os.Interface, allowDifferentBaseName bool) (success bool) {
 	//check if there exists a mountpoint of the same device in the same location
-	var actualMount *SystemMountPoint
-	for _, am := range activeMounts {
-		if am.DevicePath == devicePath && am.Location == m.Location {
-			actualMount = am
+	var actualMount *os.MountPoint
+	for _, am := range osi.GetMountPointsOf(devicePath) {
+		if filepath.Dir(am.MountPath) == m.Location {
+			actualMount = &am
 			break
 		}
 	}
@@ -71,16 +70,17 @@ func (m *MountPoint) Check(devicePath string, activeMounts SystemMountPoints, al
 	}
 
 	if m.Active {
-		if actualMount.Name != m.Name {
+		actualMountName := filepath.Base(actualMount.MountPath)
+		if actualMountName != m.Name {
 			logLevel := util.LogError
 			if allowDifferentBaseName {
 				logLevel = util.LogInfo
 			}
 			logLevel(
 				"expected %s to be mounted at %s, but is actually mounted at %s",
-				devicePath, m.Path(), actualMount.Path(),
+				devicePath, m.Path(), actualMount.MountPath,
 			)
-			m.Name = actualMount.Name //to ensure that subsequent unmounting works correctly
+			m.Name = actualMountName //to ensure that subsequent unmounting works correctly
 			if !allowDifferentBaseName {
 				return false
 			}
@@ -92,7 +92,7 @@ func (m *MountPoint) Check(devicePath string, activeMounts SystemMountPoints, al
 	} else {
 		//this case is okay - the MountPoint struct may have just been created
 		//and now we know that it is already active (and under which name)
-		m.Name = actualMount.Name
+		m.Name = filepath.Base(actualMount.MountPath)
 		m.Active = true
 		util.LogInfo("discovered %s to be mounted at %s already", devicePath, m.Path())
 	}
@@ -146,68 +146,4 @@ func (m *MountPoint) Deactivate(devicePath string, osi os.Interface) {
 func (m MountPoint) Chown(user, group string) {
 	mountPath := m.Path()
 	Chown(mountPath, user, group)
-}
-
-//SystemMountPoint is an extension of MountPoint that reflects the state of an actual mount point as reported by mount().
-type SystemMountPoint struct {
-	MountPoint
-	DevicePath string
-	Options    map[string]bool
-}
-
-//SystemMountPoints is a list of SystemMountPoint with additional methods.
-type SystemMountPoints []*SystemMountPoint
-
-var mountPointRx = regexp.MustCompile(`^(/run/swift-storage|/srv/node)/([^/]+)$`)
-
-//ScanMountPoints looks through the active mounts to check which drives are
-//already mounted below /run/swift-storage or /srv/node.
-func ScanMountPoints() SystemMountPoints {
-	var result []*SystemMountPoint
-	stdout, _ := command.Command{ExitOnError: true}.Run("mount")
-
-	for _, line := range strings.Split(stdout, "\n") {
-		//line looks like "<device> on <mountpoint> type <type> (<options>)"
-		words := strings.Split(line, " ")
-		if len(words) < 3 || words[1] != "on" {
-			continue
-		}
-		devicePath, mountPath := words[0], words[2]
-
-		//are we interested in this mountpoint?
-		match := mountPointRx.FindStringSubmatch(mountPath)
-		if match == nil {
-			continue
-		}
-
-		//parse options into a set
-		optionsStr := words[5]
-		optionsStr = strings.TrimPrefix(optionsStr, "(")
-		optionsStr = strings.TrimSuffix(optionsStr, ")")
-		options := make(map[string]bool)
-		for _, option := range strings.Split(optionsStr, ",") {
-			options[option] = true
-		}
-
-		result = append(result, &SystemMountPoint{
-			DevicePath: devicePath,
-			MountPoint: MountPoint{
-				Location: match[1],
-				Name:     match[2],
-			},
-			Options: options,
-		})
-	}
-
-	return SystemMountPoints(result)
-}
-
-//MarkAsDeactivated can be used to update a SystemMountPoints list when a
-//mountpoint has been deactivated.
-func (mounts SystemMountPoints) MarkAsDeactivated(mountPath string) {
-	for _, m := range mounts {
-		if m.Path() == mountPath {
-			m.Active = false
-		}
-	}
 }

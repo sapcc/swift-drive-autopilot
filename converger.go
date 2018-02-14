@@ -40,7 +40,6 @@ type Converger struct {
 
 	//short-lived state that is gathered before the event handlers run
 	ActiveLUKSMappings map[string]string
-	ActiveMounts       SystemMountPoints
 }
 
 //RunConverger runs the converger thread. This function does not return.
@@ -54,10 +53,7 @@ func RunConverger(queue chan []Event, osi os.Interface) {
 		//initialize short-lived state for this event loop iteration
 		c.ActiveLUKSMappings = ScanLUKSMappings()
 		util.LogDebug("ActiveLUKSMappings = %#v", c.ActiveLUKSMappings)
-		c.ActiveMounts = ScanMountPoints()
-		for _, mount := range c.ActiveMounts {
-			util.LogDebug("ActiveMounts += %#v", mount)
-		}
+		osi.RefreshMountPoints()
 
 		for _, drive := range c.Drives {
 			drive.Converged = false
@@ -106,22 +102,15 @@ func (c *Converger) Converge() {
 //CheckForUnexpectedMounts prints error messages for every unexpected mount
 //below /srv/node.
 func (c *Converger) CheckForUnexpectedMounts() {
-	for _, mount := range c.ActiveMounts {
-		if mount.Location != "/srv/node" || !mount.Active {
-			continue
-		}
-
-		found := false
+MOUNT:
+	for _, mount := range c.OS.GetMountPointsIn("/srv/node") {
 		for _, drive := range c.Drives {
-			if drive.FinalMount.Active && drive.FinalMount.Name == mount.Name {
-				found = true
-				break
+			if drive.FinalMount.Active && drive.FinalMount.Path() == mount.MountPath {
+				continue MOUNT
 			}
 		}
 
-		if !found {
-			util.LogError("unexpected mount at %s", mount.Path())
-		}
+		util.LogError("unexpected mount at %s", mount.MountPath)
 	}
 }
 
@@ -220,7 +209,6 @@ func (e DriveRemovedEvent) Handle(c *Converger) {
 	//shutdown all active mounts
 	if drive.FinalMount.Active {
 		drive.FinalMount.Deactivate(drive.DevicePath, c.OS)
-		c.ActiveMounts.MarkAsDeactivated(drive.FinalMount.Path())
 	}
 	drive.TemporaryMount.Deactivate(drive.DevicePath, c.OS)
 	drive.CloseLUKS()

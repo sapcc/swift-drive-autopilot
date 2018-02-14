@@ -202,23 +202,21 @@ func (d *Drive) MountSomewhere(osi os.Interface) {
 //CheckMounts takes the return values of ScanMountPoints() and checks where the
 //given drive is mounted. False is returned if the state of the Drive is
 //inconsistent with the mounts lists.
-func (d *Drive) CheckMounts(activeMounts SystemMountPoints, osi os.Interface) {
+func (d *Drive) CheckMounts(osi os.Interface) {
 	//if a LUKS container is open, then the base device should not be mounted
 	if d.MappedDevicePath != "" {
-		for _, m := range activeMounts {
-			if m.DevicePath == d.DevicePath {
-				util.LogError("%s contains an open LUKS container, but is also mounted directly", d.DevicePath)
-				d.MarkAsBroken(osi)
-				return
-			}
+		if len(osi.GetMountPointsOf(d.DevicePath)) > 0 {
+			util.LogError("%s contains an open LUKS container, but is also mounted directly", d.DevicePath)
+			d.MarkAsBroken(osi)
+			return
 		}
 	}
 
 	//check that the mountpoints recorded in this Drive are consistent with the
 	//actual system state
 	devicePath := d.ActiveDevicePath()
-	tempMountOk := d.TemporaryMount.Check(devicePath, activeMounts, true)
-	finalMountOk := d.FinalMount.Check(devicePath, activeMounts, false)
+	tempMountOk := d.TemporaryMount.Check(devicePath, osi, true)
+	finalMountOk := d.FinalMount.Check(devicePath, osi, false)
 
 	success := tempMountOk && finalMountOk
 	if !success {
@@ -274,18 +272,9 @@ func (d *Drive) Converge(c *Converger, osi os.Interface) {
 		d.OpenLUKS(osi)
 	}
 	//try to mount the drive to /run/swift-storage (if not yet mounted)
-	d.CheckMounts(c.ActiveMounts, osi)
+	d.CheckMounts(osi)
 	d.EnsureFilesystem(osi)
 	d.MountSomewhere(osi)
 
 	d.Converged = true
-
-	//if the device was marked as broken during this run, we need to update
-	//c.ActiveMounts to avoid a false-negative in c.CheckForUnexpectedMounts()
-	if d.Broken {
-		c.ActiveMounts.MarkAsDeactivated(d.FinalMount.Path())
-		//NOTE: This might suppress an actual unexpected mount for one event
-		//loop iteration, but the error will show up at most 30 seconds later
-		//during the scheduled healthcheck.
-	}
 }

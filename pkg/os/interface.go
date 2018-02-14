@@ -49,6 +49,14 @@ type Interface interface {
 	MountDevice(devicePath, mountPath string, repeatInOwnNamespace bool) (ok bool)
 	//UnmountDevice unmounts the device that is mounted at the given location.
 	UnmountDevice(mountPath string, repeatInOwnNamespace bool) (ok bool)
+
+	//RefreshMountPoints examines the system to find any mounts that have changed
+	//since we last looked.
+	RefreshMountPoints()
+	//GetMountPointsIn returns all active mount points below the given path.
+	GetMountPointsIn(mountPathPrefix string) []MountPoint
+	//GetMountPointsOf returns all active mount points for this device.
+	GetMountPointsOf(devicePath string) []MountPoint
 }
 
 //Drive contains information about a drive as detected by the OS.
@@ -81,3 +89,10 @@ const (
 	//filesystem.
 	DeviceTypeFilesystem
 )
+
+//MountPoint describes an active mount point that is present on the system.
+type MountPoint struct {
+	DevicePath string
+	MountPath  string
+	Options    map[string]bool
+}
