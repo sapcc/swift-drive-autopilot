@@ -23,28 +23,15 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"regexp"
-	"strings"
 
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
+	"github.com/sapcc/swift-drive-autopilot/pkg/os"
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
 //DeviceType describes the contents of a device, to the granularity required by
 //this program.
 type DeviceType int
-
-const (
-	//DeviceTypeNotScanned says that Drive.Classify() has not been run for this
-	//device yet.
-	DeviceTypeNotScanned DeviceType = iota
-	//DeviceTypeUnknown describes a device that contains neither a LUKS
-	//container nor a filesystem.
-	DeviceTypeUnknown
-	//DeviceTypeLUKS describes a device that contains a LUKS container.
-	DeviceTypeLUKS
-	//DeviceTypeFilesystem describes a device that contains a filesystem.
-	DeviceTypeFilesystem
-)
 
 //Drive contains all the information about a single drive.
 type Drive struct {
@@ -63,7 +50,7 @@ type Drive struct {
 	//returned by file(1). This field refers to the device at DevicePath,
 	//unless MappedDevicePath is set, in which case it refers to that device.
 	//A value of nil means that Classify() has not been run yet.
-	Type DeviceType
+	Type *os.DeviceType
 	//TemporaryMount is this device's mount point below /run/swift-storage.
 	TemporaryMount MountPoint
 	//FinalMount is this device's mount point below /srv/node.
@@ -150,50 +137,35 @@ func (d *Drive) MarkAsBroken() {
 
 //Classify will call file(1) on the drive's device file (or the mapped device
 //file, if any), and save the result in the Classification field.
-func (d *Drive) Classify() (success bool) {
+func (d *Drive) Classify(osi os.Interface) (success bool) {
 	//run only once
-	if d.Type != DeviceTypeNotScanned {
+	if d.Type != nil {
 		return true
 	}
 
-	//ask file(1) to identify the contents of this device
-	//BUT: do not run file(1) in the chroot (e.g. CoreOS does not have file(1))
-	devicePath := d.ActiveDevicePath()
-	desc, ok := command.Command{
-		NoChroot: true,
-	}.Run("file", "-bLs", Config.ChrootPath+devicePath)
-	if !ok {
+	deviceType := osi.ClassifyDevice(d.ActiveDevicePath())
+	if deviceType == os.DeviceTypeUnreadable {
 		d.MarkAsBroken()
 		return false
 	}
-
-	//convert into DeviceType
-	switch {
-	case strings.HasPrefix(desc, "LUKS encrypted file"):
-		d.Type = DeviceTypeLUKS
-	case strings.Contains(desc, "filesystem data"):
-		d.Type = DeviceTypeFilesystem
-	default:
-		d.Type = DeviceTypeUnknown
-	}
-
+	d.Type = &deviceType
 	return true
 }
 
 //EnsureFilesystem will check if the device contains a filesystem, and if not,
 //create an XFS. (Swift requires a filesystem that supports extended
 //attributes, and XFS is the most popular choice.)
-func (d *Drive) EnsureFilesystem() {
+func (d *Drive) EnsureFilesystem(osi os.Interface) {
 	//do not touch broken stuff
 	if d.Broken {
 		return
 	}
 	//is it safe to be formatted? (i.e. don't format when there is already a
 	//filesystem or LUKS container)
-	if !d.Classify() {
+	if !d.Classify(osi) {
 		return
 	}
-	if d.Type != DeviceTypeUnknown {
+	if *d.Type != os.DeviceTypeUnknown {
 		return
 	}
 
@@ -207,7 +179,7 @@ func (d *Drive) EnsureFilesystem() {
 	util.LogDebug("XFS filesystem created on %s", devicePath)
 
 	//do not attempt to format again during the next Converge
-	d.Type = DeviceTypeFilesystem
+	*d.Type = os.DeviceTypeFilesystem
 }
 
 //MountSomewhere will mount the given device below `/run/swift-storage` if it
@@ -281,7 +253,7 @@ func (d *Drive) CleanupDuplicateMounts() {
 //
 //If the drive is broken (or discovered to be broken during this operation),
 //no new mappings and mounts will be performed.
-func (d *Drive) Converge(c *Converger) {
+func (d *Drive) Converge(c *Converger, osi os.Interface) {
 	if d.Converged || d.Broken {
 		return
 	}
@@ -290,20 +262,20 @@ func (d *Drive) Converge(c *Converger) {
 	//StartedOutEmpty flag accordingly (note that StartedOutEmpty might be
 	//reset by CheckLUKS or CheckMounts if an active mapping or mount is found
 	//for this drive)
-	ok := d.Classify()
+	ok := d.Classify(osi)
 	if !ok {
 		return
 	}
-	d.StartedOutEmpty = d.Type == DeviceTypeUnknown
+	d.StartedOutEmpty = *d.Type == os.DeviceTypeUnknown
 
 	d.CheckLUKS(c.ActiveLUKSMappings)
 	if len(Config.Keys) > 0 {
-		d.FormatLUKSIfRequired()
-		d.OpenLUKS()
+		d.FormatLUKSIfRequired(osi)
+		d.OpenLUKS(osi)
 	}
 	//try to mount the drive to /run/swift-storage (if not yet mounted)
 	d.CheckMounts(c.ActiveMounts)
-	d.EnsureFilesystem()
+	d.EnsureFilesystem(osi)
 	d.MountSomewhere()
 
 	d.Converged = true

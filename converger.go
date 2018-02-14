@@ -22,12 +22,13 @@ package main
 import (
 	"encoding/json"
 	"io/ioutil"
-	"os"
+	std_os "os"
 	"path/filepath"
 	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
+	"github.com/sapcc/swift-drive-autopilot/pkg/os"
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
@@ -35,6 +36,7 @@ import (
 type Converger struct {
 	//long-lived state
 	Drives []*Drive
+	OS     os.Interface
 
 	//short-lived state that is gathered before the event handlers run
 	ActiveLUKSMappings map[string]string
@@ -42,8 +44,8 @@ type Converger struct {
 }
 
 //RunConverger runs the converger thread. This function does not return.
-func RunConverger(queue chan []Event) {
-	c := &Converger{}
+func RunConverger(queue chan []Event, osi os.Interface) {
+	c := &Converger{OS: osi}
 
 	for {
 		//wait for processable events
@@ -78,7 +80,7 @@ func RunConverger(queue chan []Event) {
 //has been received and handled by the converger.
 func (c *Converger) Converge() {
 	for _, drive := range c.Drives {
-		drive.Converge(c)
+		drive.Converge(c, c.OS)
 	}
 
 	//discover and auto-assign swift-ids of drives
@@ -183,20 +185,20 @@ func (e DriveAddedEvent) Handle(c *Converger) {
 	brokenFlagPath := drive.BrokenFlagPath()
 	//make path relative to chroot dir (= cwd)
 	brokenFlagPath = strings.TrimPrefix(brokenFlagPath, "/")
-	_, err := os.Readlink(brokenFlagPath)
+	_, err := std_os.Readlink(brokenFlagPath)
 	switch {
 	case err == nil:
 		//link still exists, so device is broken
 		util.LogInfo("%s was flagged as broken by a previous run of swift-drive-autopilot", drive.DevicePath)
 		drive.MarkAsBroken() //this will re-print the log message explaining how to reinstate the drive into the cluster
-	case os.IsNotExist(err):
+	case std_os.IsNotExist(err):
 		//ignore this error (no broken-flag means everything's okay)
 	default:
 		util.LogError(err.Error())
 	}
 
 	c.Drives = append(c.Drives, drive)
-	drive.Converge(c)
+	drive.Converge(c, c.OS)
 }
 
 //Handle implements the Event interface.
@@ -244,8 +246,8 @@ func (e DriveReinstatedEvent) Handle(c *Converger) {
 		if d.DevicePath == e.DevicePath {
 			d.Broken = false
 			//reset the classification - who knows what was done to fix the drive
-			d.Type = DeviceTypeNotScanned
-			d.Converge(c)
+			d.Type = nil
+			d.Converge(c, c.OS)
 			break
 		}
 	}
@@ -254,7 +256,7 @@ func (e DriveReinstatedEvent) Handle(c *Converger) {
 	path := "run/swift-storage/state/unmount-propagation"
 	_ = ForeachSymlinkIn(path, func(name, devicePath string) {
 		if devicePath == e.DevicePath {
-			err := os.Remove(path + "/" + name)
+			err := std_os.Remove(path + "/" + name)
 			if err != nil {
 				util.LogError(err.Error())
 			}

@@ -25,13 +25,14 @@ import (
 	"strings"
 
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
+	"github.com/sapcc/swift-drive-autopilot/pkg/os"
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
 //OpenLUKS will open a LUKS container on the given drive, and set
 //MappedDevicePath accordingly. If the drive is not encrypted with LUKS,
 //OpenLUKS returns true without doing anything.
-func (d *Drive) OpenLUKS() {
+func (d *Drive) OpenLUKS(osi os.Interface) {
 	//do not touch broken stuff
 	if d.Broken {
 		return
@@ -41,10 +42,10 @@ func (d *Drive) OpenLUKS() {
 		return
 	}
 	//is the drive encrypted?
-	if !d.Classify() {
+	if !d.Classify(osi) {
 		return
 	}
-	if d.Type != DeviceTypeLUKS {
+	if *d.Type != os.DeviceTypeLUKS {
 		return
 	}
 
@@ -70,7 +71,7 @@ func (d *Drive) OpenLUKS() {
 	}
 
 	d.MappedDevicePath = "/dev/mapper/" + mapperName
-	d.Type = DeviceTypeNotScanned //reset because Classification now refers to what's in the mapped device
+	d.Type = nil //reset because Classification now refers to what's in the mapped device
 	util.LogInfo("LUKS container at %s opened as %s", d.DevicePath, d.MappedDevicePath)
 }
 
@@ -179,7 +180,7 @@ func (d *Drive) CheckLUKS(activeMappings map[string]string) {
 }
 
 //FormatLUKSIfRequired will create a LUKS container on this device if empty.
-func (d *Drive) FormatLUKSIfRequired() {
+func (d *Drive) FormatLUKSIfRequired(osi os.Interface) {
 	//do not touch broken stuff
 	if d.Broken {
 		return
@@ -196,10 +197,10 @@ func (d *Drive) FormatLUKSIfRequired() {
 
 	//is it safe to be formatted? (i.e. don't format when there is already a
 	//filesystem or LUKS container)
-	if !d.Classify() {
+	if !d.Classify(osi) {
 		return
 	}
-	if d.Type != DeviceTypeUnknown {
+	if *d.Type != os.DeviceTypeUnknown {
 		return
 	}
 
@@ -210,7 +211,7 @@ func (d *Drive) FormatLUKSIfRequired() {
 
 	//update drive classification so that OpenLUKS() will now open this device
 	if ok {
-		d.Type = DeviceTypeLUKS
+		*d.Type = os.DeviceTypeLUKS
 	} else {
 		d.MarkAsBroken()
 	}

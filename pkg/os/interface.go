@@ -22,6 +22,12 @@ package os
 //Interface describes the set of OS-level operations that can be executed by
 //the autopilot. The default implementation for production is struct Linux in
 //this package.
+//
+//There is an important distinction between "drive" and "device" in the
+//autopilot's jargon. A "drive" is the physical thing, a "device" is a device
+//file. For encrypted drives, there are two devices for each drive: the
+//original SCSI device file (e.g. /dev/sda) and the device file representing
+//the contents of the LUKS container (e.g. /dev/mapper/ABCDEFGH).
 type Interface interface {
 	//CollectDrives is run in a separate goroutine and reports drives as they are
 	//added or removed. (When first started, all existing drives shall be
@@ -30,6 +36,10 @@ type Interface interface {
 	//CollectDriveErrors is run in a separate goroutine and reports drive errors
 	//that are observed in the kernel log. It shall not return.
 	CollectDriveErrors(errors chan<- []DriveError)
+
+	//ClassifyDevice examines the contents of the given device to detect existing
+	//LUKS containers or filesystems.
+	ClassifyDevice(devicePath string) DeviceType
 }
 
 //Drive contains information about a drive as detected by the OS.
@@ -44,3 +54,21 @@ type DriveError struct {
 	DevicePath string
 	Message    string
 }
+
+//DeviceType describes the contents of a device, to the granularity required by
+//this program.
+type DeviceType int
+
+const (
+	//DeviceTypeUnknown describes a device that is readable, but contains neither
+	//a LUKS container nor a filesystem.
+	DeviceTypeUnknown DeviceType = iota
+	//DeviceTypeUnreadable is returned by ClassifyDevice() when the device is
+	//unreadable.
+	DeviceTypeUnreadable
+	//DeviceTypeLUKS describes a device that contains a LUKS container.
+	DeviceTypeLUKS
+	//DeviceTypeFilesystem describes a device that contains an admissible
+	//filesystem.
+	DeviceTypeFilesystem
+)

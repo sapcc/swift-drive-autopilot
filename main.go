@@ -78,5 +78,5 @@ func main() {
 	}
 
 	//the converger runs in the main thread
-	RunConverger(queue)
+	RunConverger(queue, osi)
 }
