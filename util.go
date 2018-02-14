@@ -20,10 +20,8 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
@@ -90,22 +88,4 @@ func ForeachSymlinkIn(path string, handler func(name, target string)) (success b
 	}
 
 	return
-}
-
-//EvalSymlinksInChroot is like filepath.EvalSymlinks(), but considers that the
-//given path is inside the chroot directory.
-func EvalSymlinksInChroot(path string) (string, error) {
-	//make path relative to current directory (== chroot directory)
-	path = strings.TrimPrefix(path, "/")
-
-	result, err := filepath.EvalSymlinks(path)
-	if err != nil {
-		return "", fmt.Errorf("readlink(%#v) failed: %s", filepath.Join("/", path), err.Error())
-	}
-
-	//make path absolute again
-	if !strings.HasPrefix(result, "/") {
-		result = "/" + result
-	}
-	return result, nil
 }

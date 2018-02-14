@@ -21,10 +21,7 @@ package main
 
 import (
 	"path/filepath"
-	"regexp"
-	"strings"
 
-	"github.com/sapcc/swift-drive-autopilot/pkg/command"
 	"github.com/sapcc/swift-drive-autopilot/pkg/os"
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
@@ -85,66 +82,12 @@ func (d *Drive) CloseLUKS(osi os.Interface) {
 	}
 }
 
-//ScanLUKSMappings checks all mapped devices in /dev/mapper/*, and records them
-//as a map of backing device path to mapping name.
-func ScanLUKSMappings() (result map[string]string) {
-	result = make(map[string]string)
-	stdout, _ := command.Command{ExitOnError: true}.Run("dmsetup", "ls", "--target=crypt")
+//CheckLUKS fills the MappedDevicePath of this Drive if it is mapped. False is
+//returned if any inconsistencies are found.
+func (d *Drive) CheckLUKS(osi os.Interface) {
+	actualMappedPath := osi.GetLUKSMappingOf(d.DevicePath)
 
-	if strings.TrimSpace(stdout) == "No devices found" {
-		return
-	}
-
-	for _, line := range strings.Split(stdout, "\n") {
-		//each output line describes a mapping and looks like
-		//"mapname\t(devmajor, devminor)"; extract the mapping names
-		fields := strings.Fields(line)
-		if len(fields) == 0 {
-			continue
-		}
-		mapName := fields[0]
-
-		//ask cryptsetup for the device backing this mapping
-		backingDevicePath := getBackingDevicePath(mapName)
-		result[backingDevicePath] = mapName
-	}
-	return
-}
-
-var backingDeviceRx = regexp.MustCompile(`(?m)^\s*device:\s*(\S+)\s*$`)
-
-//Ask cryptsetup for the device backing an open LUKS container.
-func getBackingDevicePath(mapName string) string {
-	stdout, _ := command.Command{ExitOnError: true}.Run("cryptsetup", "status", mapName)
-
-	//look for a line like "  device:  /dev/sdb"
-	match := backingDeviceRx.FindStringSubmatch(stdout)
-	if match == nil {
-		util.LogFatal("cannot find backing device for /dev/mapper/%s", mapName)
-	} else {
-		//resolve any symlinks to get the actual devicePath
-		//when the luks container is created on top of multipathing, cryptsetup status might report the /dev/mapper/mpath device
-		//also the luksFormat was called on actual device
-		devicePath, err := EvalSymlinksInChroot(match[1])
-		if err != nil {
-			util.LogFatal(err.Error())
-		}
-		if devicePath != match[1] {
-			util.LogDebug("backing device path for %s is %s -> %s", mapName, match[1], devicePath)
-			return devicePath
-		}
-		util.LogDebug("backing device path for %s is %s", mapName, match[1])
-	}
-	return match[1]
-}
-
-//CheckLUKS takes the output from ScanLUKSMappings and fills the
-//MappedDevicePath of this Drive if it is mapped. False is returned if any
-//inconsistencies are found.
-func (d *Drive) CheckLUKS(activeMappings map[string]string, osi os.Interface) {
-	actualMapName := activeMappings[d.DevicePath]
-
-	if actualMapName == "" {
+	if actualMappedPath == "" {
 		if d.MappedDevicePath != "" {
 			util.LogError("LUKS container in %s should be open at %s, but is not",
 				d.DevicePath, d.MappedDevicePath,
@@ -154,7 +97,6 @@ func (d *Drive) CheckLUKS(activeMappings map[string]string, osi os.Interface) {
 		return
 	}
 
-	actualMappedPath := "/dev/mapper/" + actualMapName
 	switch d.MappedDevicePath {
 	case "":
 		//existing mapping is now discovered for the first time -> update Drive struct

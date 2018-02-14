@@ -66,6 +66,12 @@ type Interface interface {
 	OpenLUKSContainer(devicePath, mappingName string, keys []string) (mappedDevicePath string, ok bool)
 	//CloseLUKSContainer closes the LUKS container with the given mapping name.
 	CloseLUKSContainer(mappingName string) (ok bool)
+	//RefreshLUKSMappings examines the system to find any LUKS mappings that have
+	//changed since we last looked.
+	RefreshLUKSMappings()
+	//GetLUKSMappingOf returns the device path of the active LUKS mapping for
+	//this device, or "" if no such mapping exists.
+	GetLUKSMappingOf(devicePath string) (mappedDevicePath string)
 }
 
 //Drive contains information about a drive as detected by the OS.

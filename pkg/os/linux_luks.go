@@ -20,6 +20,9 @@
 package os
 
 import (
+	"regexp"
+	"strings"
+
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
@@ -40,7 +43,13 @@ func (l *Linux) OpenLUKSContainer(devicePath, mappingName string, keys []string)
 			SkipLog: true,
 		}.Run("cryptsetup", "luksOpen", devicePath, mappingName)
 		if ok {
-			return "/dev/mapper/" + mappingName, true
+			mappedDevicePath := "/dev/mapper/" + mappingName
+			//remember this mapping
+			if l.ActiveLUKSMappings == nil {
+				l.ActiveLUKSMappings = make(map[string]string)
+			}
+			l.ActiveLUKSMappings[devicePath] = mappedDevicePath
+			return mappedDevicePath, true
 		}
 	}
 
@@ -52,4 +61,60 @@ func (l *Linux) OpenLUKSContainer(devicePath, mappingName string, keys []string)
 func (l *Linux) CloseLUKSContainer(mappingName string) bool {
 	_, ok := command.Run("cryptsetup", "close", mappingName)
 	return ok
+}
+
+//RefreshLUKSMappings implements the Interface interface.
+func (l *Linux) RefreshLUKSMappings() {
+	l.ActiveLUKSMappings = make(map[string]string)
+	stdout, _ := command.Command{ExitOnError: true}.Run("dmsetup", "ls", "--target=crypt")
+
+	if strings.TrimSpace(stdout) == "No devices found" {
+		return
+	}
+
+	for _, line := range strings.Split(stdout, "\n") {
+		//each output line describes a mapping and looks like
+		//"mapname\t(devmajor, devminor)"; extract the mapping names
+		fields := strings.Fields(line)
+		if len(fields) == 0 {
+			continue
+		}
+		mappingName := fields[0]
+
+		//ask cryptsetup for the device backing this mapping
+		l.ActiveLUKSMappings[l.getBackingDevicePath(mappingName)] = "/dev/mapper/" + mappingName
+	}
+	return
+}
+
+var backingDeviceRx = regexp.MustCompile(`(?m)^\s*device:\s*(\S+)\s*$`)
+
+//Ask cryptsetup for the device backing an open LUKS container.
+func (l *Linux) getBackingDevicePath(mapName string) string {
+	stdout, _ := command.Command{ExitOnError: true}.Run("cryptsetup", "status", mapName)
+
+	//look for a line like "  device:  /dev/sdb"
+	match := backingDeviceRx.FindStringSubmatch(stdout)
+	if match == nil {
+		util.LogFatal("cannot find backing device for /dev/mapper/%s", mapName)
+	} else {
+		//resolve any symlinks to get the actual devicePath
+		//when the luks container is created on top of multipathing, cryptsetup status might report the /dev/mapper/mpath device
+		//also the luksFormat was called on actual device
+		devicePath, err := l.evalSymlinksInChroot(match[1])
+		if err != nil {
+			util.LogFatal(err.Error())
+		}
+		if devicePath != match[1] {
+			util.LogDebug("backing device path for %s is %s -> %s", mapName, match[1], devicePath)
+			return devicePath
+		}
+		util.LogDebug("backing device path for %s is %s", mapName, match[1])
+	}
+	return match[1]
+}
+
+//GetLUKSMappingOf implements the Interface interface.
+func (l *Linux) GetLUKSMappingOf(devicePath string) string {
+	return l.ActiveLUKSMappings[devicePath]
 }

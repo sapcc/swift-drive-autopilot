@@ -266,7 +266,7 @@ func (d *Drive) Converge(c *Converger, osi os.Interface) {
 	}
 	d.StartedOutEmpty = *d.Type == os.DeviceTypeUnknown
 
-	d.CheckLUKS(c.ActiveLUKSMappings, osi)
+	d.CheckLUKS(osi)
 	if len(Config.Keys) > 0 {
 		d.FormatLUKSIfRequired(osi)
 		d.OpenLUKS(osi)

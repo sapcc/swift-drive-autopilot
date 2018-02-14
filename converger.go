@@ -37,9 +37,6 @@ type Converger struct {
 	//long-lived state
 	Drives []*Drive
 	OS     os.Interface
-
-	//short-lived state that is gathered before the event handlers run
-	ActiveLUKSMappings map[string]string
 }
 
 //RunConverger runs the converger thread. This function does not return.
@@ -51,9 +48,8 @@ func RunConverger(queue chan []Event, osi os.Interface) {
 		events := <-queue
 
 		//initialize short-lived state for this event loop iteration
-		c.ActiveLUKSMappings = ScanLUKSMappings()
-		util.LogDebug("ActiveLUKSMappings = %#v", c.ActiveLUKSMappings)
 		osi.RefreshMountPoints()
+		osi.RefreshLUKSMappings()
 
 		for _, drive := range c.Drives {
 			drive.Converged = false
