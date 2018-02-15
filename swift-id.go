@@ -21,18 +21,16 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
-	"path/filepath"
 	"strings"
 
+	"github.com/sapcc/swift-drive-autopilot/pkg/os"
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
 //ScanSwiftIDs inspects the "swift-id" file of all mounted drives and fills the
 //SwiftID field of the drives accordingly, while also detecting ID collisions,
 //and drives mounted below /srv/node with the wrong SwiftID.
-func (drives Drives) ScanSwiftIDs() (success bool) {
+func (drives Drives) ScanSwiftIDs(osi os.Interface) (success bool) {
 	success = true //until proven otherwise
 
 	drivesBySwiftID := make(map[string]*Drive)
@@ -52,23 +50,21 @@ func (drives Drives) ScanSwiftIDs() (success bool) {
 		}
 
 		//read this device's swift-id
-		idPath := filepath.Join(mountPath, "swift-id")
-		idBytes, err := readFileFromChroot(idPath)
+		swiftID, err := osi.ReadSwiftID(mountPath)
 		if err != nil {
-			if os.IsNotExist(err) {
-				//this is not an error if we can choose a swift-id in the next step
-				if drive.StartedOutEmpty && len(Config.SwiftIDPool) > 0 {
-					util.LogInfo("no swift-id file found on new device %s (mounted at %s), will try to assign one", drive.DevicePath, mountPath)
-				} else {
-					util.LogError("no swift-id file found on device %s (mounted at %s)", drive.DevicePath, mountPath)
-				}
+			util.LogError(err.Error())
+			success = false
+			continue
+		} else if swiftID == "" {
+			//this is not an error if we can choose a swift-id in the next step
+			if drive.StartedOutEmpty && len(Config.SwiftIDPool) > 0 {
+				util.LogInfo("no swift-id file found on new device %s (mounted at %s), will try to assign one", drive.DevicePath, mountPath)
 			} else {
-				util.LogError("read %s: %s", idPath, err.Error())
+				util.LogError("no swift-id file found on device %s (mounted at %s)", drive.DevicePath, mountPath)
 			}
 			success = false
 			continue
 		}
-		swiftID := strings.TrimSpace(string(idBytes))
 
 		//recognize spare disks
 		drive.Spare = swiftID == "spare"
@@ -106,15 +102,8 @@ func (drives Drives) ScanSwiftIDs() (success bool) {
 	return success
 }
 
-func readFileFromChroot(path string) ([]byte, error) {
-	if Config.ChrootPath != "" {
-		path = filepath.Join(Config.ChrootPath, strings.TrimPrefix(path, "/"))
-	}
-	return ioutil.ReadFile(path)
-}
-
 //AutoAssignSwiftIDs will try to do exactly that.
-func (c *Converger) AutoAssignSwiftIDs() {
+func (c *Converger) AutoAssignSwiftIDs(osi os.Interface) {
 	//can only do something if a swift-id-pool is given in the config
 	if len(Config.SwiftIDPool) == 0 {
 		return
@@ -182,11 +171,7 @@ func (c *Converger) AutoAssignSwiftIDs() {
 		util.LogInfo("assigning swift-id '%s' to %s", swiftID, drive.DevicePath)
 
 		//try to write the assignment to disk
-		path := filepath.Join(drive.TemporaryMount.Path(), "swift-id")
-		if Config.ChrootPath != "" {
-			path = filepath.Join(Config.ChrootPath, strings.TrimPrefix(path, "/"))
-		}
-		err := ioutil.WriteFile(path, []byte(swiftID+"\n"), 0644)
+		err := osi.WriteSwiftID(drive.TemporaryMount.Path(), swiftID)
 		if err != nil {
 			util.LogError(err.Error())
 			continue

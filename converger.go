@@ -76,8 +76,8 @@ func (c *Converger) Converge() {
 	}
 
 	//discover and auto-assign swift-ids of drives
-	Drives(c.Drives).ScanSwiftIDs()
-	c.AutoAssignSwiftIDs()
+	Drives(c.Drives).ScanSwiftIDs(c.OS)
+	c.AutoAssignSwiftIDs(c.OS)
 
 	for _, drive := range c.Drives {
 		if !drive.Broken {

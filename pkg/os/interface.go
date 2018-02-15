@@ -72,6 +72,12 @@ type Interface interface {
 	//GetLUKSMappingOf returns the device path of the active LUKS mapping for
 	//this device, or "" if no such mapping exists.
 	GetLUKSMappingOf(devicePath string) (mappedDevicePath string)
+
+	//ReadSwiftID returns the swift-id in this directory, or an empty string if
+	//the file does not exist.
+	ReadSwiftID(mountPath string) (string, error)
+	//WriteSwiftID writes the given swift-id into this directory.
+	WriteSwiftID(mountPath, swiftID string) error
 }
 
 //Drive contains information about a drive as detected by the OS.
