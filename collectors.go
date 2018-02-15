@@ -135,7 +135,7 @@ func CollectReinstatements(queue chan []Event) {
 		//enumerate broken devices linked in /run/swift-storage/broken
 		newBrokenDevices := make(map[string]bool)
 
-		success := ForeachSymlinkIn("run/swift-storage/broken",
+		success := util.ForeachSymlinkIn("run/swift-storage/broken",
 			func(name, devicePath string) {
 				newBrokenDevices[devicePath] = true
 			},

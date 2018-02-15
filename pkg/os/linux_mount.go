@@ -20,14 +20,20 @@
 package os
 
 import (
+	sys_os "os"
 	"strings"
 
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
+func repeatInOwnNamespace() bool {
+	cwd, _ := sys_os.Getwd()
+	return cwd != "/"
+}
+
 //MountDevice implements the Interface interface.
-func (l *Linux) MountDevice(devicePath, mountPath string, repeatInOwnNamespace bool) bool {
+func (l *Linux) MountDevice(devicePath, mountPath string) bool {
 	//prepare target directory
 	_, ok := command.Run("mkdir", "-m", "0700", "-p", mountPath)
 	if !ok {
@@ -37,7 +43,7 @@ func (l *Linux) MountDevice(devicePath, mountPath string, repeatInOwnNamespace b
 	//for the mount to appear both in the container and the host, it has to be
 	//performed twice, once for each mount namespace involved
 	_, ok = command.Run("mount", devicePath, mountPath)
-	if ok && repeatInOwnNamespace {
+	if ok && repeatInOwnNamespace() {
 		_, ok = command.Command{NoNsenter: true}.Run("mount", devicePath, mountPath)
 	}
 
@@ -53,10 +59,10 @@ func (l *Linux) MountDevice(devicePath, mountPath string, repeatInOwnNamespace b
 }
 
 //UnmountDevice implements the Interface interface.
-func (l *Linux) UnmountDevice(mountPath string, repeatInOwnNamespace bool) bool {
+func (l *Linux) UnmountDevice(mountPath string) bool {
 	//unmount both in the container and the host (same pattern as for Activate)
 	_, ok := command.Run("umount", mountPath)
-	if ok && repeatInOwnNamespace {
+	if ok && repeatInOwnNamespace() {
 		_, ok = command.Command{NoNsenter: true}.Run("umount", mountPath)
 	}
 

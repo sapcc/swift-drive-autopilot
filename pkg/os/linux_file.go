@@ -24,6 +24,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/sapcc/swift-drive-autopilot/pkg/command"
+	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
 //ReadSwiftID implements the Interface interface.
@@ -48,4 +51,32 @@ func swiftIDPathIn(mountPath string) string {
 	path := filepath.Join(mountPath, "swift-id")
 	//make path relative to working directory to account for chrootPath
 	return strings.TrimPrefix(path, "/")
+}
+
+//Chown implements the Interface interface.
+func (l *Linux) Chown(path, user, group string) {
+	var (
+		cmd string
+		arg string
+	)
+
+	if path == "" {
+		util.LogFatal("Cannot chown empty path")
+	}
+
+	//set only those things which were given
+	if user == "" {
+		if group == "" {
+			return // nothing to do
+		}
+		cmd, arg = "chgrp", group
+	} else {
+		cmd, arg = "chown", user
+		if group != "" {
+			arg += ":" + group
+		}
+	}
+
+	util.LogDebug("%s %s to %s", cmd, path, arg)
+	command.Run(cmd, arg, path)
 }

@@ -51,7 +51,8 @@ func main() {
 	)
 
 	//swift cache path must be accesible from user swift
-	Chown("/var/cache/swift", Config.Owner.User, Config.Owner.Group)
+	osi := &os.Linux{}
+	osi.Chown("/var/cache/swift", Config.Owner.User, Config.Owner.Group)
 
 	//start the metrics endpoint
 	if Config.MetricsListenAddress != "" {
@@ -66,7 +67,6 @@ func main() {
 	}
 
 	//start the collectors
-	osi := &os.Linux{}
 	queue := make(chan []Event, 10)
 	go CollectDriveEvents(osi, queue)
 	go CollectReinstatements(queue)

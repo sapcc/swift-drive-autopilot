@@ -48,10 +48,10 @@ run_and_expect <<-EOF
 > INFO: event received: new device found: ${DIR}/loop2 -> {{dev2}}
 > ERROR: cannot determine serial number for {{dev2}}, will use device ID {{hash2}} instead
 > INFO: discovered {{dev2}} to be mounted at /run/swift-storage/{{hash2}} already
-> INFO: mounted {{dev1}} to /srv/node/{{id1}}
 > INFO: unmounted /run/swift-storage/{{hash1}}
-> INFO: mounted {{dev2}} to /srv/node/{{id2}}
+> INFO: mounted {{dev1}} to /srv/node/{{id1}}
 > INFO: unmounted /run/swift-storage/{{hash2}}
+> INFO: mounted {{dev2}} to /srv/node/{{id2}}
 EOF
 
 expect_mountpoint    /srv/node/swift1 /srv/node/swift2

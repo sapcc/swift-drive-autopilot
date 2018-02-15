@@ -32,10 +32,10 @@ run_and_expect <<-EOF
 > INFO: assigning swift-id 'swift1' to {{dev1}}
 > INFO: assigning swift-id 'spare' to {{dev2}}
 > INFO: assigning swift-id 'swift2' to {{dev3}}
-> INFO: mounted {{dev1}} to /srv/node/swift1
 > INFO: unmounted /run/swift-storage/{{hash1}}
-> INFO: mounted {{dev3}} to /srv/node/swift2
+> INFO: mounted {{dev1}} to /srv/node/swift1
 > INFO: unmounted /run/swift-storage/{{hash3}}
+> INFO: mounted {{dev3}} to /srv/node/swift2
 
 $ source lib/common.sh; expect_mountpoint /srv/node/swift{1,2} /run/swift-storage/{{hash2}}; expect_no_mountpoint /srv/node/swift3; expect_deleted /srv/node/spare; expect_file_with_content /run/swift-storage/{{hash2}}/swift-id 'spare'
 > INFO: event received: scheduled consistency check
@@ -46,8 +46,8 @@ $ source lib/common.sh; rm ${DIR}/loop3
 
 $ source lib/common.sh; expect_no_mountpoint /srv/node/swift2; echo swift2 | as_root tee /run/swift-storage/{{hash2}}/swift-id > /dev/null
 > INFO: event received: scheduled consistency check
-> INFO: mounted {{dev2}} to /srv/node/swift2
 > INFO: unmounted /run/swift-storage/{{hash2}}
+> INFO: mounted {{dev2}} to /srv/node/swift2
 
 $ source lib/common.sh; make_loop_devices 4 5
 > INFO: event received: new device found: ${DIR}/loop4 -> {{dev4}}

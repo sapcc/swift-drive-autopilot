@@ -43,10 +43,10 @@ run_and_expect <<-EOF
 > INFO: mounted /dev/mapper/{{hash2}} to /run/swift-storage/{{hash2}}
 > INFO: no swift-id file found on new device ${DEV2} (mounted at /run/swift-storage/{{hash2}}), will try to assign one
 > INFO: assigning swift-id 'new' to ${DEV2}
-> INFO: mounted /dev/mapper/{{hash1}} to /srv/node/existing
 > INFO: unmounted /run/swift-storage/{{hash1}}
-> INFO: mounted /dev/mapper/{{hash2}} to /srv/node/new
+> INFO: mounted /dev/mapper/{{hash1}} to /srv/node/existing
 > INFO: unmounted /run/swift-storage/{{hash2}}
+> INFO: mounted /dev/mapper/{{hash2}} to /srv/node/new
 EOF
 
 expect_open_luks_count 2

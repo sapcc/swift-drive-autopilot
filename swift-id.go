@@ -21,8 +21,10 @@ package main
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
+	"github.com/sapcc/swift-drive-autopilot/pkg/core"
 	"github.com/sapcc/swift-drive-autopilot/pkg/os"
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
@@ -30,58 +32,45 @@ import (
 //ScanSwiftIDs inspects the "swift-id" file of all mounted drives and fills the
 //SwiftID field of the drives accordingly, while also detecting ID collisions,
 //and drives mounted below /srv/node with the wrong SwiftID.
-func (drives Drives) ScanSwiftIDs(osi os.Interface) (success bool) {
-	success = true //until proven otherwise
+func ScanSwiftIDs(drives []*core.Drive, osi os.Interface) {
 
-	drivesBySwiftID := make(map[string]*Drive)
+	drivesBySwiftID := make(map[string]*core.Drive)
 	for _, drive := range drives {
-		//find a path where this drive is mounted
-		var mountPath string
-		switch {
-		case drive.FinalMount.Active:
-			mountPath = drive.FinalMount.Path()
-		case drive.TemporaryMount.Active:
-			mountPath = drive.TemporaryMount.Path()
-		}
-		//if a drive could not be mounted because of an earlier error, ignore
-		//it and keep going
-		if mountPath == "" {
+		//ignore broken drives and keep going
+		mountedPath := drive.MountedPath()
+		if mountedPath == "" {
 			continue
 		}
 
 		//read this device's swift-id
-		swiftID, err := osi.ReadSwiftID(mountPath)
+		swiftID, err := osi.ReadSwiftID(mountedPath)
 		if err != nil {
 			util.LogError(err.Error())
-			success = false
 			continue
 		} else if swiftID == "" {
 			//this is not an error if we can choose a swift-id in the next step
-			if drive.StartedOutEmpty && len(Config.SwiftIDPool) > 0 {
-				util.LogInfo("no swift-id file found on new device %s (mounted at %s), will try to assign one", drive.DevicePath, mountPath)
+			if len(Config.SwiftIDPool) > 0 {
+				util.LogInfo("no swift-id file found on new device %s (mounted at %s), will try to assign one", drive.DevicePath, mountedPath)
 			} else {
-				util.LogError("no swift-id file found on device %s (mounted at %s)", drive.DevicePath, mountPath)
+				util.LogError("no swift-id file found on device %s (mounted at %s)", drive.DevicePath, mountedPath)
 			}
-			success = false
 			continue
 		}
 
 		//recognize spare disks
-		drive.Spare = swiftID == "spare"
-		if drive.Spare {
-			drive.FinalMount.Name = "" //to skip it during the final mount
-			continue                   //skip collision check
+		if swiftID == "spare" {
+			drive.SwiftID = &swiftID
+			continue //skip collision check
 		}
 
 		//does this swift-id conflict with where the device is currently mounted?
-		if drive.FinalMount.Active && drive.FinalMount.Name != swiftID {
+		if filepath.Dir(mountedPath) == "/srv/node" && filepath.Base(mountedPath) != swiftID {
 			util.LogError(
-				"drive %s is currently mounted at /srv/node/%s, but its swift-id says \"%s\" (not going to touch it)",
-				drive.DevicePath, drive.FinalMount.Name, swiftID)
-			drive.FinalMount.Name = "" //to skip it during the final mount
+				"drive %s is currently mounted at %s, but its swift-id says \"%s\" (not going to touch it)",
+				drive.DevicePath, mountedPath, swiftID)
 		} else {
 			//record swift-id for the final mount
-			drive.FinalMount.Name = swiftID
+			drive.SwiftID = &swiftID
 		}
 
 		//is this the first device with this swift-id?
@@ -91,15 +80,13 @@ func (drives Drives) ScanSwiftIDs(osi os.Interface) (success bool) {
 			util.LogError("found multiple drives with swift-id \"%s\" (not mounting any of them)", swiftID)
 			//clear swift-id for all drives involved in the collision, to
 			//skip them during the final mount
-			drive.FinalMount.Name = ""
-			otherDrive.FinalMount.Name = ""
+			drive.SwiftID = nil
+			otherDrive.SwiftID = nil
 		} else {
 			//yes - remember it to check for collisions later on
 			drivesBySwiftID[swiftID] = drive
 		}
 	}
-
-	return success
 }
 
 //AutoAssignSwiftIDs will try to do exactly that.
@@ -120,7 +107,7 @@ func (c *Converger) AutoAssignSwiftIDs(osi os.Interface) {
 		if drive.Broken {
 			//complain about all the drives for which we could not assign a swift-id
 			for _, drive := range c.Drives {
-				if drive.StartedOutEmpty && !drive.Broken {
+				if drive.SwiftID == nil && !drive.Broken {
 					util.LogError("tried to assign swift-id to %s, but some drives are broken", drive.DevicePath)
 				}
 			}
@@ -128,20 +115,22 @@ func (c *Converger) AutoAssignSwiftIDs(osi os.Interface) {
 		}
 
 		//mark assigned swift-ids
-		if drive.Spare {
-			//count how many spare disks exist by giving them names like "spare/0", "spare/1", etc.
-			//(this is the same format in which spare disks are presented in the Config.SwiftIDPool)
-			name := fmt.Sprintf("spare/%d", spareIdx)
-			assigned[name] = true
-			spareIdx++
-		} else {
-			assigned[drive.FinalMount.Name] = true
+		if drive.SwiftID != nil {
+			if *drive.SwiftID == "spare" {
+				//count how many spare disks exist by giving them names like "spare/0", "spare/1", etc.
+				//(this is the same format in which spare disks are presented in the Config.SwiftIDPool)
+				name := fmt.Sprintf("spare/%d", spareIdx)
+				assigned[name] = true
+				spareIdx++
+			} else {
+				assigned[*drive.SwiftID] = true
+			}
 		}
 	}
 
 	//look for drives that are eligible for automatic swift-id assignment
 	for _, drive := range c.Drives {
-		if !drive.StartedOutEmpty || !drive.TemporaryMount.Active {
+		if drive.SwiftID != nil || drive.Broken {
 			continue
 		}
 
@@ -171,18 +160,13 @@ func (c *Converger) AutoAssignSwiftIDs(osi os.Interface) {
 		util.LogInfo("assigning swift-id '%s' to %s", swiftID, drive.DevicePath)
 
 		//try to write the assignment to disk
-		err := osi.WriteSwiftID(drive.TemporaryMount.Path(), swiftID)
+		err := osi.WriteSwiftID(drive.MountPath(), swiftID)
 		if err != nil {
 			util.LogError(err.Error())
 			continue
 		}
 
 		assigned[poolID] = true
-		drive.Spare = swiftID == "spare"
-		if drive.Spare {
-			drive.FinalMount.Name = "" //to skip it during the final mount
-		} else {
-			drive.FinalMount.Name = swiftID
-		}
+		drive.SwiftID = &swiftID
 	}
 }

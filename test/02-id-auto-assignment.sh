@@ -22,10 +22,10 @@ run_and_expect <<-EOF
 > INFO: no swift-id file found on new device {{dev2}} (mounted at /run/swift-storage/{{hash2}}), will try to assign one
 > INFO: assigning swift-id 'swift1' to {{dev1}}
 > INFO: assigning swift-id 'swift2' to {{dev2}}
-> INFO: mounted {{dev1}} to /srv/node/swift1
 > INFO: unmounted /run/swift-storage/{{hash1}}
-> INFO: mounted {{dev2}} to /srv/node/swift2
+> INFO: mounted {{dev1}} to /srv/node/swift1
 > INFO: unmounted /run/swift-storage/{{hash2}}
+> INFO: mounted {{dev2}} to /srv/node/swift2
 EOF
 
 expect_mountpoint    /srv/node/swift1 /srv/node/swift2

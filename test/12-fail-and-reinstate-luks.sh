@@ -29,10 +29,10 @@ run_and_expect <<-EOF
 > INFO: no swift-id file found on new device ${DEV2} (mounted at /run/swift-storage/{{hash2}}), will try to assign one
 > INFO: assigning swift-id 'swift1' to ${DEV1}
 > INFO: assigning swift-id 'swift2' to ${DEV2}
-> INFO: mounted /dev/mapper/{{hash1}} to /srv/node/swift1
 > INFO: unmounted /run/swift-storage/{{hash1}}
-> INFO: mounted /dev/mapper/{{hash2}} to /srv/node/swift2
+> INFO: mounted /dev/mapper/{{hash1}} to /srv/node/swift1
 > INFO: unmounted /run/swift-storage/{{hash2}}
+> INFO: mounted /dev/mapper/{{hash2}} to /srv/node/swift2
 > INFO: event received: scheduled consistency check
 
 $ source lib/common.sh; expect_open_luks_count 2; expect_mountpoint /srv/node/swift{1,2}; as_root mount -o remount,ro /srv/node/swift1
@@ -48,8 +48,8 @@ $ source lib/common.sh; expect_open_luks_count 1; expect_no_mountpoint /srv/node
 > INFO: event received: device reinstated: ${DEV1}
 > INFO: LUKS container at ${DEV1} opened as /dev/mapper/{{hash1}}
 > INFO: mounted /dev/mapper/{{hash1}} to /run/swift-storage/{{hash1}}
-> INFO: mounted /dev/mapper/{{hash1}} to /srv/node/swift1
 > INFO: unmounted /run/swift-storage/{{hash1}}
+> INFO: mounted /dev/mapper/{{hash1}} to /srv/node/swift1
 EOF
 
 expect_open_luks_count 2

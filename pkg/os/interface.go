@@ -44,12 +44,10 @@ type Interface interface {
 	//or filesystems will be overwritten.
 	FormatDevice(devicePath string) (ok bool)
 
-	//MountDevice mounts this device at the given location. If
-	//repeatInOwnNamespace is true, the mount is also performed in this process's
-	//own mount namespace.
-	MountDevice(devicePath, mountPath string, repeatInOwnNamespace bool) (ok bool)
+	//MountDevice mounts this device at the given location.
+	MountDevice(devicePath, mountPath string) (ok bool)
 	//UnmountDevice unmounts the device that is mounted at the given location.
-	UnmountDevice(mountPath string, repeatInOwnNamespace bool) (ok bool)
+	UnmountDevice(mountPath string) (ok bool)
 	//RefreshMountPoints examines the system to find any mounts that have changed
 	//since we last looked.
 	RefreshMountPoints()
@@ -78,6 +76,10 @@ type Interface interface {
 	ReadSwiftID(mountPath string) (string, error)
 	//WriteSwiftID writes the given swift-id into this directory.
 	WriteSwiftID(mountPath, swiftID string) error
+	//Chown changes the ownership of the given path. Both owner and group may
+	//contain a name or an ID (as decimal integer literal) or be empty (to leave
+	//that field unchanged).
+	Chown(path, owner, group string)
 }
 
 //Drive contains information about a drive as detected by the OS.

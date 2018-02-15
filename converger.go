@@ -22,12 +22,12 @@ package main
 import (
 	"encoding/json"
 	"io/ioutil"
-	std_os "os"
 	"path/filepath"
 	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
+	"github.com/sapcc/swift-drive-autopilot/pkg/core"
 	"github.com/sapcc/swift-drive-autopilot/pkg/os"
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
@@ -35,7 +35,7 @@ import (
 //Converger contains the internal state of the converger thread.
 type Converger struct {
 	//long-lived state
-	Drives []*Drive
+	Drives []*core.Drive
 	OS     os.Interface
 }
 
@@ -50,10 +50,6 @@ func RunConverger(queue chan []Event, osi os.Interface) {
 		//initialize short-lived state for this event loop iteration
 		osi.RefreshMountPoints()
 		osi.RefreshLUKSMappings()
-
-		for _, drive := range c.Drives {
-			drive.Converged = false
-		}
 
 		//handle events
 		for _, event := range events {
@@ -72,19 +68,20 @@ func RunConverger(queue chan []Event, osi os.Interface) {
 //has been received and handled by the converger.
 func (c *Converger) Converge() {
 	for _, drive := range c.Drives {
-		drive.Converge(c, c.OS)
+		drive.Converge(c.OS)
 	}
 
 	//discover and auto-assign swift-ids of drives
-	Drives(c.Drives).ScanSwiftIDs(c.OS)
+	ScanSwiftIDs(c.Drives, c.OS)
 	c.AutoAssignSwiftIDs(c.OS)
 
 	for _, drive := range c.Drives {
 		if !drive.Broken {
-			if drive.FinalMount.Activate(drive.ActiveDevicePath(), c.OS) {
-				drive.FinalMount.Chown(Config.Owner.User, Config.Owner.Group)
+			drive.Converge(c.OS)
+			mountPath := drive.MountPath()
+			if filepath.Dir(mountPath) == "/srv/node" {
+				c.OS.Chown(mountPath, Config.Owner.User, Config.Owner.Group)
 			}
-			drive.CleanupDuplicateMounts(c.OS)
 		}
 	}
 
@@ -101,7 +98,7 @@ func (c *Converger) CheckForUnexpectedMounts() {
 MOUNT:
 	for _, mount := range c.OS.GetMountPointsIn("/srv/node") {
 		for _, drive := range c.Drives {
-			if drive.FinalMount.Active && drive.FinalMount.Path() == mount.MountPath {
+			if drive.MountPath() == mount.MountPath {
 				continue MOUNT
 			}
 		}
@@ -117,13 +114,7 @@ func (c *Converger) WriteDriveAudit() {
 	total := 0
 
 	for _, drive := range c.Drives {
-		var mountPath string
-		if drive.FinalMount.Name == "" {
-			mountPath = drive.TemporaryMount.Path()
-		} else {
-			mountPath = drive.FinalMount.Path()
-		}
-
+		mountPath := drive.MountPath()
 		if drive.Broken {
 			data[mountPath] = 1
 			total++
@@ -146,51 +137,21 @@ func (c *Converger) WriteDriveAudit() {
 
 //Handle implements the Event interface.
 func (e DriveAddedEvent) Handle(c *Converger) {
-	deviceID := GetDeviceIDFor(e.DevicePath, e.SerialNumber)
-	//- MappedDevicePath will be initialized by ScanOpenLUKSContainers() or OpenLUKS()
-	//- MountPoint.Active will be initialized by ScanDriveMountPoints()
-	//- FinalMount.Name will be initialized by ScanDriveSwiftIDs()
-	drive := &Drive{
-		DevicePath:       e.DevicePath,
-		DeviceID:         deviceID,
-		MappedDevicePath: "",
-		TemporaryMount: MountPoint{
-			Location: "/run/swift-storage",
-			Name:     deviceID,
-			Active:   false,
-		},
-		FinalMount: MountPoint{
-			Location: "/srv/node",
-			Name:     "",
-			Active:   false,
-		},
+	keys := make([]string, len(Config.Keys))
+	for idx, key := range Config.Keys {
+		keys[idx] = key.Secret
 	}
 
-	//check if the broken-flag is still present
-	brokenFlagPath := drive.BrokenFlagPath()
-	//make path relative to chroot dir (= cwd)
-	brokenFlagPath = strings.TrimPrefix(brokenFlagPath, "/")
-	_, err := std_os.Readlink(brokenFlagPath)
-	switch {
-	case err == nil:
-		//link still exists, so device is broken
-		util.LogInfo("%s was flagged as broken by a previous run of swift-drive-autopilot", drive.DevicePath)
-		drive.MarkAsBroken(c.OS) //this will re-print the log message explaining how to reinstate the drive into the cluster
-	case std_os.IsNotExist(err):
-		//ignore this error (no broken-flag means everything's okay)
-	default:
-		util.LogError(err.Error())
-	}
-
+	drive := core.NewDrive(e.DevicePath, e.SerialNumber, keys, c.OS)
 	c.Drives = append(c.Drives, drive)
-	drive.Converge(c, c.OS)
+	drive.Converge(c.OS)
 }
 
 //Handle implements the Event interface.
 func (e DriveRemovedEvent) Handle(c *Converger) {
 	//do we know this drive?
-	var drive *Drive
-	var otherDrives []*Drive
+	var drive *core.Drive
+	var otherDrives []*core.Drive
 	for _, d := range c.Drives {
 		if d.DevicePath == e.DevicePath {
 			drive = d
@@ -202,14 +163,8 @@ func (e DriveRemovedEvent) Handle(c *Converger) {
 		return
 	}
 
-	//shutdown all active mounts
-	if drive.FinalMount.Active {
-		drive.FinalMount.Deactivate(drive.DevicePath, c.OS)
-	}
-	drive.TemporaryMount.Deactivate(drive.DevicePath, c.OS)
-	drive.CloseLUKS(c.OS)
-
-	//remove drive from list
+	//remove drive
+	drive.Teardown(c.OS)
 	c.Drives = otherDrives
 }
 
@@ -225,25 +180,13 @@ func (e DriveErrorEvent) Handle(c *Converger) {
 
 //Handle implements the Event interface.
 func (e DriveReinstatedEvent) Handle(c *Converger) {
-	//do we know this drive?
-	for _, d := range c.Drives {
+	for idx, d := range c.Drives {
 		if d.DevicePath == e.DevicePath {
-			d.Broken = false
-			//reset the classification - who knows what was done to fix the drive
-			d.Type = nil
-			d.Converge(c, c.OS)
+			//reset the drive to pristine condition
+			d = core.NewDrive(d.DevicePath, d.DriveID, d.Keys, c.OS)
+			c.Drives[idx] = d
+			d.Converge(c.OS)
 			break
 		}
 	}
-
-	//remove the unmount-propagation entry for this drive, if it still exists
-	path := "run/swift-storage/state/unmount-propagation"
-	_ = ForeachSymlinkIn(path, func(name, devicePath string) {
-		if devicePath == e.DevicePath {
-			err := std_os.Remove(path + "/" + name)
-			if err != nil {
-				util.LogError(err.Error())
-			}
-		}
-	})
 }

@@ -24,10 +24,10 @@ run_and_expect <<-EOF
 > INFO: no swift-id file found on new device {{dev2}} (mounted at /run/swift-storage/{{hash2}}), will try to assign one
 > INFO: assigning swift-id 'swift1' to ${DEV1}
 > INFO: assigning swift-id 'swift2' to {{dev2}}
-> INFO: mounted ${DEV1} to /srv/node/swift1
 > INFO: unmounted /run/swift-storage/{{hash1}}
-> INFO: mounted {{dev2}} to /srv/node/swift2
+> INFO: mounted ${DEV1} to /srv/node/swift1
 > INFO: unmounted /run/swift-storage/{{hash2}}
+> INFO: mounted {{dev2}} to /srv/node/swift2
 
 $ source lib/common.sh; expect_mountpoint /srv/node/swift{1,2}; as_root mount -o remount,ro /srv/node/swift1
 > INFO: event received: scheduled consistency check
@@ -40,8 +40,8 @@ $ source lib/common.sh; expect_mountpoint /srv/node/swift{1,2}; as_root mount -o
 $ source lib/common.sh; expect_no_mountpoint /srv/node/swift1; expect_symlink /run/swift-storage/broken/* "${DEV1}"; expect_symlink /run/swift-storage/state/unmount-propagation/swift1 "${DEV1}"; reinstate_drive "${DEV1}"
 > INFO: event received: device reinstated: ${DEV1}
 > INFO: mounted ${DEV1} to /run/swift-storage/{{hash1}}
-> INFO: mounted ${DEV1} to /srv/node/swift1
 > INFO: unmounted /run/swift-storage/{{hash1}}
+> INFO: mounted ${DEV1} to /srv/node/swift1
 EOF
 
 expect_mountpoint /srv/node/swift{1,2}
