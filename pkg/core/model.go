@@ -70,8 +70,8 @@ type Drive struct {
 
 	//DriveID identifies this drive in derived filenames.
 	DriveID string
-	//SwiftID identifies this drive within the Swift ring.
-	SwiftID *string
+	//Assignment identifies this drive's location within the Swift ring.
+	Assignment *Assignment
 	//Keys contains the LUKS encryption keys that may be used with this drive. When
 	//creating a new LUKS container on this drive, Keys[0] must be used. An empty
 	//slice indicates that encryption is not configured.

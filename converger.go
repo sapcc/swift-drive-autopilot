@@ -70,14 +70,11 @@ func (c *Converger) Converge() {
 	for _, drive := range c.Drives {
 		drive.Converge(c.OS)
 	}
-
-	//discover and auto-assign swift-ids of drives
-	ScanSwiftIDs(c.Drives, c.OS)
-	c.AutoAssignSwiftIDs(c.OS)
+	core.UpdateDriveAssignments(c.Drives, Config.SwiftIDPool, c.OS)
 
 	for _, drive := range c.Drives {
 		if !drive.Broken {
-			drive.Converge(c.OS)
+			drive.Converge(c.OS) //to reflect updated drive assignments
 			mountPath := drive.MountPath()
 			if filepath.Dir(mountPath) == "/srv/node" {
 				c.OS.Chown(mountPath, Config.Owner.User, Config.Owner.Group)

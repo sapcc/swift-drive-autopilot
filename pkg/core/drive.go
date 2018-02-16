@@ -80,10 +80,11 @@ func (d *Drive) MountedPath() string {
 
 //MountPath returns the path where this drive is supposed to be mounted.
 func (d *Drive) MountPath() string {
-	if d.SwiftID == nil || *d.SwiftID == "spare" {
+	path := d.Assignment.MountPath()
+	if path == "" {
 		return "/run/swift-storage/" + d.DriveID
 	}
-	return "/srv/node/" + *d.SwiftID
+	return path
 }
 
 //Converge moves the drive into its locally desired state.
@@ -132,7 +133,13 @@ func (d *Drive) MarkAsBroken(osi os.Interface) {
 		util.LogInfo("To reinstate this drive into the cluster, delete the symlink at " + flagPath)
 	}
 
-	//reset SwiftID (and thus require a re-reading of the swift-id file after the
+	//reset assignment (and thus require a re-reading of the swift-id file after the
 	//drive is reinstated)
-	d.SwiftID = nil
+	d.Assignment = nil
+}
+
+//EligibleForAutoAssignment returns true if the drive does not have a swift-id
+//yet, but is eligible for having one auto-assigned.
+func (d *Drive) EligibleForAutoAssignment() bool {
+	return !d.Broken && d.Assignment != nil && d.Assignment.Error == AssignmentPending
 }

@@ -41,7 +41,7 @@ run_and_expect <<-EOF
 > ERROR: cannot determine serial number for ${DEV2}, will use device ID {{hash2}} instead
 > INFO: LUKS container at ${DEV2} opened as /dev/mapper/{{hash2}}
 > INFO: mounted /dev/mapper/{{hash2}} to /run/swift-storage/{{hash2}}
-> INFO: no swift-id file found on new device ${DEV2} (mounted at /run/swift-storage/{{hash2}}), will try to assign one
+> INFO: invalid assignment for ${DEV2} (mounted at /run/swift-storage/{{hash2}}): no swift-id file found on device, will try to assign one
 > INFO: assigning swift-id 'new' to ${DEV2}
 > INFO: unmounted /run/swift-storage/{{hash1}}
 > INFO: mounted /dev/mapper/{{hash1}} to /srv/node/existing

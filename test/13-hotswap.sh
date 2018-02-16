@@ -25,8 +25,8 @@ run_and_expect <<-EOF
 > INFO: event received: new device found: ${DIR}/loop2 -> ${DEV2}
 > ERROR: cannot determine serial number for ${DEV2}, will use device ID {{hash2}} instead
 > INFO: mounted ${DEV2} to /run/swift-storage/{{hash2}}
-> INFO: no swift-id file found on new device ${DEV1} (mounted at /run/swift-storage/{{hash1}}), will try to assign one
-> INFO: no swift-id file found on new device ${DEV2} (mounted at /run/swift-storage/{{hash2}}), will try to assign one
+> INFO: invalid assignment for ${DEV1} (mounted at /run/swift-storage/{{hash1}}): no swift-id file found on device, will try to assign one
+> INFO: invalid assignment for ${DEV2} (mounted at /run/swift-storage/{{hash2}}): no swift-id file found on device, will try to assign one
 > INFO: assigning swift-id 'swift1' to ${DEV1}
 > INFO: assigning swift-id 'swift2' to ${DEV2}
 > INFO: unmounted /run/swift-storage/{{hash1}}
