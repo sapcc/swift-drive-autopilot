@@ -11,7 +11,7 @@ with_config <<-EOF
 EOF
 
 ################################################################################
-# phase 1: check initial formatting (swift-id auto-assignment is not enabled,
+# phase 1.1: check initial formatting (swift-id auto-assignment is not enabled,
 # so this should not perform final mounts)
 
 run_and_expect <<-EOF
@@ -32,7 +32,28 @@ expect_ownership root:root /run/swift-storage/broken /run/swift-storage/state/un
 expect_file_with_content   /run/swift-storage/state/flag-ready ''
 
 ################################################################################
-# phase 2: assign swift-ids and check final mount
+# phase 1.2: check idempotency of temporary mount (i.e. autopilot should not
+# change existing mounts when restarted)
+
+run_and_expect <<-EOF
+> INFO: event received: new device found: ${DIR}/loop1 -> {{dev1}}
+> ERROR: cannot determine serial number for {{dev1}}, will use device ID {{hash1}} instead
+> INFO: discovered {{dev1}} to be mounted at /run/swift-storage/{{hash1}} already
+> INFO: event received: new device found: ${DIR}/loop2 -> {{dev2}}
+> ERROR: cannot determine serial number for {{dev2}}, will use device ID {{hash2}} instead
+> INFO: discovered {{dev2}} to be mounted at /run/swift-storage/{{hash2}} already
+> ERROR: invalid assignment for {{dev1}} (mounted at /run/swift-storage/{{hash1}}): no swift-id file found on device
+> ERROR: invalid assignment for {{dev2}} (mounted at /run/swift-storage/{{hash2}}): no swift-id file found on device
+EOF
+
+expect_no_mounts
+
+expect_directories         /run/swift-storage/broken /run/swift-storage/state/unmount-propagation /var/cache/swift
+expect_ownership root:root /run/swift-storage/broken /run/swift-storage/state/unmount-propagation /var/cache/swift
+expect_file_with_content   /run/swift-storage/state/flag-ready ''
+
+################################################################################
+# phase 2.1: assign swift-ids and check final mount
 
 IDX=0
 for TEMP_MOUNTPOINT in /run/swift-storage/????????????????????????????????; do
@@ -52,6 +73,24 @@ run_and_expect <<-EOF
 > INFO: mounted {{dev1}} to /srv/node/{{id1}}
 > INFO: unmounted /run/swift-storage/{{hash2}}
 > INFO: mounted {{dev2}} to /srv/node/{{id2}}
+EOF
+
+expect_mountpoint    /srv/node/swift1 /srv/node/swift2
+expect_no_mountpoint /srv/node/swift3 /run/swift-storage/*
+expect_ownership     root:root /srv/node/swift1 /srv/node/swift2
+expect_open_luks_count 0
+
+################################################################################
+# phase 2.2: check idempotency of final mount (i.e. autopilot should not change
+# existing mounts when restarted)
+
+run_and_expect <<-EOF
+> INFO: event received: new device found: ${DIR}/loop1 -> {{dev1}}
+> ERROR: cannot determine serial number for {{dev1}}, will use device ID {{hash1}} instead
+> INFO: discovered {{dev1}} to be mounted at /srv/node/{{id1}} already
+> INFO: event received: new device found: ${DIR}/loop2 -> {{dev2}}
+> ERROR: cannot determine serial number for {{dev2}}, will use device ID {{hash2}} instead
+> INFO: discovered {{dev2}} to be mounted at /srv/node/{{id2}} already
 EOF
 
 expect_mountpoint    /srv/node/swift1 /srv/node/swift2

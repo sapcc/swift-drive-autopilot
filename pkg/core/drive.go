@@ -82,6 +82,12 @@ func (d *Drive) MountedPath() string {
 func (d *Drive) MountPath() string {
 	path := d.Assignment.MountPath()
 	if path == "" {
+		//not assigned yet -> prefer path where drive is already mounted from an
+		//earlier run of swift-drive-autopilot
+		mountedPath := d.MountedPath()
+		if mountedPath != "" {
+			return mountedPath
+		}
 		return "/run/swift-storage/" + d.DriveID
 	}
 	return path
