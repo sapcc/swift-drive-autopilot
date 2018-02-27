@@ -108,6 +108,14 @@ func (l *Linux) RefreshMountPoints() {
 			options[option] = true
 		}
 
+		//ignore mount points that have been duplicated by Docker/rkt for passing into a container
+		if strings.HasPrefix(mountPath, "/var/lib/docker/") {
+			continue
+		}
+		if strings.HasPrefix(mountPath, "/var/lib/rkt/") {
+			continue
+		}
+
 		l.ActiveMountPoints = append(l.ActiveMountPoints, MountPoint{
 			DevicePath: devicePath,
 			MountPath:  mountPath,
