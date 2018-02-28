@@ -21,7 +21,6 @@ package core
 
 import (
 	"fmt"
-	sys_os "os"
 	"path/filepath"
 
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
@@ -101,17 +100,6 @@ func (d *XFSDevice) Setup(drive *Drive, osi os.Interface) bool {
 		return false
 	}
 
-	//clear unmount-propagation flag if necessary (TODO swift.Interface)
-	if filepath.Dir(d.mountPath) == "/srv/node" {
-		err := sys_os.Remove(filepath.Join(
-			"/run/swift-storage/state/unmount-propagation",
-			filepath.Base(d.mountPath),
-		))
-		if err != nil && !sys_os.IsNotExist(err) {
-			util.LogError(err.Error())
-		}
-	}
-
 	return true
 }
 
@@ -120,12 +108,6 @@ func (d *XFSDevice) Teardown(drive *Drive, osi os.Interface) bool {
 	if d.mountPath == "" {
 		//nothing to do
 		return true
-	}
-
-	//set unmount-propagation flag if necessary (TODO swift.Interface)
-	if filepath.Dir(d.mountPath) == "/srv/node" {
-		flagPath := "/run/swift-storage/state/unmount-propagation/" + filepath.Base(d.mountPath)
-		command.Run("ln", "-sTf", drive.DevicePath, flagPath)
 	}
 
 	//remove the mount that we know about

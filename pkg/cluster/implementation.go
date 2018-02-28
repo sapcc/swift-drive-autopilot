@@ -34,6 +34,7 @@ type implementation struct {
 	osi              os.Interface //TODO necessary?
 	driveStates      map[string]DriveStatus
 	driveStatesMutex sync.Mutex
+	assignments      map[string]string
 }
 
 func (i *implementation) Initialize() error {
@@ -143,5 +144,41 @@ func (i *implementation) CollectDriveStateChanges(states chan<- []DriveState) {
 
 //AnnounceNextGeneration implements the Interface interface.
 func (i *implementation) AnnounceNextGeneration(assignments map[string]string) {
-	panic("TODO")
+	if !assignmentsAreIdentical(i.assignments, assignments) {
+		//clear unmount-propagation flags for drives that have been mounted again
+		for _, swiftID := range assignments {
+			err := std_os.Remove(filepath.Join("run/swift-storage/state/unmount-propagation", swiftID))
+			if err != nil && !std_os.IsNotExist(err) {
+				util.LogError(err.Error())
+			}
+		}
+
+		//set unmount-propagation flags for drives that are not mounted anymore
+		for driveID, swiftID := range i.assignments {
+			if assignments[driveID] != swiftID {
+				flagPath := filepath.Join("/run/swift-storage/state/unmount-propagation", swiftID)
+				command.Run("ln", "-sTf", filepath.Join("../..", driveID), flagPath)
+			}
+		}
+
+		//remember assignments for next call to this function
+		i.assignments = assignments
+	}
+
+	//mark storage as ready for consumption by Swift (TODO replace by generation-id)
+	command.Command{ExitOnError: true}.Run("touch", "/run/swift-storage/state/flag-ready")
+}
+
+func assignmentsAreIdentical(a1, a2 map[string]string) bool {
+	for k, v1 := range a1 {
+		if v2, exists := a2[k]; !exists || v1 != v2 {
+			return false
+		}
+	}
+	for k, v2 := range a2 {
+		if v1, exists := a1[k]; !exists || v1 != v2 {
+			return false
+		}
+	}
+	return true
 }

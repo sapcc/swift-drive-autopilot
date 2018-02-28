@@ -27,7 +27,6 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sapcc/swift-drive-autopilot/pkg/cluster"
-	"github.com/sapcc/swift-drive-autopilot/pkg/command"
 	"github.com/sapcc/swift-drive-autopilot/pkg/core"
 	"github.com/sapcc/swift-drive-autopilot/pkg/os"
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
@@ -87,8 +86,15 @@ func (c *Converger) Converge() {
 	c.CheckForUnexpectedMounts()
 	c.WriteDriveAudit()
 
-	//mark storage as ready for consumption by Swift
-	command.Command{ExitOnError: true}.Run("touch", "/run/swift-storage/state/flag-ready")
+	assignments := make(map[string]string)
+	for _, drive := range c.Drives {
+		if drive.Status == cluster.DriveReady {
+			if drive.Assignment != nil && filepath.Dir(drive.MountedPath()) == "/srv/node" {
+				assignments[drive.DriveID] = drive.Assignment.SwiftID
+			}
+		}
+	}
+	c.CL.AnnounceNextGeneration(assignments)
 }
 
 //CheckForUnexpectedMounts prints error messages for every unexpected mount
