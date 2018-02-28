@@ -139,13 +139,28 @@ function expect_file_with_content {
 }
 
 # Standard verification step: Expect that the given path ($1) contains a symlink
-# to the given target ($2).
+# to the given target ($2). This canonicalizes the symlink target to an
+# absolute path.
 function expect_symlink {
     if [ ! -L "$1" ]; then
         echo "expected symlink at $1, but cannot find it" >&2
         exit 1
     fi
     if [ "$(readlink -f "$1")" != "$2" ]; then
+        echo "expected symlink at $1 with target \"$2\", but actual target is \"$(readlink -f "$1")\"" >&2
+        exit 1
+    fi
+}
+
+# Standard verification step: Expect that the given path ($1) contains a symlink
+# with the given target ($2). This does *not* canonicalize the symlink target
+# to an absolute path.
+function expect_symlink_content {
+    if [ ! -L "$1" ]; then
+        echo "expected symlink at $1, but cannot find it" >&2
+        exit 1
+    fi
+    if [ "$(readlink "$1")" != "$2" ]; then
         echo "expected symlink at $1 with target \"$2\", but actual target is \"$(readlink -f "$1")\"" >&2
         exit 1
     fi

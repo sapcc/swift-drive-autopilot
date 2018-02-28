@@ -26,6 +26,7 @@ run_and_expect <<-EOF
 > INFO: mounted {{dev1}} to /srv/node/swift1
 > INFO: unmounted /run/swift-storage/{{hash2}}
 > INFO: mounted {{dev2}} to /srv/node/swift2
+$ source lib/common.sh; expect_symlink_content "/srv/node/swift1/drive-id" "{{hash1}}"; expect_symlink_content "/srv/node/swift2/drive-id" "{{hash2}}"
 EOF
 
 expect_mountpoint    /srv/node/swift1 /srv/node/swift2

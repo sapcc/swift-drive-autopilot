@@ -23,6 +23,7 @@ run_and_expect <<-EOF
 > INFO: mounted {{dev2}} to /run/swift-storage/{{hash2}}
 > ERROR: invalid assignment for {{dev1}} (mounted at /run/swift-storage/{{hash1}}): no swift-id file found on device
 > ERROR: invalid assignment for {{dev2}} (mounted at /run/swift-storage/{{hash2}}): no swift-id file found on device
+$ source lib/common.sh; expect_symlink_content "/run/swift-storage/{{hash1}}/drive-id" "{{hash1}}"; expect_symlink_content "/run/swift-storage/{{hash2}}/drive-id" "{{hash2}}"
 EOF
 
 expect_no_mounts
@@ -44,6 +45,7 @@ run_and_expect <<-EOF
 > INFO: discovered {{dev2}} to be mounted at /run/swift-storage/{{hash2}} already
 > ERROR: invalid assignment for {{dev1}} (mounted at /run/swift-storage/{{hash1}}): no swift-id file found on device
 > ERROR: invalid assignment for {{dev2}} (mounted at /run/swift-storage/{{hash2}}): no swift-id file found on device
+$ source lib/common.sh; expect_symlink_content "/run/swift-storage/{{hash1}}/drive-id" "{{hash1}}"; expect_symlink_content "/run/swift-storage/{{hash2}}/drive-id" "{{hash2}}"
 EOF
 
 expect_no_mounts
@@ -73,6 +75,7 @@ run_and_expect <<-EOF
 > INFO: mounted {{dev1}} to /srv/node/{{id1}}
 > INFO: unmounted /run/swift-storage/{{hash2}}
 > INFO: mounted {{dev2}} to /srv/node/{{id2}}
+$ source lib/common.sh; expect_symlink_content "/srv/node/{{id1}}/drive-id" "{{hash1}}"; expect_symlink_content "/srv/node/{{id2}}/drive-id" "{{hash2}}"
 EOF
 
 expect_mountpoint    /srv/node/swift1 /srv/node/swift2
@@ -91,6 +94,7 @@ run_and_expect <<-EOF
 > INFO: event received: new device found: ${DIR}/loop2 -> {{dev2}}
 > ERROR: cannot determine serial number for {{dev2}}, will use device ID {{hash2}} instead
 > INFO: discovered {{dev2}} to be mounted at /srv/node/{{id2}} already
+$ source lib/common.sh; expect_symlink_content "/srv/node/{{id1}}/drive-id" "{{hash1}}"; expect_symlink_content "/srv/node/{{id2}}/drive-id" "{{hash2}}"
 EOF
 
 expect_mountpoint    /srv/node/swift1 /srv/node/swift2

@@ -96,11 +96,12 @@ func (d *XFSDevice) Setup(drive *Drive, osi os.Interface) bool {
 	if ok {
 		util.LogInfo("mounted %s to %s", d.path, mountPath)
 		d.mountPath = mountPath
-	} else {
-		return false
-	}
 
-	return true
+		//note the drive ID on the filesystem for external validity checks
+		//(we use a symlink here because a link target, unlike a regular file, can be read with a single syscall)
+		_, ok = command.Run("ln", "-sTf", drive.DriveID, filepath.Join(mountPath, "drive-id"))
+	}
+	return ok
 }
 
 //Teardown implements the Device interface.

@@ -47,6 +47,7 @@ run_and_expect <<-EOF
 > INFO: mounted /dev/mapper/{{hash1}} to /srv/node/existing
 > INFO: unmounted /run/swift-storage/{{hash2}}
 > INFO: mounted /dev/mapper/{{hash2}} to /srv/node/new
+$ source lib/common.sh; expect_symlink_content "/srv/node/existing/drive-id" "{{hash1}}"; expect_symlink_content "/srv/node/new/drive-id" "{{hash2}}"
 EOF
 
 expect_open_luks_count 2
