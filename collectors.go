@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/sapcc/swift-drive-autopilot/pkg/cluster"
 	"github.com/sapcc/swift-drive-autopilot/pkg/os"
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
@@ -30,7 +31,7 @@ import (
 //Event is the base interface for messages sent from the collector threads to
 //the converger thread.
 type Event interface {
-	LogMessage() string
+	LogMessage(c *Converger) string
 	EventType() string //for counter metric that counts events
 	Handle(c *Converger)
 }
@@ -46,7 +47,7 @@ type DriveAddedEvent struct {
 }
 
 //LogMessage implements the Event interface.
-func (e DriveAddedEvent) LogMessage() string {
+func (e DriveAddedEvent) LogMessage(c *Converger) string {
 	if e.FoundAtPath == "" || e.FoundAtPath == e.DevicePath {
 		return "new device found: " + e.DevicePath
 	}
@@ -64,7 +65,7 @@ type DriveRemovedEvent struct {
 }
 
 //LogMessage implements the Event interface.
-func (e DriveRemovedEvent) LogMessage() string {
+func (e DriveRemovedEvent) LogMessage(c *Converger) string {
 	return "device removed: " + e.DevicePath
 }
 
@@ -107,12 +108,17 @@ func CollectDriveEvents(osi os.Interface, queue chan []Event) {
 
 //DriveReinstatedEvent is an Event that is emitted by CollectReinstatements.
 type DriveReinstatedEvent struct {
-	DevicePath string
+	DriveID string
 }
 
 //LogMessage implements the Event interface.
-func (e DriveReinstatedEvent) LogMessage() string {
-	return "device reinstated: " + e.DevicePath
+func (e DriveReinstatedEvent) LogMessage(c *Converger) string {
+	for _, d := range c.Drives {
+		if d.DriveID == e.DriveID {
+			return "device reinstated: " + d.DevicePath
+		}
+	}
+	return "device reinstated: " + e.DriveID
 }
 
 //EventType implements the Event interface.
@@ -123,42 +129,18 @@ func (e DriveReinstatedEvent) EventType() string {
 //CollectReinstatements watches /run/swift-storage/broken and issues a
 //DriveReinstatedEvent whenever a broken-flag in there is deleted by an
 //administrator.
-func CollectReinstatements(queue chan []Event) {
-	//tracks broken devices between loop iterations; we only send an event when
-	//a device is removed from this set
-	brokenDevices := make(map[string]bool)
+func CollectReinstatements(cli cluster.Interface, queue chan []Event) {
+	statesChan := make(chan []cluster.DriveState)
+	go cli.CollectDriveStateChanges(statesChan)
 
-	interval := util.GetJobInterval(5*time.Second, 1*time.Second)
-	for {
+	for states := range statesChan {
 		var events []Event
-
-		//enumerate broken devices linked in /run/swift-storage/broken
-		newBrokenDevices := make(map[string]bool)
-
-		success := util.ForeachSymlinkIn("run/swift-storage/broken",
-			func(name, devicePath string) {
-				newBrokenDevices[devicePath] = true
-			},
-		)
-		if !success {
-			continue
-		}
-
-		//generate DriveReinstatedEvent for all devices that are not broken anymore
-		for devicePath := range brokenDevices {
-			if !newBrokenDevices[devicePath] {
-				events = append(events, DriveReinstatedEvent{DevicePath: devicePath})
+		for _, state := range states {
+			if state.Status == cluster.DriveReady {
+				events = append(events, DriveReinstatedEvent{DriveID: state.DriveID})
 			}
 		}
-		brokenDevices = newBrokenDevices
-
-		//wake up the converger thread
-		if len(events) > 0 {
-			queue <- events
-		}
-
-		//sleep for 5 seconds before re-running
-		time.Sleep(interval)
+		queue <- events
 	}
 }
 
@@ -184,7 +166,7 @@ type WakeupEvent struct{}
 //The WakeupEvent does not produce an "event received" log message because it
 //would spam the log continuously. Instead, the continued execution of
 //consistency checks is tracked by the Prometheus metric that counts events.
-func (e WakeupEvent) LogMessage() string {
+func (e WakeupEvent) LogMessage(c *Converger) string {
 	if util.InTestMode() {
 		return "scheduled consistency check"
 	}
@@ -211,7 +193,7 @@ type DriveErrorEvent struct {
 }
 
 //LogMessage implements the Event interface.
-func (e DriveErrorEvent) LogMessage() string {
+func (e DriveErrorEvent) LogMessage(c *Converger) string {
 	return "potential device error for " + e.DevicePath + " seen in kernel log: " + e.LogLine
 }
 

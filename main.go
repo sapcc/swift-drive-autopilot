@@ -25,6 +25,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	"github.com/sapcc/swift-drive-autopilot/pkg/cluster"
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
 	"github.com/sapcc/swift-drive-autopilot/pkg/os"
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
@@ -43,15 +44,15 @@ func main() {
 		util.LogFatal("chdir to %s: %s", workingDir, err.Error())
 	}
 
-	//prepare directories that the converger wants to write to
-	command.Command{ExitOnError: true}.Run("mkdir", "-p",
-		"/run/swift-storage/broken",
-		"/run/swift-storage/state/unmount-propagation",
-		"/var/cache/swift",
-	)
-
-	//swift cache path must be accesible from user swift
+	//instantiate singletons
 	osi := &os.Linux{}
+	cli, err := cluster.InitializeInterface(osi)
+	if err != nil {
+		util.LogFatal(err.Error())
+	}
+
+	//prepare directories that the converger wants to write to
+	command.Command{ExitOnError: true}.Run("mkdir", "-p", "/var/cache/swift")
 	osi.Chown("/var/cache/swift", Config.Owner.User, Config.Owner.Group)
 
 	//start the metrics endpoint
@@ -69,7 +70,7 @@ func main() {
 	//start the collectors
 	queue := make(chan []Event, 10)
 	go CollectDriveEvents(osi, queue)
-	go CollectReinstatements(queue)
+	go CollectReinstatements(cli, queue)
 	go ScheduleWakeups(queue)
 	go WatchKernelLog(osi, queue)
 
@@ -78,5 +79,5 @@ func main() {
 	}
 
 	//the converger runs in the main thread
-	RunConverger(queue, osi)
+	RunConverger(queue, osi, cli)
 }

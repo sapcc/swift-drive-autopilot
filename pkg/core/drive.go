@@ -22,19 +22,18 @@ package core
 import (
 	"crypto/md5"
 	"encoding/hex"
-	std_os "os"
-	"strings"
 
-	"github.com/sapcc/swift-drive-autopilot/pkg/command"
+	"github.com/sapcc/swift-drive-autopilot/pkg/cluster"
 	"github.com/sapcc/swift-drive-autopilot/pkg/os"
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
 //NewDrive initializes a Drive instance.
-func NewDrive(devicePath, serialNumber string, keys []string, osi os.Interface) *Drive {
+func NewDrive(devicePath, serialNumber string, keys []string, osi os.Interface, cli cluster.Interface) *Drive {
 	d := &Drive{
 		DevicePath: devicePath,
 		Device:     newDevice(devicePath, osi, len(keys) > 0),
+		Status:     cluster.DriveReady, //but see below
 		DriveID:    serialNumber,
 		Keys:       keys,
 	}
@@ -50,21 +49,10 @@ func NewDrive(devicePath, serialNumber string, keys []string, osi os.Interface) 
 
 	//detect unreadable device
 	if d.Device == nil {
-		d.Broken = true
-	}
-
-	//check if the broken-flag is still present
-	brokenFlagPath := strings.TrimPrefix(d.BrokenFlagPath(), "/")
-	_, err := std_os.Readlink(brokenFlagPath)
-	switch {
-	case err == nil:
-		//link still exists, so device is broken
-		util.LogInfo("%s was flagged as broken by a previous run of swift-drive-autopilot", d.DevicePath)
-		d.MarkAsBroken(osi) //this will re-print the log message explaining how to reinstate the drive into the cluster
-	case std_os.IsNotExist(err):
-		//ignore this error (no broken-flag means everything's okay)
-	default:
-		util.LogError(err.Error())
+		d.MarkAsBroken(cli)
+	} else {
+		//detect if this drive was declared broken earlier
+		d.Status = cli.GetDriveStatus(d.DriveID)
 	}
 
 	return d
@@ -102,15 +90,15 @@ func (d *Drive) MountPath() string {
 //
 //If the drive is broken (or discovered to be broken during this operation),
 //any existing mappings or mounts will be teared down.
-func (d *Drive) Converge(osi os.Interface) {
-	if d.Broken {
+func (d *Drive) Converge(osi os.Interface, cli cluster.Interface) {
+	if d.Status != cluster.DriveReady {
 		d.Device.Teardown(d, osi)
 		return
 	}
 
 	ok := d.Device.Setup(d, osi)
 	if !ok {
-		d.MarkAsBroken(osi)
+		d.MarkAsBroken(cli)
 		d.Device.Teardown(d, osi)
 		return
 	}
@@ -123,21 +111,10 @@ func (d *Drive) Teardown(osi os.Interface) {
 	}
 }
 
-//BrokenFlagPath (TODO swift.Interface)
-func (d *Drive) BrokenFlagPath() string {
-	return "/run/swift-storage/broken/" + d.DriveID
-}
-
-//MarkAsBroken sets the d.Broken flag.
-func (d *Drive) MarkAsBroken(osi os.Interface) {
-	d.Broken = true
-	util.LogInfo("flagging %s as broken because of previous error", d.DevicePath)
-
-	flagPath := d.BrokenFlagPath()
-	_, ok := command.Run("ln", "-sfT", d.DevicePath, flagPath)
-	if ok {
-		util.LogInfo("To reinstate this drive into the cluster, delete the symlink at " + flagPath)
-	}
+//MarkAsBroken sets the drive status to cluster.DriveBroken.
+func (d *Drive) MarkAsBroken(cli cluster.Interface) {
+	d.Status = cluster.DriveBroken
+	cli.SetDriveStatus(d.DriveID, d.Status, d.DevicePath)
 
 	//reset assignment (and thus require a re-reading of the swift-id file after the
 	//drive is reinstated)
@@ -147,5 +124,5 @@ func (d *Drive) MarkAsBroken(osi os.Interface) {
 //EligibleForAutoAssignment returns true if the drive does not have a swift-id
 //yet, but is eligible for having one auto-assigned.
 func (d *Drive) EligibleForAutoAssignment() bool {
-	return !d.Broken && d.Assignment != nil && d.Assignment.Error == AssignmentPending
+	return d.Status == cluster.DriveReady && d.Assignment != nil && d.Assignment.Error == AssignmentPending
 }

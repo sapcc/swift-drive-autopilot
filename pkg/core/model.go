@@ -19,7 +19,10 @@
 
 package core
 
-import "github.com/sapcc/swift-drive-autopilot/pkg/os"
+import (
+	"github.com/sapcc/swift-drive-autopilot/pkg/cluster"
+	"github.com/sapcc/swift-drive-autopilot/pkg/os"
+)
 
 //Device is implemented by each model class that represents the contents of a
 //device. Each method in the interface takes a reference to the drive that
@@ -66,7 +69,7 @@ type Drive struct {
 	Device     Device
 
 	//state machine
-	Broken bool
+	Status cluster.DriveStatus
 
 	//DriveID identifies this drive in derived filenames.
 	DriveID string

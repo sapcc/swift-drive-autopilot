@@ -24,6 +24,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/sapcc/swift-drive-autopilot/pkg/cluster"
 	"github.com/sapcc/swift-drive-autopilot/pkg/os"
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
@@ -111,7 +112,7 @@ func UpdateDriveAssignments(drives []*Drive, swiftIDPool []string, osi os.Interf
 	//are there any broken drives?
 	hasBrokenDrives := false
 	for _, drive := range drives {
-		if drive.Broken {
+		if drive.Status == cluster.DriveBroken {
 			hasBrokenDrives = true
 			break
 		}

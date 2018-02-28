@@ -26,6 +26,7 @@ import (
 	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/sapcc/swift-drive-autopilot/pkg/cluster"
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
 	"github.com/sapcc/swift-drive-autopilot/pkg/core"
 	"github.com/sapcc/swift-drive-autopilot/pkg/os"
@@ -37,11 +38,12 @@ type Converger struct {
 	//long-lived state
 	Drives []*core.Drive
 	OS     os.Interface
+	CL     cluster.Interface
 }
 
 //RunConverger runs the converger thread. This function does not return.
-func RunConverger(queue chan []Event, osi os.Interface) {
-	c := &Converger{OS: osi}
+func RunConverger(queue chan []Event, osi os.Interface, cli cluster.Interface) {
+	c := &Converger{OS: osi, CL: cli}
 
 	for {
 		//wait for processable events
@@ -53,7 +55,7 @@ func RunConverger(queue chan []Event, osi os.Interface) {
 
 		//handle events
 		for _, event := range events {
-			if msg := event.LogMessage(); msg != "" {
+			if msg := event.LogMessage(c); msg != "" {
 				util.LogInfo("event received: " + msg)
 			}
 			eventCounter.With(prometheus.Labels{"type": event.EventType()}).Add(1)
@@ -68,13 +70,13 @@ func RunConverger(queue chan []Event, osi os.Interface) {
 //has been received and handled by the converger.
 func (c *Converger) Converge() {
 	for _, drive := range c.Drives {
-		drive.Converge(c.OS)
+		drive.Converge(c.OS, c.CL)
 	}
 	core.UpdateDriveAssignments(c.Drives, Config.SwiftIDPool, c.OS)
 
 	for _, drive := range c.Drives {
-		if !drive.Broken {
-			drive.Converge(c.OS) //to reflect updated drive assignments
+		if drive.Status == cluster.DriveReady {
+			drive.Converge(c.OS, c.CL) //to reflect updated drive assignments
 			mountPath := drive.MountPath()
 			if filepath.Dir(mountPath) == "/srv/node" {
 				c.OS.Chown(mountPath, Config.Owner.User, Config.Owner.Group)
@@ -112,7 +114,7 @@ func (c *Converger) WriteDriveAudit() {
 
 	for _, drive := range c.Drives {
 		mountPath := drive.MountPath()
-		if drive.Broken {
+		if drive.Status != cluster.DriveReady {
 			data[mountPath] = 1
 			total++
 		} else {
@@ -139,9 +141,9 @@ func (e DriveAddedEvent) Handle(c *Converger) {
 		keys[idx] = key.Secret
 	}
 
-	drive := core.NewDrive(e.DevicePath, e.SerialNumber, keys, c.OS)
+	drive := core.NewDrive(e.DevicePath, e.SerialNumber, keys, c.OS, c.CL)
 	c.Drives = append(c.Drives, drive)
-	drive.Converge(c.OS)
+	drive.Converge(c.OS, c.CL)
 }
 
 //Handle implements the Event interface.
@@ -169,7 +171,7 @@ func (e DriveRemovedEvent) Handle(c *Converger) {
 func (e DriveErrorEvent) Handle(c *Converger) {
 	for _, d := range c.Drives {
 		if d.DevicePath == e.DevicePath {
-			d.MarkAsBroken(c.OS)
+			d.MarkAsBroken(c.CL)
 			return
 		}
 	}
@@ -178,11 +180,11 @@ func (e DriveErrorEvent) Handle(c *Converger) {
 //Handle implements the Event interface.
 func (e DriveReinstatedEvent) Handle(c *Converger) {
 	for idx, d := range c.Drives {
-		if d.DevicePath == e.DevicePath {
+		if d.DriveID == e.DriveID {
 			//reset the drive to pristine condition
-			d = core.NewDrive(d.DevicePath, d.DriveID, d.Keys, c.OS)
+			d = core.NewDrive(d.DevicePath, d.DriveID, d.Keys, c.OS, c.CL)
 			c.Drives[idx] = d
-			d.Converge(c.OS)
+			d.Converge(c.OS, c.CL)
 			break
 		}
 	}
