@@ -74,7 +74,7 @@ func (c Command) Run(cmd ...string) (stdout string, success bool) {
 	stdoutBuf := bytes.NewBuffer(nil)
 	stderrBuf := bytes.NewBuffer(nil)
 
-	util.LogDebug("executing command: %v\n", cmd)
+	util.LogDebug("executing command: %v", cmd)
 	execCmd := exec.Command(cmd[0], cmd[1:]...)
 	execCmd.Stdout = stdoutBuf
 	execCmd.Stderr = stderrBuf
@@ -101,7 +101,9 @@ func (c Command) Run(cmd ...string) (stdout string, success bool) {
 
 	stdout = stdoutBuf.String()
 	for _, line := range strings.Split(stdout, "\n") {
-		util.LogDebug("exec(%s) produced stdout: %s", cmdForLog, line)
+		if strings.TrimSpace(line) != "" {
+			util.LogDebug("exec(%s) produced stdout: %s", cmdForLog, line)
+		}
 	}
 	return stdout, err == nil
 }
