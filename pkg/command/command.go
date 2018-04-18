@@ -83,6 +83,7 @@ func (c Command) Run(cmd ...string) (stdout string, success bool) {
 	}
 	err := execCmd.Run()
 
+	cmdForLog := strings.Join(cmd, " ")
 	if !c.SkipLog {
 		for _, line := range strings.Split(stderrBuf.String(), "\n") {
 			if line != "" {
@@ -94,9 +95,13 @@ func (c Command) Run(cmd ...string) (stdout string, success bool) {
 			if c.ExitOnError {
 				logLevel = util.LogFatal
 			}
-			logLevel("exec(%s) failed: %s", strings.Join(cmd, " "), err.Error())
+			logLevel("exec(%s) failed: %s", cmdForLog, err.Error())
 		}
 	}
 
-	return stdoutBuf.String(), err == nil
+	stdout = stdoutBuf.String()
+	for _, line := range strings.Split(stdout, "\n") {
+		util.LogDebug("exec(%s) produced stdout: %s", cmdForLog, line)
+	}
+	return stdout, err == nil
 }
