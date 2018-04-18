@@ -28,7 +28,7 @@ import (
 //Linux is an Interface implementation for when the autopilot runs in
 //productive mode on Linux hosts.
 type Linux struct {
-	ActiveMountPoints  []MountPoint
+	ActiveMountPoints  map[MountScope][]MountPoint
 	ActiveLUKSMappings map[string]string
 }
 

@@ -45,16 +45,16 @@ type Interface interface {
 	FormatDevice(devicePath string) (ok bool)
 
 	//MountDevice mounts this device at the given location.
-	MountDevice(devicePath, mountPath string) (ok bool)
+	MountDevice(devicePath, mountPath string, scope MountScope) (ok bool)
 	//UnmountDevice unmounts the device that is mounted at the given location.
-	UnmountDevice(mountPath string) (ok bool)
+	UnmountDevice(mountPath string, scope MountScope) (ok bool)
 	//RefreshMountPoints examines the system to find any mounts that have changed
 	//since we last looked.
 	RefreshMountPoints()
 	//GetMountPointsIn returns all active mount points below the given path.
-	GetMountPointsIn(mountPathPrefix string) []MountPoint
+	GetMountPointsIn(mountPathPrefix string, scope MountScope) []MountPoint
 	//GetMountPointsOf returns all active mount points for this device.
-	GetMountPointsOf(devicePath string) []MountPoint
+	GetMountPointsOf(devicePath string, scope MountScope) []MountPoint
 
 	//CreateLUKSContainer creates a LUKS container on the given device, using the
 	//given encryption key. Existing data on the device will be overwritten.
@@ -118,4 +118,33 @@ type MountPoint struct {
 	DevicePath string
 	MountPath  string
 	Options    map[string]bool
+}
+
+//MountScope describes whether a mount happens in the autopilot's mount
+//namespace or in the host mount namespace.
+type MountScope string
+
+const (
+	//HostScope is the MountScope for mounts in the host mount namespace.
+	HostScope MountScope = "host"
+	//LocalScope is the MountScope for mounts in the local mount namespace of the autopilot.
+	LocalScope = "local"
+)
+
+//ForeachMountScope calls the action once for each MountScope, aborting as soon
+//as one call returns false.
+func ForeachMountScope(action func(MountScope) (ok bool)) (ok bool) {
+	if !action(HostScope) {
+		return false
+	}
+	return action(LocalScope)
+}
+
+//ForeachMountScopeOrError is like ForeachMountScope, but propagates errors instead of bools.
+func ForeachMountScopeOrError(action func(MountScope) error) error {
+	err := action(HostScope)
+	if err != nil {
+		return err
+	}
+	return action(LocalScope)
 }

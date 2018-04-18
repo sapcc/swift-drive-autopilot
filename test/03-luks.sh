@@ -36,17 +36,23 @@ run_and_expect <<-EOF
 > INFO: event received: new device found: ${DIR}/loop1 -> ${DEV1}
 > ERROR: cannot determine serial number for ${DEV1}, will use device ID {{hash1}} instead
 > INFO: LUKS container at ${DEV1} opened as /dev/mapper/{{hash1}}
-> INFO: mounted /dev/mapper/{{hash1}} to /run/swift-storage/{{hash1}}
+> INFO: mounted /dev/mapper/{{hash1}} to /run/swift-storage/{{hash1}} in host mount namespace
+> INFO: mounted /dev/mapper/{{hash1}} to /run/swift-storage/{{hash1}} in local mount namespace
 > INFO: event received: new device found: ${DIR}/loop2 -> ${DEV2}
 > ERROR: cannot determine serial number for ${DEV2}, will use device ID {{hash2}} instead
 > INFO: LUKS container at ${DEV2} opened as /dev/mapper/{{hash2}}
-> INFO: mounted /dev/mapper/{{hash2}} to /run/swift-storage/{{hash2}}
+> INFO: mounted /dev/mapper/{{hash2}} to /run/swift-storage/{{hash2}} in host mount namespace
+> INFO: mounted /dev/mapper/{{hash2}} to /run/swift-storage/{{hash2}} in local mount namespace
 > INFO: invalid assignment for ${DEV2} (mounted at /run/swift-storage/{{hash2}}): no swift-id file found on device, will try to assign one
 > INFO: assigning swift-id 'new' to ${DEV2}
-> INFO: unmounted /run/swift-storage/{{hash1}}
-> INFO: mounted /dev/mapper/{{hash1}} to /srv/node/existing
-> INFO: unmounted /run/swift-storage/{{hash2}}
-> INFO: mounted /dev/mapper/{{hash2}} to /srv/node/new
+> INFO: unmounted /run/swift-storage/{{hash1}} in host mount namespace
+> INFO: unmounted /run/swift-storage/{{hash1}} in local mount namespace
+> INFO: mounted /dev/mapper/{{hash1}} to /srv/node/existing in host mount namespace
+> INFO: mounted /dev/mapper/{{hash1}} to /srv/node/existing in local mount namespace
+> INFO: unmounted /run/swift-storage/{{hash2}} in host mount namespace
+> INFO: unmounted /run/swift-storage/{{hash2}} in local mount namespace
+> INFO: mounted /dev/mapper/{{hash2}} to /srv/node/new in host mount namespace
+> INFO: mounted /dev/mapper/{{hash2}} to /srv/node/new in local mount namespace
 EOF
 
 expect_open_luks_count 2

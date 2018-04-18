@@ -152,8 +152,14 @@ func (d *LUKSDevice) Validate(drive *Drive, osi os.Interface) error {
 	}
 
 	//a device containing a LUKS container should not be mounted itself
-	if len(osi.GetMountPointsOf(d.path)) > 0 {
-		return fmt.Errorf("%s contains an open LUKS container, but is also mounted directly", d.path)
+	err := os.ForeachMountScopeOrError(func(scope os.MountScope) error {
+		if len(osi.GetMountPointsOf(d.path, scope)) > 0 {
+			return fmt.Errorf("%s contains an open LUKS container, but is also mounted directly in %s mount namespace", d.path, scope)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 
 	//LUKS mapping is looking good -> drill down into the mapped device

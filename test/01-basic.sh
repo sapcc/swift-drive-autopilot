@@ -17,10 +17,12 @@ EOF
 run_and_expect <<-EOF
 > INFO: event received: new device found: ${DIR}/loop1 -> {{dev1}}
 > ERROR: cannot determine serial number for {{dev1}}, will use device ID {{hash1}} instead
-> INFO: mounted {{dev1}} to /run/swift-storage/{{hash1}}
+> INFO: mounted {{dev1}} to /run/swift-storage/{{hash1}} in host mount namespace
+> INFO: mounted {{dev1}} to /run/swift-storage/{{hash1}} in local mount namespace
 > INFO: event received: new device found: ${DIR}/loop2 -> {{dev2}}
 > ERROR: cannot determine serial number for {{dev2}}, will use device ID {{hash2}} instead
-> INFO: mounted {{dev2}} to /run/swift-storage/{{hash2}}
+> INFO: mounted {{dev2}} to /run/swift-storage/{{hash2}} in host mount namespace
+> INFO: mounted {{dev2}} to /run/swift-storage/{{hash2}} in local mount namespace
 > ERROR: invalid assignment for {{dev1}} (mounted at /run/swift-storage/{{hash1}}): no swift-id file found on device
 > ERROR: invalid assignment for {{dev2}} (mounted at /run/swift-storage/{{hash2}}): no swift-id file found on device
 EOF
@@ -38,10 +40,10 @@ expect_file_with_content   /run/swift-storage/state/flag-ready ''
 run_and_expect <<-EOF
 > INFO: event received: new device found: ${DIR}/loop1 -> {{dev1}}
 > ERROR: cannot determine serial number for {{dev1}}, will use device ID {{hash1}} instead
-> INFO: discovered {{dev1}} to be mounted at /run/swift-storage/{{hash1}} already
+> INFO: discovered {{dev1}} to be mounted at /run/swift-storage/{{hash1}} already in host mount namespace
 > INFO: event received: new device found: ${DIR}/loop2 -> {{dev2}}
 > ERROR: cannot determine serial number for {{dev2}}, will use device ID {{hash2}} instead
-> INFO: discovered {{dev2}} to be mounted at /run/swift-storage/{{hash2}} already
+> INFO: discovered {{dev2}} to be mounted at /run/swift-storage/{{hash2}} already in host mount namespace
 > ERROR: invalid assignment for {{dev1}} (mounted at /run/swift-storage/{{hash1}}): no swift-id file found on device
 > ERROR: invalid assignment for {{dev2}} (mounted at /run/swift-storage/{{hash2}}): no swift-id file found on device
 EOF
@@ -65,14 +67,18 @@ done
 run_and_expect <<-EOF
 > INFO: event received: new device found: ${DIR}/loop1 -> {{dev1}}
 > ERROR: cannot determine serial number for {{dev1}}, will use device ID {{hash1}} instead
-> INFO: discovered {{dev1}} to be mounted at /run/swift-storage/{{hash1}} already
+> INFO: discovered {{dev1}} to be mounted at /run/swift-storage/{{hash1}} already in host mount namespace
 > INFO: event received: new device found: ${DIR}/loop2 -> {{dev2}}
 > ERROR: cannot determine serial number for {{dev2}}, will use device ID {{hash2}} instead
-> INFO: discovered {{dev2}} to be mounted at /run/swift-storage/{{hash2}} already
-> INFO: unmounted /run/swift-storage/{{hash1}}
-> INFO: mounted {{dev1}} to /srv/node/{{id1}}
-> INFO: unmounted /run/swift-storage/{{hash2}}
-> INFO: mounted {{dev2}} to /srv/node/{{id2}}
+> INFO: discovered {{dev2}} to be mounted at /run/swift-storage/{{hash2}} already in host mount namespace
+> INFO: unmounted /run/swift-storage/{{hash1}} in host mount namespace
+> INFO: unmounted /run/swift-storage/{{hash1}} in local mount namespace
+> INFO: mounted {{dev1}} to /srv/node/{{id1}} in host mount namespace
+> INFO: mounted {{dev1}} to /srv/node/{{id1}} in local mount namespace
+> INFO: unmounted /run/swift-storage/{{hash2}} in host mount namespace
+> INFO: unmounted /run/swift-storage/{{hash2}} in local mount namespace
+> INFO: mounted {{dev2}} to /srv/node/{{id2}} in host mount namespace
+> INFO: mounted {{dev2}} to /srv/node/{{id2}} in local mount namespace
 EOF
 
 expect_mountpoint    /srv/node/swift1 /srv/node/swift2
@@ -87,10 +93,10 @@ expect_open_luks_count 0
 run_and_expect <<-EOF
 > INFO: event received: new device found: ${DIR}/loop1 -> {{dev1}}
 > ERROR: cannot determine serial number for {{dev1}}, will use device ID {{hash1}} instead
-> INFO: discovered {{dev1}} to be mounted at /srv/node/{{id1}} already
+> INFO: discovered {{dev1}} to be mounted at /srv/node/{{id1}} already in host mount namespace
 > INFO: event received: new device found: ${DIR}/loop2 -> {{dev2}}
 > ERROR: cannot determine serial number for {{dev2}}, will use device ID {{hash2}} instead
-> INFO: discovered {{dev2}} to be mounted at /srv/node/{{id2}} already
+> INFO: discovered {{dev2}} to be mounted at /srv/node/{{id2}} already in host mount namespace
 EOF
 
 expect_mountpoint    /srv/node/swift1 /srv/node/swift2

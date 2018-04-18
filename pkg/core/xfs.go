@@ -76,36 +76,41 @@ func (d *XFSDevice) Setup(drive *Drive, osi os.Interface) bool {
 
 	//determine desired mount path
 	mountPath := drive.MountPath()
-	if d.mountPath == mountPath {
-		//nothing to do
-		return true
-	}
 
-	//when moving to the final mount in /srv/node, tear down the temporary mount in /run first
-	if d.mountPath != "" {
-		ok := osi.UnmountDevice(d.mountPath)
-		if ok {
-			util.LogInfo("unmounted %s", d.mountPath)
-			d.mountPath = ""
-		} else {
-			return false
+	//tear down all mounts not matching the desired mount path (esp. the
+	//temporary mount in /run when moving to the final mount in /srv/node)
+	ok := os.ForeachMountScope(func(scope os.MountScope) bool {
+		for _, m := range osi.GetMountPointsOf(d.path, scope) {
+			if m.MountPath != mountPath {
+				if !osi.UnmountDevice(m.MountPath, scope) {
+					return false
+				}
+			}
 		}
+		return true
+	})
+	if !ok {
+		return false
+	}
+	if d.mountPath != mountPath {
+		d.mountPath = ""
 	}
 
 	//perform the mount
-	ok := osi.MountDevice(d.path, mountPath)
+	ok = os.ForeachMountScope(func(scope os.MountScope) bool {
+		return osi.MountDevice(d.path, mountPath, scope)
+	})
 	if ok {
-		util.LogInfo("mounted %s to %s", d.path, mountPath)
 		d.mountPath = mountPath
 	} else {
 		return false
 	}
 
 	//clear unmount-propagation flag if necessary (TODO swift.Interface)
-	if filepath.Dir(d.mountPath) == "/srv/node" {
+	if filepath.Dir(mountPath) == "/srv/node" {
 		err := sys_os.Remove(filepath.Join(
 			"/run/swift-storage/state/unmount-propagation",
-			filepath.Base(d.mountPath),
+			filepath.Base(mountPath),
 		))
 		if err != nil && !sys_os.IsNotExist(err) {
 			util.LogError(err.Error())
@@ -117,79 +122,64 @@ func (d *XFSDevice) Setup(drive *Drive, osi os.Interface) bool {
 
 //Teardown implements the Device interface.
 func (d *XFSDevice) Teardown(drive *Drive, osi os.Interface) bool {
-	if d.mountPath == "" {
-		//nothing to do
+	//remove all mounts of this device
+	ok := os.ForeachMountScope(func(scope os.MountScope) bool {
+		for _, m := range osi.GetMountPointsOf(d.path, scope) {
+			if filepath.Dir(m.MountPath) == "/srv/node" {
+				command.Run("ln", "-sTf", drive.DevicePath, "/run/swift-storage/state/unmount-propagation/"+filepath.Base(m.MountPath))
+			}
+			if !osi.UnmountDevice(m.MountPath, scope) {
+				return false
+			}
+		}
 		return true
-	}
+	})
 
-	//set unmount-propagation flag if necessary (TODO swift.Interface)
-	if filepath.Dir(d.mountPath) == "/srv/node" {
-		flagPath := "/run/swift-storage/state/unmount-propagation/" + filepath.Base(d.mountPath)
-		command.Run("ln", "-sTf", drive.DevicePath, flagPath)
-	}
-
-	//remove the mount that we know about
-	ok := osi.UnmountDevice(d.mountPath)
 	if ok {
-		util.LogInfo("unmounted %s", d.mountPath)
 		d.mountPath = ""
-	} else {
-		return false
 	}
-
-	//remove any other mounts that the system knows about
-	for _, m := range osi.GetMountPointsOf(d.path) {
-		if filepath.Dir(m.MountPath) == "/srv/node" {
-			command.Run("ln", "-sTf", d.path, "/run/swift-storage/state/unmount-propagation/"+filepath.Base(m.MountPath))
-		}
-		ok := osi.UnmountDevice(m.MountPath)
-		if ok {
-			util.LogInfo("unmounted %s", m.MountPath)
-		} else {
-			return false
-		}
-	}
-
-	return true
+	return ok
 }
 
 //Validate implements the Device interface.
 func (d *XFSDevice) Validate(drive *Drive, osi os.Interface) error {
-	mounts := osi.GetMountPointsOf(d.path)
+	return os.ForeachMountScopeOrError(func(scope os.MountScope) error {
+		mounts := osi.GetMountPointsOf(d.path, scope)
 
-	if len(mounts) == 0 {
-		if d.mountPath == "" {
-			return nil
-		}
+		if len(mounts) == 0 {
+			if d.mountPath == "" {
+				return nil
+			}
 
-		mountPath := d.mountPath
-		d.mountPath = ""
-		return fmt.Errorf(
-			"expected %s to be mounted at %s, but is not mounted anymore",
-			d.path, mountPath,
-		)
-	}
-
-	for _, m := range mounts {
-		if m.Options["ro"] {
-			return fmt.Errorf("mount of %s at %s is read-only (could be due to a disk error)", d.path, m.MountPath)
-		}
-
-		//this case is okay - the XFSDevice struct may have just been created and
-		//now we know that it is already active (and under which name)
-		if d.mountPath == "" {
-			util.LogInfo("discovered %s to be mounted at %s already", d.path, m.MountPath)
-			d.mountPath = m.MountPath
-			continue
-		}
-
-		if m.MountPath != d.mountPath {
+			mountPath := d.mountPath
+			d.mountPath = ""
 			return fmt.Errorf(
-				"expected %s to be mounted at %s, but is actually mounted at %s",
-				d.path, d.mountPath, m.MountPath,
+				"expected %s to be mounted at %s, but is not mounted anymore in %s mount namespace",
+				d.path, mountPath, scope,
 			)
 		}
-	}
 
-	return nil
+		for _, m := range mounts {
+			if m.Options["ro"] {
+				return fmt.Errorf("mount of %s at %s is read-only in %s mount namespace (could be due to a disk error)", d.path, m.MountPath, scope)
+			}
+
+			//this case is okay - the XFSDevice struct may have just been created and
+			//now we know that it is already active (and under which name)
+			if d.mountPath == "" {
+				util.LogInfo("discovered %s to be mounted at %s already in %s mount namespace", d.path, m.MountPath, scope)
+				d.mountPath = m.MountPath
+				continue
+			}
+
+			if m.MountPath != d.mountPath {
+				return fmt.Errorf(
+					"expected %s to be mounted at %s, but is actually mounted at %s in %s mount namespace",
+					d.path, d.mountPath, m.MountPath, scope,
+				)
+			}
+		}
+
+		return nil
+	})
 }

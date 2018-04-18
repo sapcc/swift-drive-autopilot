@@ -93,7 +93,7 @@ func (c *Converger) Converge() {
 //below /srv/node.
 func (c *Converger) CheckForUnexpectedMounts() {
 MOUNT:
-	for _, mount := range c.OS.GetMountPointsIn("/srv/node") {
+	for _, mount := range c.OS.GetMountPointsIn("/srv/node", os.HostScope) {
 		for _, drive := range c.Drives {
 			if drive.MountPath() == mount.MountPath {
 				continue MOUNT
