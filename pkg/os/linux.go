@@ -44,7 +44,7 @@ func NewLinux() (*Linux, error) {
 		return nil, fmt.Errorf("mount propagation detection failed: %s", err.Error())
 	}
 	if !util.InTestMode() {
-		util.LogInfo("mount propagation mode is: " + string(mpm))
+		util.LogInfo("mount namespaces are: " + string(mpm))
 	}
 
 	return &Linux{
@@ -76,7 +76,7 @@ type MountPropagationMode string
 
 const (
 	//OneMountNamespace indicates that Config.ChrootPath is not set.
-	OneMountNamespace MountPropagationMode = "none"
+	OneMountNamespace MountPropagationMode = "identical"
 	//ConnectedMountNamespaces indicates that mounts performed in the host mount
 	//namespace (i.e. in the chroot) will automatically appear in the local mount
 	//namespace.
