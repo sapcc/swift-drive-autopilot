@@ -51,7 +51,10 @@ func main() {
 	)
 
 	//swift cache path must be accesible from user swift
-	osi := &os.Linux{}
+	osi, err := os.NewLinux()
+	if err != nil {
+		util.LogFatal(err.Error())
+	}
 	osi.Chown("/var/cache/swift", Config.Owner.User, Config.Owner.Group)
 
 	//start the metrics endpoint

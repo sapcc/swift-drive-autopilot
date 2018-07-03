@@ -20,16 +20,14 @@
 package os
 
 import (
-	sys_os "os"
 	"strings"
 
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
-func mountScopesAreSeparate() bool {
-	cwd, _ := sys_os.Getwd()
-	return cwd != "/"
+func (l *Linux) mountScopesAreSeparate() bool {
+	return l.MountPropagationMode == SeparateMountNamespaces
 }
 
 func oppositeOf(scope MountScope) MountScope {
@@ -59,7 +57,7 @@ func (l *Linux) MountDevice(devicePath, mountPath string, scope MountScope) bool
 		return false
 	}
 	util.LogInfo("mounted %s to %s in %s mount namespace", devicePath, mountPath, scope)
-	if !mountScopesAreSeparate() {
+	if !l.mountScopesAreSeparate() {
 		util.LogInfo("mounted %s to %s in %s mount namespace", devicePath, mountPath, oppositeOf(scope))
 	}
 
@@ -68,7 +66,7 @@ func (l *Linux) MountDevice(devicePath, mountPath string, scope MountScope) bool
 		DevicePath: devicePath,
 		MountPath:  mountPath,
 	}
-	if mountScopesAreSeparate() {
+	if l.mountScopesAreSeparate() {
 		l.ActiveMountPoints[scope] = append(l.ActiveMountPoints[scope], m)
 	} else {
 		l.ActiveMountPoints[HostScope] = append(l.ActiveMountPoints[HostScope], m)
@@ -98,12 +96,12 @@ func (l *Linux) UnmountDevice(mountPath string, scope MountScope) bool {
 		return false
 	}
 	util.LogInfo("unmounted %s in %s mount namespace", mountPath, scope)
-	if !mountScopesAreSeparate() {
+	if !l.mountScopesAreSeparate() {
 		util.LogInfo("unmounted %s in %s mount namespace", mountPath, oppositeOf(scope))
 	}
 
 	//record that the unmount happened
-	if mountScopesAreSeparate() {
+	if l.mountScopesAreSeparate() {
 		l.ActiveMountPoints[scope] = removeMountPoint(l.ActiveMountPoints[scope], mountPath)
 	} else {
 		l.ActiveMountPoints[HostScope] = removeMountPoint(l.ActiveMountPoints[HostScope], mountPath)
@@ -124,7 +122,7 @@ func removeMountPoint(ms []MountPoint, mountPath string) []MountPoint {
 //RefreshMountPoints implements the Interface interface.
 func (l *Linux) RefreshMountPoints() {
 	l.ActiveMountPoints = map[MountScope][]MountPoint{LocalScope: collectMountPoints(LocalScope)}
-	if mountScopesAreSeparate() {
+	if l.mountScopesAreSeparate() {
 		l.ActiveMountPoints[HostScope] = collectMountPoints(HostScope)
 	} else {
 		//make a deep copy to ensure that editing of one list does not affect the other one inadvertently

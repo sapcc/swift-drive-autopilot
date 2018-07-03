@@ -245,6 +245,10 @@ chroot: /host
 $ docker run --privileged --rm -v $PWD/config.yml:/config.yml -v /:/host sapcc/swift-drive-autopilot:latest /config.yml
 ```
 
+**Warning:** The **entire** host filesystem must be passed in as a single bind
+mount. Otherwise, the autopilot will be unable to correctly detect the mount
+propagation mode.
+
 ### In Kubernetes
 
 You will probably want to run this as a daemonset with the `nodeSelector`
