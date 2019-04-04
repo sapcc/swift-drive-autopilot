@@ -21,6 +21,7 @@ package util
 
 import (
 	"os"
+	std_os "os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -53,6 +54,55 @@ func SetupTestMode() {
 		<-c
 		os.Exit(0)
 	}(c)
+}
+
+//StandardTrigger produces a channel that triggers in the specified
+//`normalInterval` during productive runs, or whenever the file
+//at `testModeTriggerPath` is touched during integration tests.
+func StandardTrigger(normalInterval time.Duration, testModeTriggerPath string, atStartup bool) <-chan struct{} {
+	trigger := make(chan struct{}, 1)
+
+	if atStartup {
+		trigger <- struct{}{}
+	}
+	if InTestMode() {
+		go testTrigger(testModeTriggerPath, trigger)
+	} else {
+		go prodTrigger(normalInterval, trigger)
+	}
+
+	return trigger
+}
+
+func prodTrigger(interval time.Duration, trigger chan<- struct{}) {
+	for {
+		trigger <- struct{}{}
+		time.Sleep(interval)
+	}
+}
+
+func testTrigger(path string, trigger chan<- struct{}) {
+	lastModTime := time.Unix(0, 0)
+	for {
+		time.Sleep(1 * time.Second)
+
+		fi, err := std_os.Stat(path)
+		var mtime time.Time
+		switch {
+		case err == nil:
+			mtime = fi.ModTime()
+		case std_os.IsNotExist(err):
+			mtime = time.Unix(0, 0)
+		default:
+			LogError(err.Error())
+			continue
+		}
+
+		if !mtime.Equal(lastModTime) {
+			trigger <- struct{}{}
+		}
+		lastModTime = mtime
+	}
 }
 
 //GetJobInterval is used by various collector jobs to tighten their work

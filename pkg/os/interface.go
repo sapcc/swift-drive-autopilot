@@ -31,8 +31,9 @@ package os
 type Interface interface {
 	//CollectDrives is run in a separate goroutine and reports drives as they are
 	//added or removed. (When first started, all existing drives shall be
-	//reported as "added".) It shall not return.
-	CollectDrives(devicePathGlobs []string, added chan<- []Drive, removed chan<- []string)
+	//reported as "added".) It shall not return. The `trigger` channel is used by
+	//the caller to trigger each work cycle of CollectDrives.
+	CollectDrives(devicePathGlobs []string, trigger <-chan struct{}, added chan<- []Drive, removed chan<- []string)
 	//CollectDriveErrors is run in a separate goroutine and reports drive errors
 	//that are observed in the kernel log. It shall not return.
 	CollectDriveErrors(errors chan<- []DriveError)

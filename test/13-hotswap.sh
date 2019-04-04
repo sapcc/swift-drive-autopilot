@@ -40,12 +40,12 @@ run_and_expect <<-EOF
 > INFO: mounted ${DEV2} to /srv/node/swift2 in host mount namespace
 > INFO: mounted ${DEV2} to /srv/node/swift2 in local mount namespace
 
-$ source lib/common.sh; expect_mountpoint /srv/node/swift{1,2}; rm "${DIR}/loop1"
+$ source lib/common.sh; expect_mountpoint /srv/node/swift{1,2}; rm "${DIR}/loop1"; as_root touch /run/swift-storage/check-drives
 > INFO: event received: device removed: ${DEV1}
 > INFO: unmounted /srv/node/swift1 in host mount namespace
 > INFO: unmounted /srv/node/swift1 in local mount namespace
 
-$ source lib/common.sh; expect_no_mountpoint /srv/node/swift1; ln -s "${DEV1}" "${DIR}/loop1"
+$ source lib/common.sh; expect_no_mountpoint /srv/node/swift1; ln -s "${DEV1}" "${DIR}/loop1"; as_root touch /run/swift-storage/check-drives
 > INFO: event received: new device found: ${DIR}/loop1 -> ${DEV1}
 > ERROR: cannot determine serial number for ${DEV1}, will use device ID {{hash1}} instead
 > INFO: mounted ${DEV1} to /run/swift-storage/{{hash1}} in host mount namespace

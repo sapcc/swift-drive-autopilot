@@ -39,9 +39,11 @@ run_and_expect <<-EOF
 > INFO: unmounted /run/swift-storage/{{hash2}} in local mount namespace
 > INFO: mounted /dev/mapper/{{hash2}} to /srv/node/swift2 in host mount namespace
 > INFO: mounted /dev/mapper/{{hash2}} to /srv/node/swift2 in local mount namespace
+
+$ source lib/common.sh; as_root touch /run/swift-storage/wakeup
 > INFO: event received: scheduled consistency check
 
-$ source lib/common.sh; expect_open_luks_count 2; expect_mountpoint /srv/node/swift{1,2}; as_root mount -o remount,ro /srv/node/swift1
+$ source lib/common.sh; expect_open_luks_count 2; expect_mountpoint /srv/node/swift{1,2}; as_root mount -o remount,ro /srv/node/swift1; as_root touch /run/swift-storage/wakeup
 > INFO: event received: scheduled consistency check
 > ERROR: mount of /dev/mapper/{{hash1}} at /srv/node/swift1 is read-only in host mount namespace (could be due to a disk error)
 > INFO: flagging ${DEV1} as broken because of previous error
@@ -49,6 +51,8 @@ $ source lib/common.sh; expect_open_luks_count 2; expect_mountpoint /srv/node/sw
 > INFO: unmounted /srv/node/swift1 in host mount namespace
 > INFO: unmounted /srv/node/swift1 in local mount namespace
 > INFO: LUKS container /dev/mapper/{{hash1}} closed
+
+$ source lib/common.sh; as_root touch /run/swift-storage/wakeup
 > INFO: event received: scheduled consistency check
 
 $ source lib/common.sh; expect_open_luks_count 1; expect_no_mountpoint /srv/node/swift1; expect_symlink /run/swift-storage/broken/* "${DEV1}"; expect_symlink /run/swift-storage/state/unmount-propagation/swift1 "${DEV1}"; reinstate_drive "${DEV1}"

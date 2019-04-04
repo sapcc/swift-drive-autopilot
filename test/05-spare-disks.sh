@@ -44,22 +44,22 @@ run_and_expect <<-EOF
 > INFO: mounted {{dev3}} to /srv/node/swift2 in host mount namespace
 > INFO: mounted {{dev3}} to /srv/node/swift2 in local mount namespace
 
-$ source lib/common.sh; expect_mountpoint /srv/node/swift{1,2} /run/swift-storage/{{hash2}}; expect_no_mountpoint /srv/node/swift3; expect_deleted /srv/node/spare; expect_file_with_content /run/swift-storage/{{hash2}}/swift-id 'spare'
+$ source lib/common.sh; expect_mountpoint /srv/node/swift{1,2} /run/swift-storage/{{hash2}}; expect_no_mountpoint /srv/node/swift3; expect_deleted /srv/node/spare; expect_file_with_content /run/swift-storage/{{hash2}}/swift-id 'spare'; as_root touch /run/swift-storage/wakeup
 > INFO: event received: scheduled consistency check
 
-$ source lib/common.sh; rm ${DIR}/loop3
+$ source lib/common.sh; rm ${DIR}/loop3; as_root touch /run/swift-storage/check-drives
 > INFO: event received: device removed: {{dev3}}
 > INFO: unmounted /srv/node/swift2 in host mount namespace
 > INFO: unmounted /srv/node/swift2 in local mount namespace
 
-$ source lib/common.sh; expect_no_mountpoint /srv/node/swift2; echo swift2 | as_root tee /run/swift-storage/{{hash2}}/swift-id > /dev/null
+$ source lib/common.sh; expect_no_mountpoint /srv/node/swift2; echo swift2 | as_root tee /run/swift-storage/{{hash2}}/swift-id > /dev/null; as_root touch /run/swift-storage/wakeup
 > INFO: event received: scheduled consistency check
 > INFO: unmounted /run/swift-storage/{{hash2}} in host mount namespace
 > INFO: unmounted /run/swift-storage/{{hash2}} in local mount namespace
 > INFO: mounted {{dev2}} to /srv/node/swift2 in host mount namespace
 > INFO: mounted {{dev2}} to /srv/node/swift2 in local mount namespace
 
-$ source lib/common.sh; make_loop_devices 4 5
+$ source lib/common.sh; make_loop_devices 4 5; as_root touch /run/swift-storage/check-drives
 > INFO: event received: new device found: ${DIR}/loop4 -> {{dev4}}
 > ERROR: cannot determine serial number for {{dev4}}, will use device ID {{hash4}} instead
 > INFO: mounted {{dev4}} to /run/swift-storage/{{hash4}} in host mount namespace
@@ -73,7 +73,7 @@ $ source lib/common.sh; make_loop_devices 4 5
 > INFO: assigning swift-id 'spare' to {{dev4}}
 > INFO: assigning swift-id 'spare' to {{dev5}}
 
-$ source lib/common.sh; expect_mountpoint /srv/node/swift{1,2} /run/swift-storage/{{{hash4}},{{hash5}}}; expect_no_mountpoint /srv/node/swift3; expect_file_with_content /run/swift-storage/{{hash4}}/swift-id 'spare'; expect_file_with_content /run/swift-storage/{{hash5}}/swift-id 'spare'
+$ source lib/common.sh; expect_mountpoint /srv/node/swift{1,2} /run/swift-storage/{{{hash4}},{{hash5}}}; expect_no_mountpoint /srv/node/swift3; expect_file_with_content /run/swift-storage/{{hash4}}/swift-id 'spare'; expect_file_with_content /run/swift-storage/{{hash5}}/swift-id 'spare'; as_root touch /run/swift-storage/wakeup
 > INFO: event received: scheduled consistency check
 EOF
 

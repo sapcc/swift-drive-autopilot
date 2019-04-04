@@ -78,7 +78,8 @@ func (e DriveRemovedEvent) EventType() string {
 func CollectDriveEvents(osi os.Interface, queue chan []Event) {
 	added := make(chan []os.Drive)
 	removed := make(chan []string)
-	go osi.CollectDrives(Config.DriveGlobs, added, removed)
+	trigger := util.StandardTrigger(5*time.Second, "run/swift-storage/check-drives", true)
+	go osi.CollectDrives(Config.DriveGlobs, trigger, added, removed)
 
 	for {
 		select {
@@ -169,9 +170,8 @@ func CollectReinstatements(queue chan []Event) {
 //to invoke the consistency checks that the converger executes during each of
 //its event loop iterations.
 func ScheduleWakeups(queue chan []Event) {
-	interval := util.GetJobInterval(30*time.Second, 10*time.Second)
-	for {
-		time.Sleep(interval)
+	trigger := util.StandardTrigger(30*time.Second, "run/swift-storage/wakeup", false)
+	for range trigger {
 		queue <- []Event{WakeupEvent{}}
 	}
 }

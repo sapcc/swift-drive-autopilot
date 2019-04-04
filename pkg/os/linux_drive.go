@@ -24,7 +24,6 @@ import (
 	"regexp"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
@@ -39,12 +38,11 @@ var driveWithPartitionTableRx = regexp.MustCompile(`(?mi)^Disklabel type`)
 var serialNumberRx = regexp.MustCompile(`(?m)^Serial number:\s*(\S+)\s*$`)
 
 //CollectDrives implements the Interface interface.
-func (l *Linux) CollectDrives(devicePathGlobs []string, added chan<- []Drive, removed chan<- []string) {
+func (l *Linux) CollectDrives(devicePathGlobs []string, trigger <-chan struct{}, added chan<- []Drive, removed chan<- []string) {
 	knownDrives := make(map[string]string)
 
 	//work loop
-	interval := util.GetJobInterval(5*time.Second, 1*time.Second)
-	for {
+	for range trigger {
 		//expand globs to find drives
 		existingDrives := make(map[string]string)
 		for _, pattern := range devicePathGlobs {
@@ -130,8 +128,5 @@ func (l *Linux) CollectDrives(devicePathGlobs []string, added chan<- []Drive, re
 			})
 			added <- addedDrives
 		}
-
-		//sleep for 5 seconds before running globs again
-		time.Sleep(interval)
 	}
 }

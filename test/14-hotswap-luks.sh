@@ -43,15 +43,17 @@ run_and_expect <<-EOF
 > INFO: unmounted /run/swift-storage/{{hash2}} in local mount namespace
 > INFO: mounted /dev/mapper/{{hash2}} to /srv/node/swift2 in host mount namespace
 > INFO: mounted /dev/mapper/{{hash2}} to /srv/node/swift2 in local mount namespace
+
+$ source lib/common.sh; as_root touch /run/swift-storage/wakeup
 > INFO: event received: scheduled consistency check
 
-$ source lib/common.sh; expect_open_luks_count 2; expect_mountpoint /srv/node/swift{1,2}; rm "${DIR}/loop1"
+$ source lib/common.sh; expect_open_luks_count 2; expect_mountpoint /srv/node/swift{1,2}; rm "${DIR}/loop1"; as_root touch /run/swift-storage/check-drives
 > INFO: event received: device removed: ${DEV1}
 > INFO: unmounted /srv/node/swift1 in host mount namespace
 > INFO: unmounted /srv/node/swift1 in local mount namespace
 > INFO: LUKS container /dev/mapper/{{hash1}} closed
 
-$ source lib/common.sh; expect_open_luks_count 1; expect_no_mountpoint /srv/node/swift1; ln -s "${DEV1}" "${DIR}/loop1"
+$ source lib/common.sh; expect_open_luks_count 1; expect_no_mountpoint /srv/node/swift1; ln -s "${DEV1}" "${DIR}/loop1"; as_root touch /run/swift-storage/check-drives
 > INFO: event received: new device found: ${DIR}/loop1 -> ${DEV1}
 > ERROR: cannot determine serial number for ${DEV1}, will use device ID {{hash1}} instead
 > INFO: LUKS container at ${DEV1} opened as /dev/mapper/{{hash1}}

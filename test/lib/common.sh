@@ -2,7 +2,6 @@
 set -euo pipefail
 
 if [ "${DEBUG:-0}" == 1 ]; then
-    set -x
     function log_debug {
         echo ">> $@"
     }
