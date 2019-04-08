@@ -76,8 +76,8 @@ func StandardTrigger(normalInterval time.Duration, testModeTriggerPath string, a
 
 func prodTrigger(interval time.Duration, trigger chan<- struct{}) {
 	for {
-		trigger <- struct{}{}
 		time.Sleep(interval)
+		trigger <- struct{}{}
 	}
 }
 
