@@ -66,6 +66,14 @@ func (l *Linux) CollectDrives(devicePathGlobs []string, trigger <-chan struct{},
 			}
 		}
 
+		//fail loudly when there are no drives matching our glob
+		//(https://github.com/sapcc/swift-drive-autopilot/issues/23)
+		if len(existingDrives) == 0 {
+			util.LogFatal("no drives found matching the configured patterns: %s",
+				strings.Join(devicePathGlobs, ", "),
+			)
+		}
+
 		//check if any of the reported drives have been removed
 		var removedDrives []string
 		for globbedPath, devicePath := range knownDrives {

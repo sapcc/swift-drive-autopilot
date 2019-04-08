@@ -59,7 +59,21 @@ function run_and_expect {
     log_debug "Starting autopilot (log output will be copied to ${DIR}/log)"
     as_root env TEST_MODE=1 ../build/swift-drive-autopilot "${DIR}/config.yaml" \
         | timeout 120s ../build/logexpect "${DIR}/pattern" > "${DIR}/log"
-    log_debug "Success!"
+    local EXIT_CODE=$?
+    [ "${EXIT_CODE}" = 0 ] && log_debug "Success!"
+    return "${EXIT_CODE}"
+}
+
+# Standard execution step: Same as run_and_expect, but expect
+# swift-drive-autopilot to exit with non-zero status.
+function run_and_expect_failure {
+    if run_and_expect; then
+        log_debug "Succeeded unexpectedly!"
+        return 1
+    else
+        log_debug "Failed as expected!"
+        return 0
+    fi
 }
 
 # Standard execution step: Find and remove the broken flag for the given drive.
