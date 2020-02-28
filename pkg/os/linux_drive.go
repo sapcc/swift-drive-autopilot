@@ -122,7 +122,7 @@ func (l *Linux) CollectDrives(devicePathGlobs []string, trigger <-chan struct{},
 				if ok {
 					match := serialNumberRx.FindStringSubmatch(stdout)
 					if match != nil {
-						drive.SerialNumber = match[1]
+						drive.SerialNumber = sanitizeSerialNumber(match[1])
 					}
 				}
 
@@ -137,4 +137,15 @@ func (l *Linux) CollectDrives(devicePathGlobs []string, trigger <-chan struct{},
 			added <- addedDrives
 		}
 	}
+}
+
+var specialCharInSerialNumberRx = regexp.MustCompile(`[^a-zA-Z0-9_-]`)
+
+//In some pathological cases, disk serial numbers may contain non-alphanumeric
+//characters (e.g. we use iSCSI volumes instead of real disks in some of our QA
+//environments and those have + or ] in their serial numbers). These chars
+//could confuse the autopilot e.g. because `cryptsetup luksOpen` apparently
+//does some escaping when creating mapped devices, so get rid of them early on.
+func sanitizeSerialNumber(input string) string {
+	return specialCharInSerialNumberRx.ReplaceAllString(input, "_")
 }
