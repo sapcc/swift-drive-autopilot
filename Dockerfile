@@ -1,4 +1,4 @@
-FROM golang:1.14-alpine as builder
+FROM golang:1.15-alpine as builder
 WORKDIR /x/src/github.com/sapcc/swift-drive-autopilot/
 RUN apk add --no-cache curl make openssl && \
     mkdir -p /pkg/bin/ && \
