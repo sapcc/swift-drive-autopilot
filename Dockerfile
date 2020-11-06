@@ -11,7 +11,7 @@ RUN make install PREFIX=/pkg
 
 ################################################################################
 
-FROM alpine:latest
+FROM alpine:3.12
 LABEL source_repository="https://github.com/sapcc/swift-drive-autopilot"
 
 RUN apk add --no-cache file smartmontools
