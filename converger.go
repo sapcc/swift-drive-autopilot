@@ -136,7 +136,7 @@ func (c *Converger) WriteDriveAudit() {
 func (e DriveAddedEvent) Handle(c *Converger) {
 	keys := make([]string, len(Config.Keys))
 	for idx, key := range Config.Keys {
-		keys[idx] = key.Secret
+		keys[idx] = string(key.Secret)
 	}
 
 	drive := core.NewDrive(e.DevicePath, e.SerialNumber, keys, c.OS)

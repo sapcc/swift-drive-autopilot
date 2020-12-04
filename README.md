@@ -151,7 +151,7 @@ group here.
 ```yaml
 keys:
   - secret: "bzQoG5HN4onnEis5bhDmnYqqacoLNCSmDbFEAb3VDztmBtGobH"
-  - secret: "Nr8LHATRJF4kPI51KY6pgsUCbAXwHN9LPNjaMknTWK4u44EAme"
+  - secret: { fromEnv: ENVIRONMENT_VARIABLE }
 ```
 
 If `keys` is set, automatic disk encryption handling is activated. LUKS
@@ -163,6 +163,10 @@ one is used when creating new LUKS containers.
 
 Currently, the `secret` will be used as encryption key directly. Other key
 derivation schemes may be supported in the future.
+
+Instead of providing `secret` as plain text in the config file, you can use a
+special syntax (`fromEnv`) to read the respective encryption key from an
+exported environment variable.
 
 ```yaml
 swift-id-pool: [ "swift1", "swift2", "swift3", "swift4", "swift5", "swift6" ]
