@@ -24,6 +24,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/sapcc/go-bits/secrets"
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -39,7 +40,7 @@ type Configuration struct {
 	Keys []struct {
 		//this is a struct to later support the addition of a Method field to
 		//specify the key derivation method
-		Secret string `yaml:"secret"`
+		Secret secrets.AuthPassword `yaml:"secret"`
 	} `yaml:"keys"`
 	SwiftIDPool          []string `yaml:"swift-id-pool"`
 	MetricsListenAddress string   `yaml:"metrics-listen-address"`
