@@ -82,7 +82,10 @@ func (l *Linux) RefreshLUKSMappings() {
 		mappingName := fields[0]
 
 		//ask cryptsetup for the device backing this mapping
-		l.ActiveLUKSMappings[l.getBackingDevicePath(mappingName)] = "/dev/mapper/" + mappingName
+		backingDevicePath := l.getBackingDevicePath(mappingName)
+		if backingDevicePath != nil {
+			l.ActiveLUKSMappings[*backingDevicePath] = "/dev/mapper/" + mappingName
+		}
 	}
 	return
 }
@@ -90,13 +93,16 @@ func (l *Linux) RefreshLUKSMappings() {
 var backingDeviceRx = regexp.MustCompile(`(?m)^\s*device:\s*(\S+)\s*$`)
 
 //Ask cryptsetup for the device backing an open LUKS container.
-func (l *Linux) getBackingDevicePath(mapName string) string {
+func (l *Linux) getBackingDevicePath(mapName string) *string {
 	stdout, _ := command.Command{ExitOnError: true}.Run("cryptsetup", "status", mapName)
 
 	//look for a line like "  device:  /dev/sdb"
 	match := backingDeviceRx.FindStringSubmatch(stdout)
 	if match == nil {
 		util.LogFatal("cannot find backing device for /dev/mapper/%s", mapName)
+	} else if match[1] == "(null)" {
+		util.LogError("skipping /dev/mapper/%s: `cryptsetup status` reports backing device as `(null)` (the kernel log probably has an IO error for the underlying device)", mapName)
+		return nil
 	} else {
 		//resolve any symlinks to get the actual devicePath
 		//when the luks container is created on top of multipathing, cryptsetup status might report the /dev/mapper/mpath device
@@ -107,11 +113,11 @@ func (l *Linux) getBackingDevicePath(mapName string) string {
 		}
 		if devicePath != match[1] {
 			util.LogDebug("backing device path for %s is %s -> %s", mapName, match[1], devicePath)
-			return devicePath
+			return &devicePath
 		}
 		util.LogDebug("backing device path for %s is %s", mapName, match[1])
 	}
-	return match[1]
+	return &match[1]
 }
 
 //GetLUKSMappingOf implements the Interface interface.
