@@ -1,0 +1,88 @@
+{
+   "blockdevices": [
+      {"name":"sda", "maj:min":"8:0", "rm":false, "size":"447.1G", "ro":false, "type":"disk", "mountpoint":null,
+         "children": [
+            {"name":"sda1", "maj:min":"8:1", "rm":false, "size":"128M", "ro":false, "type":"part", "mountpoint":"/boot"},
+            {"name":"sda2", "maj:min":"8:2", "rm":false, "size":"2M", "ro":false, "type":"part", "mountpoint":null},
+            {"name":"sda3", "maj:min":"8:3", "rm":false, "size":"1G", "ro":false, "type":"part", "mountpoint":null,
+               "children": [
+                  {"name":"usr", "maj:min":"254:0", "rm":false, "size":"1016M", "ro":true, "type":"crypt", "mountpoint":"/usr"}
+               ]
+            },
+            {"name":"sda4", "maj:min":"8:4", "rm":false, "size":"1G", "ro":false, "type":"part", "mountpoint":null},
+            {"name":"sda6", "maj:min":"8:6", "rm":false, "size":"128M", "ro":false, "type":"part", "mountpoint":"/usr/share/oem"},
+            {"name":"sda7", "maj:min":"8:7", "rm":false, "size":"64M", "ro":false, "type":"part", "mountpoint":null},
+            {"name":"sda9", "maj:min":"8:9", "rm":false, "size":"444.8G", "ro":false, "type":"part", "mountpoint":"/"}
+         ]
+      },
+      {"name":"sdb", "maj:min":"8:16", "rm":false, "size":"447.1G", "ro":false, "type":"disk", "mountpoint":null,
+         "children": [
+            {"name":"sdb1", "maj:min":"8:17", "rm":false, "size":"24.4G", "ro":false, "type":"part", "mountpoint":null},
+            {"name":"sdb2", "maj:min":"8:18", "rm":false, "size":"97.7G", "ro":false, "type":"part", "mountpoint":null},
+            {"name":"sdb3", "maj:min":"8:19", "rm":false, "size":"325.1G", "ro":false, "type":"part", "mountpoint":null}
+         ]
+      },
+      {"name":"sdc", "maj:min":"8:32", "rm":false, "size":"5.5T", "ro":false, "type":"disk", "mountpoint":null,
+         "children": [
+            {"name":"EJIOQU5P", "maj:min":"254:1", "rm":false, "size":"5.5T", "ro":false, "type":"crypt", "mountpoint":"/srv/node/swift-01"}
+         ]
+      },
+      {"name":"sdd", "maj:min":"8:48", "rm":false, "size":"5.5T", "ro":false, "type":"disk", "mountpoint":null,
+         "children": [
+            {"name":"IU3EEQU1", "maj:min":"254:2", "rm":false, "size":"5.5T", "ro":false, "type":"crypt", "mountpoint":"/srv/node/swift-02"}
+         ]
+      },
+      {"name":"sde", "maj:min":"8:64", "rm":false, "size":"5.5T", "ro":false, "type":"disk", "mountpoint":null,
+         "children": [
+            {"name":"THIE2JAI", "maj:min":"254:3", "rm":false, "size":"5.5T", "ro":false, "type":"crypt", "mountpoint":"/srv/node/swift-03"}
+         ]
+      },
+      {"name":"sdf", "maj:min":"8:80", "rm":false, "size":"5.5T", "ro":false, "type":"disk", "mountpoint":null,
+         "children": [
+            {"name":"TAI5IEWO", "maj:min":"254:4", "rm":false, "size":"5.5T", "ro":false, "type":"crypt", "mountpoint":"/srv/node/swift-04"}
+         ]
+      },
+      {"name":"sdg", "maj:min":"8:96", "rm":false, "size":"5.5T", "ro":false, "type":"disk", "mountpoint":null,
+         "children": [
+            {"name":"XOHSOHW9", "maj:min":"254:5", "rm":false, "size":"5.5T", "ro":false, "type":"crypt", "mountpoint":"/srv/node/swift-05"}
+         ]
+      },
+      {"name":"sdh", "maj:min":"8:112", "rm":false, "size":"5.5T", "ro":false, "type":"disk", "mountpoint":null,
+         "children": [
+            {"name":"AIGH9YOO", "maj:min":"254:6", "rm":false, "size":"5.5T", "ro":false, "type":"crypt", "mountpoint":"/srv/node/swift-06"}
+         ]
+      },
+      {"name":"sdi", "maj:min":"8:128", "rm":false, "size":"5.5T", "ro":false, "type":"disk", "mountpoint":null,
+         "children": [
+            {"name":"EIJOH9OH", "maj:min":"254:7", "rm":false, "size":"5.5T", "ro":false, "type":"crypt", "mountpoint":"/srv/node/swift-07"}
+         ]
+      },
+      {"name":"sdj", "maj:min":"8:144", "rm":false, "size":"5.5T", "ro":false, "type":"disk", "mountpoint":null,
+         "children": [
+            {"name":"LEE9EEVI", "maj:min":"254:8", "rm":false, "size":"5.5T", "ro":false, "type":"crypt", "mountpoint":"/srv/node/swift-08"}
+         ]
+      },
+      {"name":"sdk", "maj:min":"8:160", "rm":false, "size":"5.5T", "ro":false, "type":"disk", "mountpoint":null,
+         "children": [
+            {"name":"KEI1JIEG", "maj:min":"254:9", "rm":false, "size":"5.5T", "ro":false, "type":"crypt", "mountpoint":"/srv/node/swift-09"}
+         ]
+      },
+      {"name":"sdl", "maj:min":"8:176", "rm":false, "size":"5.5T", "ro":false, "type":"disk", "mountpoint":null,
+         "children": [
+            {"name":"VOO1GAHX", "maj:min":"254:10", "rm":false, "size":"5.5T", "ro":false, "type":"crypt", "mountpoint":"/srv/node/swift-10"}
+         ]
+      },
+      {"name":"sdm", "maj:min":"8:192", "rm":false, "size":"5.5T", "ro":false, "type":"disk", "mountpoint":null,
+         "children": [
+            {"name":"AIX2EICH", "maj:min":"254:11", "rm":false, "size":"5.5T", "ro":false, "type":"crypt", "mountpoint":"/srv/node/swift-11"}
+         ]
+      },
+      {"name":"sdn", "maj:min":"8:208", "rm":false, "size":"5.5T", "ro":false, "type":"disk", "mountpoint":null,
+         "children": [
+            {"name":"LOHPEI1V", "maj:min":"254:12", "rm":false, "size":"5.5T", "ro":false, "type":"crypt", "mountpoint":"/srv/node/swift-12"}
+         ]
+      },
+      {"name":"sr0", "maj:min":"11:0", "rm":true, "size":"1024M", "ro":false, "type":"rom", "mountpoint":null},
+      {"name":"sr1", "maj:min":"11:1", "rm":true, "size":"1024M", "ro":false, "type":"rom", "mountpoint":null}
+   ]
+}
