@@ -26,6 +26,7 @@ import (
 	"strings"
 
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
+	"github.com/sapcc/swift-drive-autopilot/pkg/parsers"
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
@@ -107,6 +108,21 @@ func (l *Linux) CollectDrives(devicePathGlobs []string, trigger <-chan struct{},
 				//not readable and should be ignored (e.g. on some servers, we have
 				///dev/sdX which is a KVM remote volume that's usually not
 				//accessible, i.e. open() fails with ENOMEDIUM; we want to ignore those)
+				//
+				//HOWEVER If the problem is an IO error and the drive has a LUKS
+				//container already opened from before the IO error, we can see that in
+				//`lsblk` and we can infer the serial number from the mapping name.
+				//In this case we want to report the device so that the IO error gets
+				//propagated upwards correctly.
+				serialNumber := tryFindSerialNumberForBrokenDevice(devicePath)
+				if serialNumber != nil {
+					drive := Drive{
+						DevicePath:   devicePath,
+						FoundAtPath:  globbedPath,
+						SerialNumber: *serialNumber,
+					}
+					addedDrives = append(addedDrives, drive)
+				}
 				util.LogInfo("ignoring drive %s because it is not readable", devicePath)
 			default:
 				//drive is eligible -> find serial number and report it
@@ -148,4 +164,14 @@ var specialCharInSerialNumberRx = regexp.MustCompile(`[^a-zA-Z0-9_-]`)
 //does some escaping when creating mapped devices, so get rid of them early on.
 func sanitizeSerialNumber(input string) string {
 	return specialCharInSerialNumberRx.ReplaceAllString(input, "_")
+}
+
+func tryFindSerialNumberForBrokenDevice(devicePath string) *string {
+	stdout, _ := command.Command{ExitOnError: true}.Run("lsblk", "-J")
+	lsblkOutput, err := parsers.ParseLsblkOutput(stdout)
+	if err != nil {
+		util.LogFatal("cannot parse `lsblk -J` output: " + err.Error())
+	}
+
+	return lsblkOutput.FindSerialNumberForDevice(devicePath)
 }

@@ -58,6 +58,42 @@ func TestFindBackingDeviceForLUKS(t *testing.T) {
 	}
 }
 
+func TestFindSerialNumberForDevice(t *testing.T) {
+	testCasesPerFile := map[string]map[string]string{
+		"fixtures/lsblk-mpath.json": {
+			"/dev/mapper/mpatha":  "BAINGOO2",
+			"/dev/mapper/mpathak": "MI2IA7EL",
+			"/dev/sda":            "",
+			"/dev/sda3":           "usr",
+			"/dev/null":           "",
+		},
+		"fixtures/lsblk-plain.json": {
+			"/dev/sdc":  "EJIOQU5P",
+			"/dev/sdg":  "XOHSOHW9",
+			"/dev/sda":  "",
+			"/dev/sda3": "usr",
+			"/dev/null": "",
+		},
+	}
+	for fileName, testCases := range testCasesPerFile {
+		buf, err := ioutil.ReadFile(fileName)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		output, err := ParseLsblkOutput(string(buf))
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+		for devicePath, expectedSerialNumber := range testCases {
+			actualSerialNumber := emptyIfNil(output.FindSerialNumberForDevice(devicePath))
+			if actualSerialNumber != expectedSerialNumber {
+				t.Errorf("%s: expected %q to have serial number %q, but has serial number %q",
+					fileName, devicePath, expectedSerialNumber, actualSerialNumber)
+			}
+		}
+	}
+}
+
 func emptyIfNil(val *string) string {
 	if val == nil {
 		return ""

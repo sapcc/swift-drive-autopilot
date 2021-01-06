@@ -76,6 +76,38 @@ func (d LsblkDevice) findBackingDeviceForLUKSRecursively(mappingName string) *st
 	return nil
 }
 
+//FindSerialNumberForDevice returns the serial number for the device with the
+//given path, by looking for a LUKS mapping directly below that device, which
+//(by convention) has the serial number as its mapping name. This is a
+//best-effort operation: If the drive is not encrypted or the respective LUKS
+//container is not opened, this returns nil.
+func (o LsblkOutput) FindSerialNumberForDevice(devicePath string) *string {
+	dev := findDeviceByPath(o.BlockDevices, devicePath)
+	if dev == nil {
+		return nil
+	}
+	if len(dev.Children) != 1 {
+		return nil
+	}
+	if dev.Children[0].Type != "crypt" {
+		return nil
+	}
+	return &dev.Children[0].Name
+}
+
+func findDeviceByPath(devices []LsblkDevice, devicePath string) *LsblkDevice {
+	for _, d := range devices {
+		if d.devicePath() == devicePath {
+			return &d
+		}
+		childResult := findDeviceByPath(d.Children, devicePath)
+		if childResult != nil {
+			return childResult
+		}
+	}
+	return nil
+}
+
 func (d LsblkDevice) devicePath() string {
 	switch d.Type {
 	case "crypt", "mpath":
