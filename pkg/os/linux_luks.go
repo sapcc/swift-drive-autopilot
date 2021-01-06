@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
+	"github.com/sapcc/swift-drive-autopilot/pkg/parsers"
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
@@ -65,8 +66,14 @@ func (l *Linux) CloseLUKSContainer(mappingName string) bool {
 
 //RefreshLUKSMappings implements the Interface interface.
 func (l *Linux) RefreshLUKSMappings() {
+	stdout, _ := command.Command{ExitOnError: true}.Run("lsblk", "-J")
+	lsblkOutput, err := parsers.ParseLsblkOutput(stdout)
+	if err != nil {
+		util.LogFatal("cannot parse `lsblk -J` output: " + err.Error())
+	}
+
 	l.ActiveLUKSMappings = make(map[string]string)
-	stdout, _ := command.Command{ExitOnError: true}.Run("dmsetup", "ls", "--target=crypt")
+	stdout, _ = command.Command{ExitOnError: true}.Run("dmsetup", "ls", "--target=crypt")
 
 	if strings.TrimSpace(stdout) == "No devices found" {
 		return
@@ -81,8 +88,11 @@ func (l *Linux) RefreshLUKSMappings() {
 		}
 		mappingName := fields[0]
 
-		//ask cryptsetup for the device backing this mapping
-		backingDevicePath := l.getBackingDevicePath(mappingName)
+		//check lsblk output for the device backing this mapping, otherwise ask cryptsetup for it
+		backingDevicePath := lsblkOutput.FindBackingDeviceForLUKS(mappingName)
+		if backingDevicePath == nil {
+			backingDevicePath = l.getBackingDevicePath(mappingName)
+		}
 		if backingDevicePath != nil {
 			l.ActiveLUKSMappings[*backingDevicePath] = "/dev/mapper/" + mappingName
 		}
