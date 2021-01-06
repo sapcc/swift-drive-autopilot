@@ -80,7 +80,7 @@ func (d LsblkDevice) devicePath() string {
 	switch d.Type {
 	case "crypt", "mpath":
 		return "/dev/mapper/" + d.Name
-	case "disk", "part", "rom":
+	case "disk", "part", "rom", "loop":
 		return "/dev/" + d.Name
 	default:
 		panic(fmt.Sprintf("do not know how to compute devicePath for %#v", d))
