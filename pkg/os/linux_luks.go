@@ -95,6 +95,15 @@ func (l *Linux) RefreshLUKSMappings() {
 		}
 		if backingDevicePath != nil {
 			l.ActiveLUKSMappings[*backingDevicePath] = "/dev/mapper/" + mappingName
+
+			//if `backingDevicePath` is a symlink (e.g. `/dev/mapper/mpathXXX` for
+			//multipath devices), callers may also ask us for the underlying device
+			//file (e.g. `/dev/dm-NNN`) instead of the symlink, so track that file as well
+			backingDeviceCanonicalPath, err := l.evalSymlinksInChroot(*backingDevicePath)
+			if err != nil {
+				util.LogFatal("while resolving symlinks in %s: %s", *backingDevicePath, err.Error())
+			}
+			l.ActiveLUKSMappings[backingDeviceCanonicalPath] = "/dev/mapper/" + mappingName
 		}
 	}
 	return
@@ -132,5 +141,6 @@ func (l *Linux) getBackingDevicePath(mapName string) *string {
 
 //GetLUKSMappingOf implements the Interface interface.
 func (l *Linux) GetLUKSMappingOf(devicePath string) string {
+	util.LogDebug("discovered LUKS device path for %s is %q", devicePath, l.ActiveLUKSMappings[devicePath])
 	return l.ActiveLUKSMappings[devicePath]
 }
