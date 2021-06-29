@@ -50,6 +50,9 @@ func (l *Linux) ClassifyDevice(devicePath string) DeviceType {
 
 //FormatDevice implements the Interface interface.
 func (l *Linux) FormatDevice(devicePath string) bool {
-	_, ok := command.Run("mkfs.xfs", devicePath)
+	//TODO: remove `-f` (currently needed to work around
+	//https://github.com/karelzak/util-linux/issues/1159 until Flatcar updates
+	//util-linux to 2.36 or newer
+	_, ok := command.Run("mkfs.xfs", "-f", devicePath)
 	return ok
 }
