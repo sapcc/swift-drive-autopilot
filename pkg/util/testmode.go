@@ -21,7 +21,6 @@ package util
 
 import (
 	"os"
-	std_os "os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -48,7 +47,7 @@ func SetupTestMode() {
 	//TODO: This could be extended to properly shut down the converger by
 	//posting a ShutdownEvent or similar, and could then also be used for
 	//SIGINT/SIGTERM.
-	c := make(chan os.Signal)
+	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGPIPE)
 	go func(c <-chan os.Signal) {
 		<-c
@@ -86,12 +85,12 @@ func testTrigger(path string, trigger chan<- struct{}) {
 	for {
 		time.Sleep(1 * time.Second)
 
-		fi, err := std_os.Stat(path)
+		fi, err := os.Stat(path)
 		var mtime time.Time
 		switch {
 		case err == nil:
 			mtime = fi.ModTime()
-		case std_os.IsNotExist(err):
+		case os.IsNotExist(err):
 			mtime = time.Unix(0, 0)
 		default:
 			LogError(err.Error())
