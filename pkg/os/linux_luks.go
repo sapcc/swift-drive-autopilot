@@ -106,7 +106,6 @@ func (l *Linux) RefreshLUKSMappings() {
 			l.ActiveLUKSMappings[backingDeviceCanonicalPath] = "/dev/mapper/" + mappingName
 		}
 	}
-	return
 }
 
 var backingDeviceRx = regexp.MustCompile(`(?m)^\s*device:\s*(\S+)\s*$`)
