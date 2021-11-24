@@ -23,7 +23,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"regexp"
@@ -36,7 +35,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	commandBytes, err := ioutil.ReadFile(os.Args[1])
+	commandBytes, err := os.ReadFile(os.Args[1])
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)

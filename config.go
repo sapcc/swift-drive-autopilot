@@ -21,7 +21,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/sapcc/go-bits/secrets"
@@ -58,7 +57,7 @@ func init() {
 	}
 
 	//read config file
-	configBytes, err := ioutil.ReadFile(os.Args[1])
+	configBytes, err := os.ReadFile(os.Args[1])
 	if err != nil {
 		util.LogFatal("read configuration file: %s", err.Error())
 	}

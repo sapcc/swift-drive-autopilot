@@ -20,7 +20,7 @@
 package parsers
 
 import (
-	"io/ioutil"
+	"os"
 	"testing"
 )
 
@@ -40,7 +40,7 @@ func TestFindBackingDeviceForLUKS(t *testing.T) {
 		},
 	}
 	for fileName, testCases := range testCasesPerFile {
-		buf, err := ioutil.ReadFile(fileName)
+		buf, err := os.ReadFile(fileName)
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -76,7 +76,7 @@ func TestFindSerialNumberForDevice(t *testing.T) {
 		},
 	}
 	for fileName, testCases := range testCasesPerFile {
-		buf, err := ioutil.ReadFile(fileName)
+		buf, err := os.ReadFile(fileName)
 		if err != nil {
 			t.Fatal(err.Error())
 		}

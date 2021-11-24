@@ -20,7 +20,6 @@
 package os
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -31,7 +30,7 @@ import (
 
 //ReadSwiftID implements the Interface interface.
 func (l *Linux) ReadSwiftID(mountPath string) (string, error) {
-	buf, err := ioutil.ReadFile(swiftIDPathIn(mountPath))
+	buf, err := os.ReadFile(swiftIDPathIn(mountPath))
 	switch {
 	case err == nil:
 		return strings.TrimSpace(string(buf)), nil
@@ -44,7 +43,7 @@ func (l *Linux) ReadSwiftID(mountPath string) (string, error) {
 
 //WriteSwiftID implements the Interface interface.
 func (l *Linux) WriteSwiftID(mountPath, swiftID string) error {
-	return ioutil.WriteFile(swiftIDPathIn(mountPath), []byte(swiftID+"\n"), 0644)
+	return os.WriteFile(swiftIDPathIn(mountPath), []byte(swiftID+"\n"), 0644)
 }
 
 func swiftIDPathIn(mountPath string) string {

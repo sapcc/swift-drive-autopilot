@@ -21,7 +21,7 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	sys_os "os"
 	"path/filepath"
 	"strings"
 
@@ -126,7 +126,7 @@ func (c *Converger) WriteDriveAudit() {
 	if Config.ChrootPath != "" {
 		path = filepath.Join(Config.ChrootPath, strings.TrimPrefix(path, "/"))
 	}
-	err := ioutil.WriteFile(path, jsonStr, 0644)
+	err := sys_os.WriteFile(path, jsonStr, 0644)
 	if err != nil {
 		util.LogError(err.Error())
 	}

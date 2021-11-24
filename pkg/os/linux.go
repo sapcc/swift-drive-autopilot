@@ -21,7 +21,6 @@ package os
 
 import (
 	"fmt"
-	"io/ioutil"
 	sys_os "os"
 	"path/filepath"
 	"strings"
@@ -94,7 +93,7 @@ func detectMountPropagationMode() (MountPropagationMode, error) {
 		return OneMountNamespace, nil
 	}
 
-	buf, err := ioutil.ReadFile("/proc/self/mountinfo")
+	buf, err := sys_os.ReadFile("/proc/self/mountinfo")
 	if err != nil {
 		return "", err
 	}
