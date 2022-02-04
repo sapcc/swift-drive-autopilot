@@ -1,4 +1,4 @@
-FROM golang:1.17-alpine3.13 as builder
+FROM golang:1.17-alpine3.15 as builder
 WORKDIR /x/src/github.com/sapcc/swift-drive-autopilot/
 RUN apk add --no-cache curl make openssl && \
     mkdir -p /pkg/bin/ && \
@@ -11,7 +11,7 @@ RUN make install PREFIX=/pkg
 
 ################################################################################
 
-FROM alpine:3.13
+FROM alpine:3.15
 LABEL source_repository="https://github.com/sapcc/swift-drive-autopilot"
 
 RUN apk add --no-cache file smartmontools
