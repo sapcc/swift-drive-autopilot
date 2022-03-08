@@ -11,6 +11,9 @@ binaries:
 vendoring:
   enabled: true
 
+golangciLint:
+  createConfig: true
+
 verbatim: |
   functional-test:
     ./test/run.sh
