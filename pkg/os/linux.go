@@ -87,7 +87,10 @@ const (
 )
 
 func detectMountPropagationMode() (MountPropagationMode, error) {
-	chrootPath, _ := sys_os.Getwd()
+	chrootPath, err := sys_os.Getwd()
+	if err != nil {
+		return "", err
+	}
 	chrootPath = filepath.Clean(chrootPath)
 	if chrootPath == "/" {
 		return OneMountNamespace, nil
