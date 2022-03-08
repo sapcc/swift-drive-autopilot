@@ -26,6 +26,7 @@ import (
 	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
 	"github.com/sapcc/swift-drive-autopilot/pkg/core"
 	"github.com/sapcc/swift-drive-autopilot/pkg/os"
