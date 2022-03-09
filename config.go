@@ -24,8 +24,9 @@ import (
 	"os"
 
 	"github.com/sapcc/go-bits/secrets"
-	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 	yaml "gopkg.in/yaml.v2"
+
+	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
 //Configuration represents the content of the config file.

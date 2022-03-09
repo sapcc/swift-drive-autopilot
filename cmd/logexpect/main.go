@@ -170,7 +170,6 @@ func matchPattern(reader *bufio.Reader, pattern string, vars map[string]string) 
 		} else {
 			vars[name] = match[idx+1]
 		}
-
 	}
 
 	if eof {

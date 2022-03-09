@@ -26,6 +26,7 @@ import (
 	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
+
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
 	"github.com/sapcc/swift-drive-autopilot/pkg/core"
 	"github.com/sapcc/swift-drive-autopilot/pkg/os"
@@ -120,13 +121,16 @@ func (c *Converger) WriteDriveAudit() {
 		}
 	}
 	data["drive_audit_errors"] = total
-	jsonStr, _ := json.Marshal(data)
+	jsonStr, err := json.Marshal(data)
+	if err != nil {
+		util.LogError(err.Error())
+	}
 
 	path := "/var/cache/swift/drive.recon"
 	if Config.ChrootPath != "" {
 		path = filepath.Join(Config.ChrootPath, strings.TrimPrefix(path, "/"))
 	}
-	err := sys_os.WriteFile(path, jsonStr, 0644)
+	err = sys_os.WriteFile(path, jsonStr, 0644)
 	if err != nil {
 		util.LogError(err.Error())
 	}
