@@ -15,8 +15,15 @@ golangciLint:
   createConfig: true
 
 githubWorkflow:
+  global:
+    ignorePaths: ["**.md"] # all Markdown files
   codeQL:
     enabled: true
+  license:
+    enabled: true
+  spellCheck:
+    enabled: true
+    ignorePaths: [] # override global setting so that nothing is ignored
 
 verbatim: |
   functional-test:
