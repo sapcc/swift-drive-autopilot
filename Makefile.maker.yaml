@@ -14,6 +14,10 @@ vendoring:
 golangciLint:
   createConfig: true
 
+githubWorkflow:
+  codeQL:
+    enabled: true
+
 verbatim: |
   functional-test:
     ./test/run.sh
