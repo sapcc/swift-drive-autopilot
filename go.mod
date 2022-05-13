@@ -3,7 +3,7 @@ module github.com/sapcc/swift-drive-autopilot
 go 1.17
 
 require (
-	github.com/prometheus/client_golang v1.12.1
+	github.com/prometheus/client_golang v1.12.2
 	github.com/sapcc/go-bits v0.0.0-20220512020827-9e756ac0a3ca
 	gopkg.in/yaml.v2 v2.4.0
 )
