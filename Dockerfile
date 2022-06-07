@@ -22,4 +22,4 @@ LABEL source_repository="https://github.com/sapcc/swift-drive-autopilot" \
 
 USER root:root
 WORKDIR /var/empty
-ENTRYPOINT [ "/usr/bin/dumb-init", "--", "/usr/bin/swift-drive-autopilot" ]
+ENTRYPOINT [ "/usr/bin/dumb-init\", \"--\", \"/usr/bin/swift-drive-autopilot" ]
