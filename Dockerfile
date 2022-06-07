@@ -4,21 +4,22 @@ ARG ALPINE_VERSION=3.16
 ARG GOLANG_VERSION=1.17.11-alpine
 
 FROM golang:${GOLANG_VERSION}${ALPINE_VERSION} as builder
-WORKDIR /x/src/github.com/sapcc/swift-drive-autopilot/
-RUN apk add --no-cache curl make openssl && \
-    mkdir -p /pkg/bin/ && \
-    curl -L https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.2.0_amd64 > /pkg/bin/dumb-init && \
-    chmod +x /pkg/bin/dumb-init
+RUN apk add --no-cache gcc git make musl-dev
 
-COPY . .
-ARG VERSION
-RUN make install PREFIX=/pkg
+COPY . /src
+RUN make -C /src install PREFIX=/pkg GO_BUILDFLAGS='-mod vendor'
 
 ################################################################################
 
 FROM alpine:${ALPINE_VERSION}
-LABEL source_repository="https://github.com/sapcc/swift-drive-autopilot"
 
-RUN apk add --no-cache file smartmontools
+RUN apk add --no-cache ca-certificates dumb-init file smartmontools
 COPY --from=builder /pkg/ /usr/
-ENTRYPOINT ["/usr/bin/dumb-init", "--", "/usr/bin/swift-drive-autopilot"]
+
+LABEL source_repository="https://github.com/sapcc/swift-drive-autopilot" \
+  org.opencontainers.image.url="https://github.com/sapcc/swift-drive-autopilot" \
+  org.opencontainers.image.revision=unknown
+
+USER root:root
+WORKDIR /var/empty
+ENTRYPOINT [ "/usr/bin/dumb-init", "--", "/usr/bin/swift-drive-autopilot" ]

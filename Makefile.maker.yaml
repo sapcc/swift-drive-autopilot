@@ -1,5 +1,8 @@
 # Configuration file for <https://github.com/sapcc/go-makefile-maker>
 
+metadata:
+  url: https://github.com/sapcc/swift-drive-autopilot
+
 binaries:
   - name:        swift-drive-autopilot
     fromPackage: .
@@ -10,6 +13,17 @@ binaries:
 
 vendoring:
   enabled: true
+
+dockerfile:
+  enabled: true
+  entrypoint: ["/usr/bin/dumb-init", "--", "/usr/bin/swift-drive-autopilot"]
+  extraIgnores:
+    - HACKING.md
+  extraPackages:
+    - dumb-init
+    - file
+    - smartmontools
+  user: root
 
 golangciLint:
   createConfig: true
