@@ -16,9 +16,10 @@ FROM alpine:${ALPINE_VERSION}
 RUN apk add --no-cache ca-certificates dumb-init file smartmontools
 COPY --from=builder /pkg/ /usr/
 
+ARG COMMIT_ID=unknown
 LABEL source_repository="https://github.com/sapcc/swift-drive-autopilot" \
   org.opencontainers.image.url="https://github.com/sapcc/swift-drive-autopilot" \
-  org.opencontainers.image.revision=unknown
+  org.opencontainers.image.revision=$(COMMIT_ID)
 
 USER root:root
 WORKDIR /var/empty
