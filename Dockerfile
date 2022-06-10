@@ -8,7 +8,7 @@ RUN make -C /src install PREFIX=/pkg GO_BUILDFLAGS='-mod vendor'
 
 FROM alpine:3.16
 
-RUN apk add --no-cache ca-certificates tzdata dumb-init file smartmontools
+RUN apk add --no-cache ca-certificates dumb-init file smartmontools
 COPY --from=builder /pkg/ /usr/
 
 ARG COMMIT_ID=unknown
