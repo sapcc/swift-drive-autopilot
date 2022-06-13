@@ -32,8 +32,8 @@ github.com/prometheus/common/model
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
-# github.com/sapcc/go-bits v0.0.0-20220610155404-690aed13bb25
-## explicit; go 1.17
+# github.com/sapcc/go-bits v0.0.0-20220613112247-ad9f786fef57
+## explicit; go 1.18
 github.com/sapcc/go-bits/secrets
 # golang.org/x/sys v0.0.0-20220412211240-33da011f77ad
 ## explicit; go 1.17
