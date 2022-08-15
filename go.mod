@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/prometheus/client_golang v1.13.0
-	github.com/sapcc/go-bits v0.0.0-20220806113733-304e620cef60
+	github.com/sapcc/go-bits v0.0.0-20220815140959-384e4e0b2d84
 	gopkg.in/yaml.v2 v2.4.0
 )
 
