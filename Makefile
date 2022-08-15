@@ -38,7 +38,8 @@ else
 endif
 
 install: FORCE build/swift-drive-autopilot
-	install -D -m 0755 build/swift-drive-autopilot "$(DESTDIR)$(PREFIX)/bin/swift-drive-autopilot"
+	install -d -m 0755 "$(DESTDIR)$(PREFIX)/bin"
+	install -m 0755 build/swift-drive-autopilot "$(DESTDIR)$(PREFIX)/bin/swift-drive-autopilot"
 
 # which packages to test with "go test"
 GO_TESTPKGS := $(shell go list -f '{{if or .TestGoFiles .XTestGoFiles}}{{.ImportPath}}{{end}}' ./...)
