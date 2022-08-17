@@ -19,15 +19,15 @@
 
 package os
 
-//Interface describes the set of OS-level operations that can be executed by
-//the autopilot. The default implementation for production is struct Linux in
-//this package.
+// Interface describes the set of OS-level operations that can be executed by
+// the autopilot. The default implementation for production is struct Linux in
+// this package.
 //
-//There is an important distinction between "drive" and "device" in the
-//autopilot's jargon. A "drive" is the physical thing, a "device" is a device
-//file. For encrypted drives, there are two devices for each drive: the
-//original SCSI device file (e.g. /dev/sda) and the device file representing
-//the contents of the LUKS container (e.g. /dev/mapper/ABCDEFGH).
+// There is an important distinction between "drive" and "device" in the
+// autopilot's jargon. A "drive" is the physical thing, a "device" is a device
+// file. For encrypted drives, there are two devices for each drive: the
+// original SCSI device file (e.g. /dev/sda) and the device file representing
+// the contents of the LUKS container (e.g. /dev/mapper/ABCDEFGH).
 type Interface interface {
 	//CollectDrives is run in a separate goroutine and reports drives as they are
 	//added or removed. (When first started, all existing drives shall be
@@ -83,21 +83,21 @@ type Interface interface {
 	Chown(path, owner, group string)
 }
 
-//Drive contains information about a drive as detected by the OS.
+// Drive contains information about a drive as detected by the OS.
 type Drive struct {
 	DevicePath   string
 	FoundAtPath  string //only used in log messages
 	SerialNumber string
 }
 
-//DriveError represents a drive error that was found e.g. in a kernel log.
+// DriveError represents a drive error that was found e.g. in a kernel log.
 type DriveError struct {
 	DevicePath string
 	Message    string
 }
 
-//DeviceType describes the contents of a device, to the granularity required by
-//this program.
+// DeviceType describes the contents of a device, to the granularity required by
+// this program.
 type DeviceType int
 
 const (
@@ -114,15 +114,15 @@ const (
 	DeviceTypeFilesystem
 )
 
-//MountPoint describes an active mount point that is present on the system.
+// MountPoint describes an active mount point that is present on the system.
 type MountPoint struct {
 	DevicePath string
 	MountPath  string
 	Options    map[string]bool
 }
 
-//MountScope describes whether a mount happens in the autopilot's mount
-//namespace or in the host mount namespace.
+// MountScope describes whether a mount happens in the autopilot's mount
+// namespace or in the host mount namespace.
 type MountScope string
 
 const (
@@ -132,8 +132,8 @@ const (
 	LocalScope = "local"
 )
 
-//ForeachMountScope calls the action once for each MountScope, aborting as soon
-//as one call returns false.
+// ForeachMountScope calls the action once for each MountScope, aborting as soon
+// as one call returns false.
 func ForeachMountScope(action func(MountScope) (ok bool)) (ok bool) {
 	if !action(HostScope) {
 		return false
@@ -141,7 +141,7 @@ func ForeachMountScope(action func(MountScope) (ok bool)) (ok bool) {
 	return action(LocalScope)
 }
 
-//ForeachMountScopeOrError is like ForeachMountScope, but propagates errors instead of bools.
+// ForeachMountScopeOrError is like ForeachMountScope, but propagates errors instead of bools.
 func ForeachMountScopeOrError(action func(MountScope) error) error {
 	err := action(HostScope)
 	if err != nil {

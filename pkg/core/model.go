@@ -21,10 +21,10 @@ package core
 
 import "github.com/sapcc/swift-drive-autopilot/pkg/os"
 
-//Device is implemented by each model class that represents the contents of a
-//device. Each method in the interface takes a reference to the drive that
-//contains this device, and to the os.Interface with which to execute OS-level
-//operations.
+// Device is implemented by each model class that represents the contents of a
+// device. Each method in the interface takes a reference to the drive that
+// contains this device, and to the os.Interface with which to execute OS-level
+// operations.
 type Device interface {
 	//DevicePath returns the path to the device file.
 	DevicePath() string
@@ -41,7 +41,7 @@ type Device interface {
 	Validate(drive *Drive, osi os.Interface) error
 }
 
-//Returns nil to indicate unreadable device.
+// Returns nil to indicate unreadable device.
 func newDevice(devicePath string, osi os.Interface, preferLUKS bool) Device {
 	switch osi.ClassifyDevice(devicePath) {
 	case os.DeviceTypeUnreadable:
@@ -59,8 +59,8 @@ func newDevice(devicePath string, osi os.Interface, preferLUKS bool) Device {
 	return nil
 }
 
-//Drive enhances os.Drive with a state machine that coordinates the setup and
-//teardown of the drive's mount.
+// Drive enhances os.Drive with a state machine that coordinates the setup and
+// teardown of the drive's mount.
 type Drive struct {
 	DevicePath string
 	Device     Device

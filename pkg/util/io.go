@@ -24,10 +24,10 @@ import (
 	"path/filepath"
 )
 
-//ForeachSymlinkIn finds all symlinks in the given directory, and calls the
-//handler once for each symlink (with its file name and link target). Any
-//errors because of filesystem operations will be logged to LogError and false
-//will be returned if any such error occurred.
+// ForeachSymlinkIn finds all symlinks in the given directory, and calls the
+// handler once for each symlink (with its file name and link target). Any
+// errors because of filesystem operations will be logged to LogError and false
+// will be returned if any such error occurred.
 func ForeachSymlinkIn(path string, handler func(name, target string)) (success bool) {
 	dir, err := os.Open(path)
 	if err != nil {

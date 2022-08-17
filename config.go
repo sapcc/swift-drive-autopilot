@@ -29,7 +29,7 @@ import (
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
-//Configuration represents the content of the config file.
+// Configuration represents the content of the config file.
 type Configuration struct {
 	ChrootPath string   `yaml:"chroot"`
 	DriveGlobs []string `yaml:"drives"`
@@ -46,8 +46,8 @@ type Configuration struct {
 	MetricsListenAddress string   `yaml:"metrics-listen-address"`
 }
 
-//Config is the global Configuration instance that's filled by main() at
-//program start.
+// Config is the global Configuration instance that's filled by main() at
+// program start.
 var Config Configuration
 
 func init() {

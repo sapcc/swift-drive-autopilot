@@ -37,7 +37,7 @@ func oppositeOf(scope MountScope) MountScope {
 	return HostScope
 }
 
-//MountDevice implements the Interface interface.
+// MountDevice implements the Interface interface.
 func (l *Linux) MountDevice(devicePath, mountPath string, scope MountScope) bool {
 	//check if already mounted
 	for _, m := range l.ActiveMountPoints[scope] {
@@ -76,7 +76,7 @@ func (l *Linux) MountDevice(devicePath, mountPath string, scope MountScope) bool
 	return true
 }
 
-//UnmountDevice implements the Interface interface.
+// UnmountDevice implements the Interface interface.
 func (l *Linux) UnmountDevice(mountPath string, scope MountScope) bool {
 	//check if already unmounted
 	mounted := false
@@ -119,7 +119,7 @@ func removeMountPoint(ms []MountPoint, mountPath string) []MountPoint {
 	return ms
 }
 
-//RefreshMountPoints implements the Interface interface.
+// RefreshMountPoints implements the Interface interface.
 func (l *Linux) RefreshMountPoints() {
 	l.ActiveMountPoints = map[MountScope][]MountPoint{LocalScope: collectMountPoints(LocalScope)}
 	if l.mountScopesAreSeparate() {
@@ -177,7 +177,7 @@ func collectMountPoints(scope MountScope) (result []MountPoint) {
 	return
 }
 
-//GetMountPointsIn implements the Interface interface.
+// GetMountPointsIn implements the Interface interface.
 func (l *Linux) GetMountPointsIn(mountPathPrefix string, scope MountScope) []MountPoint {
 	if !strings.HasSuffix(mountPathPrefix, "/") {
 		mountPathPrefix += "/"
@@ -192,7 +192,7 @@ func (l *Linux) GetMountPointsIn(mountPathPrefix string, scope MountScope) []Mou
 	return result
 }
 
-//GetMountPointsOf implements the Interface interface.
+// GetMountPointsOf implements the Interface interface.
 func (l *Linux) GetMountPointsOf(devicePath string, scope MountScope) []MountPoint {
 	var result []MountPoint
 	for _, m := range l.ActiveMountPoints[scope] {

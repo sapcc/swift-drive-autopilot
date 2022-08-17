@@ -24,12 +24,12 @@ import (
 	"fmt"
 )
 
-//LsblkOutput contains the parsed output from `lsblk -J`.
+// LsblkOutput contains the parsed output from `lsblk -J`.
 type LsblkOutput struct {
 	BlockDevices []LsblkDevice `json:"blockdevices"`
 }
 
-//LsblkDevice appears in type LsblkOutput.
+// LsblkDevice appears in type LsblkOutput.
 type LsblkDevice struct {
 	Name       string        `json:"name"`
 	MajorMinor string        `json:"maj:min"`
@@ -41,15 +41,15 @@ type LsblkDevice struct {
 	Children   []LsblkDevice `json:"children"`
 }
 
-//ParseLsblkOutput parses output from `lsblk -J`.
+// ParseLsblkOutput parses output from `lsblk -J`.
 func ParseLsblkOutput(buf string) (out LsblkOutput, err error) {
 	err = json.Unmarshal([]byte(buf), &out)
 	return
 }
 
-//FindBackingDeviceForLUKS returns the device path for the given LUKS mapping,
-//or an empty string if the backing device cannot be determined from the lsblk
-//output.
+// FindBackingDeviceForLUKS returns the device path for the given LUKS mapping,
+// or an empty string if the backing device cannot be determined from the lsblk
+// output.
 func (o LsblkOutput) FindBackingDeviceForLUKS(mappingName string) *string {
 	for _, dev := range o.BlockDevices {
 		devPath := dev.findBackingDeviceForLUKSRecursively(mappingName)
@@ -76,11 +76,11 @@ func (d LsblkDevice) findBackingDeviceForLUKSRecursively(mappingName string) *st
 	return nil
 }
 
-//FindSerialNumberForDevice returns the serial number for the device with the
-//given path, by looking for a LUKS mapping directly below that device, which
-//(by convention) has the serial number as its mapping name. This is a
-//best-effort operation: If the drive is not encrypted or the respective LUKS
-//container is not opened, this returns nil.
+// FindSerialNumberForDevice returns the serial number for the device with the
+// given path, by looking for a LUKS mapping directly below that device, which
+// (by convention) has the serial number as its mapping name. This is a
+// best-effort operation: If the drive is not encrypted or the respective LUKS
+// container is not opened, this returns nil.
 func (o LsblkOutput) FindSerialNumberForDevice(devicePath string) *string {
 	dev := findDeviceByPath(o.BlockDevices, devicePath)
 	if dev == nil {

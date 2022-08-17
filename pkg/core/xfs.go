@@ -29,7 +29,7 @@ import (
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
-//XFSDevice is a device containing an XFS filesystem.
+// XFSDevice is a device containing an XFS filesystem.
 type XFSDevice struct {
 	path      string
 	formatted bool
@@ -38,17 +38,17 @@ type XFSDevice struct {
 	mountPath string
 }
 
-//DevicePath implements the Device interface.
+// DevicePath implements the Device interface.
 func (d *XFSDevice) DevicePath() string {
 	return d.path
 }
 
-//MountedPath implements the Device interface.
+// MountedPath implements the Device interface.
 func (d *XFSDevice) MountedPath() string {
 	return d.mountPath
 }
 
-//Setup implements the Device interface.
+// Setup implements the Device interface.
 func (d *XFSDevice) Setup(drive *Drive, osi os.Interface) bool {
 	//sanity check (and recognize pre-existing mount before attempting our own)
 	err := d.Validate(drive, osi)
@@ -120,7 +120,7 @@ func (d *XFSDevice) Setup(drive *Drive, osi os.Interface) bool {
 	return true
 }
 
-//Teardown implements the Device interface.
+// Teardown implements the Device interface.
 func (d *XFSDevice) Teardown(drive *Drive, osi os.Interface) bool {
 	//remove all mounts of this device
 	ok := os.ForeachMountScope(func(scope os.MountScope) bool {
@@ -141,7 +141,7 @@ func (d *XFSDevice) Teardown(drive *Drive, osi os.Interface) bool {
 	return ok
 }
 
-//Validate implements the Device interface.
+// Validate implements the Device interface.
 func (d *XFSDevice) Validate(drive *Drive, osi os.Interface) error {
 	return os.ForeachMountScopeOrError(func(scope os.MountScope) error {
 		mounts := osi.GetMountPointsOf(d.path, scope)

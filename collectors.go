@@ -27,8 +27,8 @@ import (
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
-//Event is the base interface for messages sent from the collector threads to
-//the converger thread.
+// Event is the base interface for messages sent from the collector threads to
+// the converger thread.
 type Event interface {
 	LogMessage() string
 	EventType() string //for counter metric that counts events
@@ -38,14 +38,14 @@ type Event interface {
 ////////////////////////////////////////////////////////////////////////////////
 // drive collector
 
-//DriveAddedEvent is an Event that fires when a new drive is found.
+// DriveAddedEvent is an Event that fires when a new drive is found.
 type DriveAddedEvent struct {
 	DevicePath   string
 	FoundAtPath  string //the DevicePath before symlinks were expanded
 	SerialNumber string //may be empty if it cannot be determined
 }
 
-//LogMessage implements the Event interface.
+// LogMessage implements the Event interface.
 func (e DriveAddedEvent) LogMessage() string {
 	if e.FoundAtPath == "" || e.FoundAtPath == e.DevicePath {
 		return "new device found: " + e.DevicePath
@@ -53,28 +53,28 @@ func (e DriveAddedEvent) LogMessage() string {
 	return fmt.Sprintf("new device found: %s -> %s", e.FoundAtPath, e.DevicePath)
 }
 
-//EventType implements the Event interface.
+// EventType implements the Event interface.
 func (e DriveAddedEvent) EventType() string {
 	return "drive-added"
 }
 
-//DriveRemovedEvent is an Event that fires when a drive's device file disappears.
+// DriveRemovedEvent is an Event that fires when a drive's device file disappears.
 type DriveRemovedEvent struct {
 	DevicePath string
 }
 
-//LogMessage implements the Event interface.
+// LogMessage implements the Event interface.
 func (e DriveRemovedEvent) LogMessage() string {
 	return "device removed: " + e.DevicePath
 }
 
-//EventType implements the Event interface.
+// EventType implements the Event interface.
 func (e DriveRemovedEvent) EventType() string {
 	return "drive-removed"
 }
 
-//CollectDriveEvents is a collector thread that emits DriveAddedEvent and
-//DriveRemovedEvent.
+// CollectDriveEvents is a collector thread that emits DriveAddedEvent and
+// DriveRemovedEvent.
 func CollectDriveEvents(osi os.Interface, queue chan []Event) {
 	added := make(chan []os.Drive)
 	removed := make(chan []string)
@@ -106,24 +106,24 @@ func CollectDriveEvents(osi os.Interface, queue chan []Event) {
 ////////////////////////////////////////////////////////////////////////////////
 // reinstatement collector
 
-//DriveReinstatedEvent is an Event that is emitted by CollectReinstatements.
+// DriveReinstatedEvent is an Event that is emitted by CollectReinstatements.
 type DriveReinstatedEvent struct {
 	DevicePath string
 }
 
-//LogMessage implements the Event interface.
+// LogMessage implements the Event interface.
 func (e DriveReinstatedEvent) LogMessage() string {
 	return "device reinstated: " + e.DevicePath
 }
 
-//EventType implements the Event interface.
+// EventType implements the Event interface.
 func (e DriveReinstatedEvent) EventType() string {
 	return "drive-reinstated"
 }
 
-//CollectReinstatements watches /run/swift-storage/broken and issues a
-//DriveReinstatedEvent whenever a broken-flag in there is deleted by an
-//administrator.
+// CollectReinstatements watches /run/swift-storage/broken and issues a
+// DriveReinstatedEvent whenever a broken-flag in there is deleted by an
+// administrator.
 func CollectReinstatements(queue chan []Event) {
 	//tracks broken devices between loop iterations; we only send an event when
 	//a device is removed from this set
@@ -166,9 +166,9 @@ func CollectReinstatements(queue chan []Event) {
 ////////////////////////////////////////////////////////////////////////////////
 // wakeup scheduler
 
-//ScheduleWakeups is a collector job that pushes a no-op event every 30 seconds
-//to invoke the consistency checks that the converger executes during each of
-//its event loop iterations.
+// ScheduleWakeups is a collector job that pushes a no-op event every 30 seconds
+// to invoke the consistency checks that the converger executes during each of
+// its event loop iterations.
 func ScheduleWakeups(queue chan []Event) {
 	trigger := util.StandardTrigger(30*time.Second, "run/swift-storage/wakeup", false)
 	for range trigger {
@@ -176,14 +176,14 @@ func ScheduleWakeups(queue chan []Event) {
 	}
 }
 
-//WakeupEvent is sent by the ScheduleWakeups collector.
+// WakeupEvent is sent by the ScheduleWakeups collector.
 type WakeupEvent struct{}
 
-//LogMessage implements the Event interface.
+// LogMessage implements the Event interface.
 //
-//The WakeupEvent does not produce an "event received" log message because it
-//would spam the log continuously. Instead, the continued execution of
-//consistency checks is tracked by the Prometheus metric that counts events.
+// The WakeupEvent does not produce an "event received" log message because it
+// would spam the log continuously. Instead, the continued execution of
+// consistency checks is tracked by the Prometheus metric that counts events.
 func (e WakeupEvent) LogMessage() string {
 	if util.InTestMode() {
 		return "scheduled consistency check"
@@ -191,12 +191,12 @@ func (e WakeupEvent) LogMessage() string {
 	return ""
 }
 
-//EventType implements the Event interface.
+// EventType implements the Event interface.
 func (e WakeupEvent) EventType() string {
 	return "consistency-check"
 }
 
-//Handle implements the Event interface.
+// Handle implements the Event interface.
 func (e WakeupEvent) Handle(c *Converger) {
 	//do nothing
 }
@@ -204,24 +204,24 @@ func (e WakeupEvent) Handle(c *Converger) {
 ////////////////////////////////////////////////////////////////////////////////
 // kernel log collector
 
-//DriveErrorEvent is emitted by the WatchKernelLog collector.
+// DriveErrorEvent is emitted by the WatchKernelLog collector.
 type DriveErrorEvent struct {
 	DevicePath string
 	LogLine    string
 }
 
-//LogMessage implements the Event interface.
+// LogMessage implements the Event interface.
 func (e DriveErrorEvent) LogMessage() string {
 	return "potential device error for " + e.DevicePath + " seen in kernel log: " + e.LogLine
 }
 
-//EventType implements the Event interface.
+// EventType implements the Event interface.
 func (e DriveErrorEvent) EventType() string {
 	return "drive-error"
 }
 
-//WatchKernelLog is a collector job that sends DriveErrorEvent when the kernel
-//log contains an error regarding a SCSI disk.
+// WatchKernelLog is a collector job that sends DriveErrorEvent when the kernel
+// log contains an error regarding a SCSI disk.
 func WatchKernelLog(osi os.Interface, queue chan []Event) {
 	errors := make(chan []os.DriveError)
 	go osi.CollectDriveErrors(errors)

@@ -28,15 +28,15 @@ import (
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
-//Linux is an Interface implementation for when the autopilot runs in
-//productive mode on Linux hosts.
+// Linux is an Interface implementation for when the autopilot runs in
+// productive mode on Linux hosts.
 type Linux struct {
 	ActiveMountPoints    map[MountScope][]MountPoint
 	ActiveLUKSMappings   map[string]string
 	MountPropagationMode MountPropagationMode
 }
 
-//NewLinux initializes the OS interface for Linux.
+// NewLinux initializes the OS interface for Linux.
 func NewLinux() (*Linux, error) {
 	mpm, err := detectMountPropagationMode()
 	if err != nil {
@@ -51,8 +51,8 @@ func NewLinux() (*Linux, error) {
 	}, nil
 }
 
-//evalSymlinksInChroot is like filepath.EvalSymlinks(), but considers that the
-//given path is inside the chroot directory.
+// evalSymlinksInChroot is like filepath.EvalSymlinks(), but considers that the
+// given path is inside the chroot directory.
 func (l *Linux) evalSymlinksInChroot(path string) (string, error) {
 	//make path relative to current directory (== chroot directory)
 	path = strings.TrimPrefix(path, "/")
@@ -69,8 +69,8 @@ func (l *Linux) evalSymlinksInChroot(path string) (string, error) {
 	return result, nil
 }
 
-//MountPropagationMode indicates whether this process and processes
-//within the chroot have different mount namespaces.
+// MountPropagationMode indicates whether this process and processes
+// within the chroot have different mount namespaces.
 type MountPropagationMode string
 
 const (

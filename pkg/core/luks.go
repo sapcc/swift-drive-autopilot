@@ -26,7 +26,7 @@ import (
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
-//LUKSDevice is a device containing a LUKS container.
+// LUKSDevice is a device containing a LUKS container.
 type LUKSDevice struct {
 	path      string
 	formatted bool
@@ -36,12 +36,12 @@ type LUKSDevice struct {
 	mappingName string
 }
 
-//DevicePath implements the Device interface.
+// DevicePath implements the Device interface.
 func (d *LUKSDevice) DevicePath() string {
 	return d.path
 }
 
-//MountedPath implements the Device interface.
+// MountedPath implements the Device interface.
 func (d *LUKSDevice) MountedPath() string {
 	if d.mapped == nil {
 		return ""
@@ -49,7 +49,7 @@ func (d *LUKSDevice) MountedPath() string {
 	return d.mapped.MountedPath()
 }
 
-//Setup implements the Device interface.
+// Setup implements the Device interface.
 func (d *LUKSDevice) Setup(drive *Drive, osi os.Interface) bool {
 	//sanity check (and recognize pre-existing mapping before attempting our own)
 	err := d.Validate(drive, osi)
@@ -104,7 +104,7 @@ func (d *LUKSDevice) Setup(drive *Drive, osi os.Interface) bool {
 	return d.mapped.Setup(drive, osi)
 }
 
-//Teardown implements the Device interface.
+// Teardown implements the Device interface.
 func (d *LUKSDevice) Teardown(drive *Drive, osi os.Interface) bool {
 	//need to teardown contents of mapped device first
 	if d.mapped != nil {
@@ -130,7 +130,7 @@ func (d *LUKSDevice) Teardown(drive *Drive, osi os.Interface) bool {
 	return true
 }
 
-//Validate implements the Device interface.
+// Validate implements the Device interface.
 func (d *LUKSDevice) Validate(drive *Drive, osi os.Interface) error {
 	mappedDevicePath := osi.GetLUKSMappingOf(d.path)
 

@@ -30,15 +30,15 @@ import (
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
-//When a drive has a partition table, there will be a line like "Disklabel
-//type: gpt" in the output of `sfdisk -l`. For unpartitioned devices, this line
-//is missing.
+// When a drive has a partition table, there will be a line like "Disklabel
+// type: gpt" in the output of `sfdisk -l`. For unpartitioned devices, this line
+// is missing.
 var driveWithPartitionTableRx = regexp.MustCompile(`(?mi)^Disklabel type`)
 
-//This is used to extract a drive's serial number from `smartctl -i`.
+// This is used to extract a drive's serial number from `smartctl -i`.
 var serialNumberRx = regexp.MustCompile(`(?m)^Serial number:\s*(\S+)\s*$`)
 
-//CollectDrives implements the Interface interface.
+// CollectDrives implements the Interface interface.
 func (l *Linux) CollectDrives(devicePathGlobs []string, trigger <-chan struct{}, added chan<- []Drive, removed chan<- []string) {
 	knownDrives := make(map[string]string)
 
@@ -157,11 +157,11 @@ func (l *Linux) CollectDrives(devicePathGlobs []string, trigger <-chan struct{},
 
 var specialCharInSerialNumberRx = regexp.MustCompile(`[^a-zA-Z0-9_-]`)
 
-//In some pathological cases, disk serial numbers may contain non-alphanumeric
-//characters (e.g. we use iSCSI volumes instead of real disks in some of our QA
-//environments and those have + or ] in their serial numbers). These chars
-//could confuse the autopilot e.g. because `cryptsetup luksOpen` apparently
-//does some escaping when creating mapped devices, so get rid of them early on.
+// In some pathological cases, disk serial numbers may contain non-alphanumeric
+// characters (e.g. we use iSCSI volumes instead of real disks in some of our QA
+// environments and those have + or ] in their serial numbers). These chars
+// could confuse the autopilot e.g. because `cryptsetup luksOpen` apparently
+// does some escaping when creating mapped devices, so get rid of them early on.
 func sanitizeSerialNumber(input string) string {
 	return specialCharInSerialNumberRx.ReplaceAllString(input, "_")
 }

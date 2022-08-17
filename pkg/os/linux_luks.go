@@ -28,13 +28,13 @@ import (
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
-//CreateLUKSContainer implements the Interface interface.
+// CreateLUKSContainer implements the Interface interface.
 func (l *Linux) CreateLUKSContainer(devicePath, key string) bool {
 	_, ok := command.Command{Stdin: key + "\n"}.Run("cryptsetup", "luksFormat", devicePath)
 	return ok
 }
 
-//OpenLUKSContainer implements the Interface interface.
+// OpenLUKSContainer implements the Interface interface.
 func (l *Linux) OpenLUKSContainer(devicePath, mappingName string, keys []string) (string, bool) {
 	//try each key until one works
 	for idx, key := range keys {
@@ -58,13 +58,13 @@ func (l *Linux) OpenLUKSContainer(devicePath, mappingName string, keys []string)
 	return "", false
 }
 
-//CloseLUKSContainer implements the Interface interface.
+// CloseLUKSContainer implements the Interface interface.
 func (l *Linux) CloseLUKSContainer(mappingName string) bool {
 	_, ok := command.Run("cryptsetup", "close", mappingName)
 	return ok
 }
 
-//RefreshLUKSMappings implements the Interface interface.
+// RefreshLUKSMappings implements the Interface interface.
 func (l *Linux) RefreshLUKSMappings() {
 	stdout, _ := command.Command{ExitOnError: true}.Run("lsblk", "-J")
 	lsblkOutput, err := parsers.ParseLsblkOutput(stdout)
@@ -110,7 +110,7 @@ func (l *Linux) RefreshLUKSMappings() {
 
 var backingDeviceRx = regexp.MustCompile(`(?m)^\s*device:\s*(\S+)\s*$`)
 
-//Ask cryptsetup for the device backing an open LUKS container.
+// Ask cryptsetup for the device backing an open LUKS container.
 func (l *Linux) getBackingDevicePath(mapName string) *string {
 	stdout, _ := command.Command{ExitOnError: true}.Run("cryptsetup", "status", mapName)
 
@@ -138,7 +138,7 @@ func (l *Linux) getBackingDevicePath(mapName string) *string {
 	return &match[1]
 }
 
-//GetLUKSMappingOf implements the Interface interface.
+// GetLUKSMappingOf implements the Interface interface.
 func (l *Linux) GetLUKSMappingOf(devicePath string) string {
 	util.LogDebug("discovered LUKS device path for %s is %q", devicePath, l.ActiveLUKSMappings[devicePath])
 	return l.ActiveLUKSMappings[devicePath]

@@ -33,14 +33,14 @@ import (
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
-//Converger contains the internal state of the converger thread.
+// Converger contains the internal state of the converger thread.
 type Converger struct {
 	//long-lived state
 	Drives []*core.Drive
 	OS     os.Interface
 }
 
-//RunConverger runs the converger thread. This function does not return.
+// RunConverger runs the converger thread. This function does not return.
 func RunConverger(queue chan []Event, osi os.Interface) {
 	c := &Converger{OS: osi}
 
@@ -65,8 +65,8 @@ func RunConverger(queue chan []Event, osi os.Interface) {
 	}
 }
 
-//Converge moves towards the desired state of all drives after a set of events
-//has been received and handled by the converger.
+// Converge moves towards the desired state of all drives after a set of events
+// has been received and handled by the converger.
 func (c *Converger) Converge() {
 	for _, drive := range c.Drives {
 		drive.Converge(c.OS)
@@ -90,8 +90,8 @@ func (c *Converger) Converge() {
 	command.Command{ExitOnError: true}.Run("touch", "/run/swift-storage/state/flag-ready")
 }
 
-//CheckForUnexpectedMounts prints error messages for every unexpected mount
-//below /srv/node.
+// CheckForUnexpectedMounts prints error messages for every unexpected mount
+// below /srv/node.
 func (c *Converger) CheckForUnexpectedMounts() {
 MOUNT:
 	for _, mount := range c.OS.GetMountPointsIn("/srv/node", os.HostScope) {
@@ -105,8 +105,8 @@ MOUNT:
 	}
 }
 
-//WriteDriveAudit writes /var/cache/swift/drive.recon in the same format as
-//emitted by swift-drive-audit.
+// WriteDriveAudit writes /var/cache/swift/drive.recon in the same format as
+// emitted by swift-drive-audit.
 func (c *Converger) WriteDriveAudit() {
 	data := make(map[string]int)
 	total := 0
@@ -136,7 +136,7 @@ func (c *Converger) WriteDriveAudit() {
 	}
 }
 
-//Handle implements the Event interface.
+// Handle implements the Event interface.
 func (e DriveAddedEvent) Handle(c *Converger) {
 	keys := make([]string, len(Config.Keys))
 	for idx, key := range Config.Keys {
@@ -148,7 +148,7 @@ func (e DriveAddedEvent) Handle(c *Converger) {
 	drive.Converge(c.OS)
 }
 
-//Handle implements the Event interface.
+// Handle implements the Event interface.
 func (e DriveRemovedEvent) Handle(c *Converger) {
 	//do we know this drive?
 	var drive *core.Drive
@@ -169,7 +169,7 @@ func (e DriveRemovedEvent) Handle(c *Converger) {
 	c.Drives = otherDrives
 }
 
-//Handle implements the Event interface.
+// Handle implements the Event interface.
 func (e DriveErrorEvent) Handle(c *Converger) {
 	for _, d := range c.Drives {
 		if d.DevicePath == e.DevicePath {
@@ -179,7 +179,7 @@ func (e DriveErrorEvent) Handle(c *Converger) {
 	}
 }
 
-//Handle implements the Event interface.
+// Handle implements the Event interface.
 func (e DriveReinstatedEvent) Handle(c *Converger) {
 	for idx, d := range c.Drives {
 		if d.DevicePath == e.DevicePath {

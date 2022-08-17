@@ -25,7 +25,7 @@ import (
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
 )
 
-//ClassifyDevice implements the Interface interface.
+// ClassifyDevice implements the Interface interface.
 func (l *Linux) ClassifyDevice(devicePath string) DeviceType {
 	//ask file(1) to identify the contents of this device
 	//BUT: do not run file(1) in the chroot (e.g. CoreOS does not have file(1))
@@ -48,7 +48,7 @@ func (l *Linux) ClassifyDevice(devicePath string) DeviceType {
 	}
 }
 
-//FormatDevice implements the Interface interface.
+// FormatDevice implements the Interface interface.
 func (l *Linux) FormatDevice(devicePath string) bool {
 	//TODO: remove `-f` (currently needed to work around
 	//https://github.com/karelzak/util-linux/issues/1159 until Flatcar updates

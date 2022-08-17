@@ -104,7 +104,7 @@ func matchCommands(input io.Reader, commands []string) error {
 	return nil
 }
 
-//the backslashes in variableRxQuoted are necessary because this regexp works on QuoteMeta(pattern)
+// the backslashes in variableRxQuoted are necessary because this regexp works on QuoteMeta(pattern)
 var variableRxQuoted = regexp.MustCompile(`\\{\\{[a-zA-Z][a-zA-Z0-9_]+\\}\\}`)
 var variableRx = regexp.MustCompile(`{{[a-zA-Z][a-zA-Z0-9_]+}}`)
 var timestampRx = regexp.MustCompile(`^\d{4}/\d{2}/\d{2}\s*\d{2}:\d{2}:\d{2}\s*`)

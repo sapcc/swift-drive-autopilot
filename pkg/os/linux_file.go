@@ -28,7 +28,7 @@ import (
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
-//ReadSwiftID implements the Interface interface.
+// ReadSwiftID implements the Interface interface.
 func (l *Linux) ReadSwiftID(mountPath string) (string, error) {
 	buf, err := os.ReadFile(swiftIDPathIn(mountPath))
 	switch {
@@ -41,7 +41,7 @@ func (l *Linux) ReadSwiftID(mountPath string) (string, error) {
 	}
 }
 
-//WriteSwiftID implements the Interface interface.
+// WriteSwiftID implements the Interface interface.
 func (l *Linux) WriteSwiftID(mountPath, swiftID string) error {
 	return os.WriteFile(swiftIDPathIn(mountPath), []byte(swiftID+"\n"), 0644)
 }
@@ -52,7 +52,7 @@ func swiftIDPathIn(mountPath string) string {
 	return strings.TrimPrefix(path, "/")
 }
 
-//Chown implements the Interface interface.
+// Chown implements the Interface interface.
 func (l *Linux) Chown(path, user, group string) {
 	var (
 		cmd string

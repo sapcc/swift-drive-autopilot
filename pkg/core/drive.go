@@ -30,7 +30,7 @@ import (
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
-//NewDrive initializes a Drive instance.
+// NewDrive initializes a Drive instance.
 func NewDrive(devicePath, serialNumber string, keys []string, osi os.Interface) *Drive {
 	d := &Drive{
 		DevicePath: devicePath,
@@ -70,7 +70,7 @@ func NewDrive(devicePath, serialNumber string, keys []string, osi os.Interface) 
 	return d
 }
 
-//MountedPath returns the path where this drive is mounted right now.
+// MountedPath returns the path where this drive is mounted right now.
 func (d *Drive) MountedPath() string {
 	if d.Device == nil {
 		return ""
@@ -78,7 +78,7 @@ func (d *Drive) MountedPath() string {
 	return d.Device.MountedPath()
 }
 
-//MountPath returns the path where this drive is supposed to be mounted.
+// MountPath returns the path where this drive is supposed to be mounted.
 func (d *Drive) MountPath() string {
 	path := d.Assignment.MountPath()
 	if path == "" {
@@ -93,15 +93,15 @@ func (d *Drive) MountPath() string {
 	return path
 }
 
-//Converge moves the drive into its locally desired state.
+// Converge moves the drive into its locally desired state.
 //
-//If the drive is not broken, its LUKS container (if any) will be created
-//and/or opened, and its filesystem will be mounted. The only thing missing
-//will be the final mount (since this step needs knowledge of all drives to
-//check for swift-id collisions) and the swift-id auto-assignment.
+// If the drive is not broken, its LUKS container (if any) will be created
+// and/or opened, and its filesystem will be mounted. The only thing missing
+// will be the final mount (since this step needs knowledge of all drives to
+// check for swift-id collisions) and the swift-id auto-assignment.
 //
-//If the drive is broken (or discovered to be broken during this operation),
-//any existing mappings or mounts will be teared down.
+// If the drive is broken (or discovered to be broken during this operation),
+// any existing mappings or mounts will be teared down.
 func (d *Drive) Converge(osi os.Interface) {
 	if d.Broken {
 		d.Device.Teardown(d, osi)
@@ -116,19 +116,19 @@ func (d *Drive) Converge(osi os.Interface) {
 	}
 }
 
-//Teardown tears down all active mounts and mappings relating to this device.
+// Teardown tears down all active mounts and mappings relating to this device.
 func (d *Drive) Teardown(osi os.Interface) {
 	if d.Device != nil {
 		d.Device.Teardown(d, osi)
 	}
 }
 
-//BrokenFlagPath (TODO swift.Interface)
+// BrokenFlagPath (TODO swift.Interface)
 func (d *Drive) BrokenFlagPath() string {
 	return "/run/swift-storage/broken/" + d.DriveID
 }
 
-//MarkAsBroken sets the d.Broken flag.
+// MarkAsBroken sets the d.Broken flag.
 func (d *Drive) MarkAsBroken(osi os.Interface) {
 	d.Broken = true
 	util.LogInfo("flagging %s as broken because of previous error", d.DevicePath)
@@ -144,8 +144,8 @@ func (d *Drive) MarkAsBroken(osi os.Interface) {
 	d.Assignment = nil
 }
 
-//EligibleForAutoAssignment returns true if the drive does not have a swift-id
-//yet, but is eligible for having one auto-assigned.
+// EligibleForAutoAssignment returns true if the drive does not have a swift-id
+// yet, but is eligible for having one auto-assigned.
 func (d *Drive) EligibleForAutoAssignment() bool {
 	return !d.Broken && d.Assignment != nil && d.Assignment.Error == AssignmentPending
 }

@@ -34,7 +34,7 @@ import (
 var klogErrorRx = regexp.MustCompile(`(?i)\b(?:error|metadata corruption detected|unmount and run xfs_repair)\b`)
 var klogDeviceRx = regexp.MustCompile(`\b(sd[a-z]{1,2})\b`)
 
-//CollectDriveErrors implements the Interface interface.
+// CollectDriveErrors implements the Interface interface.
 func (l *Linux) CollectDriveErrors(errors chan<- []DriveError) {
 	//assemble commandline for journalctl (similar to logic in Command.Run()
 	//which we cannot use here because we need a pipe on stdout)

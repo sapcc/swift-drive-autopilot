@@ -28,7 +28,7 @@ import (
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
-//AssignmentError is a reason why a drive could not be assigned.
+// AssignmentError is a reason why a drive could not be assigned.
 type AssignmentError string
 
 const (
@@ -49,8 +49,8 @@ const (
 	AssignmentMismatch = "mountpoint mismatches swift-id \"%s\""
 )
 
-//Assignment describes whether a drive is assigned an identity within Swift,
-//and where it shall hence be mounted.
+// Assignment describes whether a drive is assigned an identity within Swift,
+// and where it shall hence be mounted.
 type Assignment struct {
 	//SwiftID identifies the drive within the Swift ring.
 	SwiftID string
@@ -58,9 +58,9 @@ type Assignment struct {
 	Error AssignmentError
 }
 
-//Apply changes the assignment of this drive. If the assignment changes and
-//the new assignment is invalid, the corresponding error message will be
-//logged.
+// Apply changes the assignment of this drive. If the assignment changes and
+// the new assignment is invalid, the corresponding error message will be
+// logged.
 func (a Assignment) Apply(d *Drive) {
 	prevErrorMsg := d.Assignment.ErrorMessage(d)
 	currErrorMsg := a.ErrorMessage(d)
@@ -76,8 +76,8 @@ func (a Assignment) Apply(d *Drive) {
 	d.Assignment = &a
 }
 
-//ErrorMessage returns an empty string if the assignment is valid, or an error
-//message if the assignment is invalid.
+// ErrorMessage returns an empty string if the assignment is valid, or an error
+// message if the assignment is invalid.
 func (a *Assignment) ErrorMessage(d *Drive) string {
 	if a == nil || a.Error == "" {
 		return ""
@@ -94,8 +94,8 @@ func (a *Assignment) ErrorMessage(d *Drive) string {
 	return fmt.Sprintf("invalid assignment for %s (mounted at %s): %s", d.DevicePath, mountedPath, msg)
 }
 
-//MountPath returns the path where a disk with this assignment shall be mounted,
-//or an empty string if this assignment does not allow mounting below /srv/node.
+// MountPath returns the path where a disk with this assignment shall be mounted,
+// or an empty string if this assignment does not allow mounting below /srv/node.
 func (a *Assignment) MountPath() string {
 	if a == nil || a.SwiftID == "spare" || a.Error != "" {
 		return ""
@@ -105,8 +105,8 @@ func (a *Assignment) MountPath() string {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-//UpdateDriveAssignments scans all drives for their swift-id assignments, and
-//auto-assigns swift-ids from the given pool if required and possible.
+// UpdateDriveAssignments scans all drives for their swift-id assignments, and
+// auto-assigns swift-ids from the given pool if required and possible.
 func UpdateDriveAssignments(drives []*Drive, swiftIDPool []string, osi os.Interface) {
 	//are there any broken drives?
 	hasBrokenDrives := false

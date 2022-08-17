@@ -29,12 +29,12 @@ import (
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
-//Run is a shortcut for Command.Run() that just takes a command line.
+// Run is a shortcut for Command.Run() that just takes a command line.
 func Run(cmd ...string) (string, bool) {
 	return Command{}.Run(cmd...)
 }
 
-//Command contains optional parameters for Command.Run().
+// Command contains optional parameters for Command.Run().
 type Command struct {
 	Stdin       string
 	NoChroot    bool
@@ -43,8 +43,8 @@ type Command struct {
 	ExitOnError bool
 }
 
-//Run executes the given command, possibly within the chroot (if
-//configured in Config.ChrootPath, and if the first argument is true).
+// Run executes the given command, possibly within the chroot (if
+// configured in Config.ChrootPath, and if the first argument is true).
 func (c Command) Run(cmd ...string) (stdout string, success bool) {
 	cmdName := cmd[0]
 

@@ -26,8 +26,8 @@ import (
 	"time"
 )
 
-//SetupTestMode performs various setup tasks that are only required for the
-//integration tests.
+// SetupTestMode performs various setup tasks that are only required for the
+// integration tests.
 func SetupTestMode() {
 	//During integration tests, the autopilot will be killed by SIGPIPE after
 	//`logexpect` has seen all the log lines that it wanted (or after it found
@@ -55,9 +55,9 @@ func SetupTestMode() {
 	}(c)
 }
 
-//StandardTrigger produces a channel that triggers in the specified
-//`normalInterval` during productive runs, or whenever the file
-//at `testModeTriggerPath` is touched during integration tests.
+// StandardTrigger produces a channel that triggers in the specified
+// `normalInterval` during productive runs, or whenever the file
+// at `testModeTriggerPath` is touched during integration tests.
 func StandardTrigger(normalInterval time.Duration, testModeTriggerPath string, atStartup bool) <-chan struct{} {
 	trigger := make(chan struct{}, 1)
 
@@ -104,8 +104,8 @@ func testTrigger(path string, trigger chan<- struct{}) {
 	}
 }
 
-//GetJobInterval is used by various collector jobs to tighten their work
-//schedule during integration tests.
+// GetJobInterval is used by various collector jobs to tighten their work
+// schedule during integration tests.
 func GetJobInterval(normalInterval, testModeInterval time.Duration) time.Duration {
 	if InTestMode() {
 		return testModeInterval
@@ -113,7 +113,7 @@ func GetJobInterval(normalInterval, testModeInterval time.Duration) time.Duratio
 	return normalInterval
 }
 
-//InTestMode returns true during integration tests.
+// InTestMode returns true during integration tests.
 func InTestMode() bool {
 	return os.Getenv("TEST_MODE") == "1"
 }
