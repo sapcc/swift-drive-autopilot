@@ -43,7 +43,7 @@ func (l *Linux) CollectDriveErrors(errors chan<- []DriveError) {
 		command = append([]string{"sudo"}, command...)
 	}
 
-	cmd := exec.Command(command[0], command[1:]...)
+	cmd := exec.Command(command[0], command[1:]...) //nolint:gosec // inputs are not user supplied
 	cmd.Stderr = os.Stderr
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {

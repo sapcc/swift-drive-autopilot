@@ -20,7 +20,7 @@
 package core
 
 import (
-	"crypto/md5"
+	"crypto/md5" //nolint:gosec // usage is not security related
 	"encoding/hex"
 	std_os "os"
 	"strings"
@@ -41,7 +41,7 @@ func NewDrive(devicePath, serialNumber string, keys []string, osi os.Interface) 
 
 	//fallback value for DriveID is md5sum of devicePath
 	if d.DriveID == "" {
-		s := md5.Sum([]byte(devicePath))
+		s := md5.Sum([]byte(devicePath)) //nolint:gosec // usage is for identification purposes and not security related
 		d.DriveID = hex.EncodeToString(s[:])
 		util.LogError(
 			"cannot determine serial number for %s, will use device ID %s instead",

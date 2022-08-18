@@ -75,7 +75,7 @@ func (c Command) Run(cmd ...string) (stdout string, success bool) {
 	stderrBuf := bytes.NewBuffer(nil)
 
 	util.LogDebug("executing command: %v", cmd)
-	execCmd := exec.Command(cmd[0], cmd[1:]...)
+	execCmd := exec.Command(cmd[0], cmd[1:]...) //nolint:gosec // inputs are not user supplied
 	execCmd.Stdout = stdoutBuf
 	execCmd.Stderr = stderrBuf
 	if c.Stdin != "" {
