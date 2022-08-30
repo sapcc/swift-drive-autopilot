@@ -62,7 +62,7 @@ func main() {
 		go func() {
 			http.Handle("/metrics", promhttp.Handler())
 			util.LogInfo("listening on " + Config.MetricsListenAddress + " for metric shipping")
-			err := http.ListenAndServe(Config.MetricsListenAddress, nil)
+			err := http.ListenAndServe(Config.MetricsListenAddress, nil) //nolint: gosec // no timeout is required
 			if err != nil {
 				util.LogFatal("cannot listen on %s for metric shipping: %s", Config.MetricsListenAddress, err.Error())
 			}
