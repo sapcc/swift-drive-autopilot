@@ -31,7 +31,7 @@ github.com/prometheus/common/model
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
-# github.com/sapcc/go-bits v0.0.0-20230127160334-4cfcb11b2ecb
+# github.com/sapcc/go-bits v0.0.0-20230209151354-919fea25b3f4
 ## explicit; go 1.19
 github.com/sapcc/go-bits/logg
 github.com/sapcc/go-bits/osext
