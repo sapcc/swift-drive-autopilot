@@ -40,7 +40,7 @@ type Configuration struct {
 	Keys []struct {
 		//this is a struct to later support the addition of a Method field to
 		//specify the key derivation method
-		Secret secrets.AuthPassword `yaml:"secret"`
+		Secret secrets.FromEnv `yaml:"secret"`
 	} `yaml:"keys"`
 	SwiftIDPool          []string `yaml:"swift-id-pool"`
 	MetricsListenAddress string   `yaml:"metrics-listen-address"`
