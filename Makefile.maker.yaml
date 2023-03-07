@@ -23,7 +23,7 @@ dockerfile:
     - dumb-init
     - file
     - smartmontools
-  user: root
+  runAsRoot: true # to execute privileged operations on disks (decrypt, format, mount)
 
 golangciLint:
   createConfig: true
