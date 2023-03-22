@@ -11,9 +11,6 @@ binaries:
   - name:        logexpect
     fromPackage: ./cmd/logexpect
 
-vendoring:
-  enabled: true
-
 dockerfile:
   enabled: true
   entrypoint: ["/usr/bin/dumb-init", "--", "/usr/bin/swift-drive-autopilot"]
@@ -30,9 +27,6 @@ golangciLint:
 
 githubWorkflow:
   global:
-    assignees:
-      - majewsky
-      - SuperSandro2000
     ignorePaths: ["**.md"] # all Markdown files
   license:
     enabled: true
@@ -43,6 +37,12 @@ githubWorkflow:
     ignorePaths: [] # override global setting so that nothing is ignored
 
 renovate:
+  enabled: true
+  assignees:
+    - majewsky
+    - SuperSandro2000
+
+vendoring:
   enabled: true
 
 verbatim: |
