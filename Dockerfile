@@ -22,5 +22,5 @@ LABEL source_repository="https://github.com/sapcc/swift-drive-autopilot" \
   org.opencontainers.image.revision=${BININFO_COMMIT_HASH} \
   org.opencontainers.image.version=${BININFO_VERSION}
 
-WORKDIR /var/empty
+WORKDIR /
 ENTRYPOINT [ "/usr/bin/dumb-init", "--", "/usr/bin/swift-drive-autopilot" ]
