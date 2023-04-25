@@ -230,6 +230,12 @@ written:
   log will explain why the device is considered broken, and how to reinstate the
   device into the cluster after resolving the issue.
 
+* `/var/lib/swift-storage/broken` has the same structure and semantics as
+  `/run/swift-storage/broken`, but its contents are retained across reboots. A
+  flag from `/run/swift-storage/broken` can be copied to
+  `/var/lib/swift-storage/broken` to disable the device in a more durable way,
+  once a disk hardware error has been confirmed.
+
 * Since the autopilot also does the job of `swift-drive-audit`, it honors its
   interface and writes `/var/cache/swift/drive.recon`. Drive errors detected by
   the autopilot will thus show up in `swift-recon --driveaudit`.

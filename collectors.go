@@ -121,28 +121,31 @@ func (e DriveReinstatedEvent) EventType() string {
 	return "drive-reinstated"
 }
 
-// CollectReinstatements watches /run/swift-storage/broken and issues a
-// DriveReinstatedEvent whenever a broken-flag in there is deleted by an
-// administrator.
+// CollectReinstatements watches /run/swift-storage/broken and
+// /var/lib/swift-storage/broken and issues a DriveReinstatedEvent whenever a
+// broken-flag in there is deleted by an administrator.
 func CollectReinstatements(queue chan []Event) {
 	//tracks broken devices between loop iterations; we only send an event when
 	//a device is removed from this set
 	brokenDevices := make(map[string]bool)
 
 	interval := util.GetJobInterval(5*time.Second, 1*time.Second)
+OUTER:
 	for {
 		var events []Event
 
 		//enumerate broken devices linked in /run/swift-storage/broken
 		newBrokenDevices := make(map[string]bool)
 
-		success := util.ForeachSymlinkIn("run/swift-storage/broken",
-			func(name, devicePath string) {
-				newBrokenDevices[devicePath] = true
-			},
-		)
-		if !success {
-			continue
+		for _, brokenFlagDir := range []string{"run/swift-storage/broken", "var/lib/swift-storage/broken"} {
+			success := util.ForeachSymlinkIn(brokenFlagDir,
+				func(name, devicePath string) {
+					newBrokenDevices[devicePath] = true
+				},
+			)
+			if !success {
+				continue OUTER
+			}
 		}
 
 		//generate DriveReinstatedEvent for all devices that are not broken anymore

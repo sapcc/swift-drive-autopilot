@@ -54,17 +54,18 @@ func NewDrive(devicePath, serialNumber string, keys []string, osi os.Interface) 
 	}
 
 	//check if the broken-flag is still present
-	brokenFlagPath := strings.TrimPrefix(d.BrokenFlagPath(), "/")
-	_, err := std_os.Readlink(brokenFlagPath)
-	switch {
-	case err == nil:
-		//link still exists, so device is broken
-		util.LogInfo("%s was flagged as broken by a previous run of swift-drive-autopilot", d.DevicePath)
-		d.MarkAsBroken(osi) //this will re-print the log message explaining how to reinstate the drive into the cluster
-	case std_os.IsNotExist(err):
-		//ignore this error (no broken-flag means everything's okay)
-	default:
-		util.LogError(err.Error())
+	for _, brokenFlagPath := range []string{d.TransientBrokenFlagPath(), d.DurableBrokenFlagPath()} {
+		_, err := std_os.Readlink(strings.TrimPrefix(brokenFlagPath, "/"))
+		switch {
+		case err == nil:
+			//link still exists, so device is broken
+			util.LogInfo("%s was flagged as broken by a previous run of swift-drive-autopilot", d.DevicePath)
+			d.MarkAsBroken(osi) //this will re-print the log message explaining how to reinstate the drive into the cluster
+		case std_os.IsNotExist(err):
+			//ignore this error (no broken-flag means everything's okay)
+		default:
+			util.LogError(err.Error())
+		}
 	}
 
 	return d
@@ -123,9 +124,20 @@ func (d *Drive) Teardown(osi os.Interface) {
 	}
 }
 
-// BrokenFlagPath (TODO swift.Interface)
-func (d *Drive) BrokenFlagPath() string {
+// TransientBrokenFlagPath is the absolute path to a file that marks this drive
+// as broken when it exists. The transient flag is created by
+// swift-drive-autopilot upon encountering a disk error, and is not persisted
+// across reboots.
+func (d *Drive) TransientBrokenFlagPath() string {
 	return "/run/swift-storage/broken/" + d.DriveID
+}
+
+// DurableBrokenFlagPath is the absolute path to a file that marks this drive
+// as broken when it exists. The durable flag is created by an operator (by
+// copying the transient flag file), in order to persist the brokenness across
+// reboots.
+func (d *Drive) DurableBrokenFlagPath() string {
+	return "/var/lib/swift-storage/broken/" + d.DriveID
 }
 
 // MarkAsBroken sets the d.Broken flag.
@@ -133,7 +145,7 @@ func (d *Drive) MarkAsBroken(osi os.Interface) {
 	d.Broken = true
 	util.LogInfo("flagging %s as broken because of previous error", d.DevicePath)
 
-	flagPath := d.BrokenFlagPath()
+	flagPath := d.TransientBrokenFlagPath()
 	_, ok := command.Run("ln", "-sfT", d.DevicePath, flagPath)
 	if ok {
 		util.LogInfo("To reinstate this drive into the cluster, delete the symlink at " + flagPath)
