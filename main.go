@@ -24,6 +24,7 @@ import (
 	std_os "os"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.uber.org/automaxprocs/maxprocs"
 
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
 	"github.com/sapcc/swift-drive-autopilot/pkg/os"
@@ -31,6 +32,12 @@ import (
 )
 
 func main() {
+	undoMaxprocs, err := maxprocs.Set(maxprocs.Logger(util.LogDebug))
+	if err != nil {
+		util.LogFatal(err.Error())
+	}
+	defer undoMaxprocs()
+
 	//set working directory to the chroot directory; this simplifies file
 	//system operations because we can just use relative paths to refer to
 	//stuff inside the chroot
