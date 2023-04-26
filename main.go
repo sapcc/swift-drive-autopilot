@@ -45,7 +45,7 @@ func main() {
 	if Config.ChrootPath != "" {
 		workingDir = Config.ChrootPath
 	}
-	err := std_os.Chdir(workingDir)
+	err = std_os.Chdir(workingDir)
 	if err != nil {
 		util.LogFatal("chdir to %s: %s", workingDir, err.Error())
 	}
