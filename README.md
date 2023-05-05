@@ -236,6 +236,10 @@ written:
   `/var/lib/swift-storage/broken` to disable the device in a more durable way,
   once a disk hardware error has been confirmed.
 
+  The durable broken flag can also be created manually using the command
+  `ln -s /dev/sd$LETTER /var/lib/swift-storage/broken/$SERIAL`. The disk's
+  serial number can be found using `smartctl -d scsi -i /dev/sd$LETTER`.
+
 * Since the autopilot also does the job of `swift-drive-audit`, it honors its
   interface and writes `/var/cache/swift/drive.recon`. Drive errors detected by
   the autopilot will thus show up in `swift-recon --driveaudit`.
