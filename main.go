@@ -55,6 +55,7 @@ func main() {
 		"/run/swift-storage/broken",
 		"/run/swift-storage/state/unmount-propagation",
 		"/var/cache/swift",
+		"/var/lib/swift-storage/broken",
 	)
 
 	//swift cache path must be accesible from user swift
