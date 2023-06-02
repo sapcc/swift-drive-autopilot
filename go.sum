@@ -26,8 +26,8 @@ github.com/prometheus/common v0.44.0/go.mod h1:ofAIvZbQ1e/nugmZGz4/qCb9Ap1VoSTIO
 github.com/prometheus/procfs v0.9.0 h1:wzCHvIvM5SxWqYvwgVL7yJY8Lz3PKn49KQtpgMYJfhI=
 github.com/prometheus/procfs v0.9.0/go.mod h1:+pB4zwohETzFnmlpe6yd2lSc+0/46IYZRB/chUwxUZY=
 github.com/rogpeppe/go-internal v1.10.0 h1:TMyTOH3F/DB16zRVcYyreMH6GnZZrwQVAoYjRBZyWFQ=
-github.com/sapcc/go-bits v0.0.0-20230525104154-4ee9a7b263f9 h1:BmtxDpnQ+aq2QIFl8fXWjgU3rrcQaeGHOAFT5ICiHdg=
-github.com/sapcc/go-bits v0.0.0-20230525104154-4ee9a7b263f9/go.mod h1:GQgsOEg5+NDB5dn4/90hAssHT+f7FJ2yLCuzo9jMmIs=
+github.com/sapcc/go-bits v0.0.0-20230601094646-819288b07996 h1:ZtVsCacJEl120F1Kk37EKTRmbMyEaSmZHHq5rxEnKNU=
+github.com/sapcc/go-bits v0.0.0-20230601094646-819288b07996/go.mod h1:oLyIE5wiTzAli9diwAHGY/Jr6fsRsMugHI3JUbCfeoo=
 github.com/sergi/go-diff v1.3.1 h1:xkr+Oxo4BOQKmkn/B9eMK0g5Kg/983T9DqqPHwYqD+8=
 github.com/stretchr/testify v1.7.1 h1:5TQK59W5E3v0r2duFAb7P95B6hEeOyEnHRa8MjYSMTY=
 go.uber.org/automaxprocs v1.5.2 h1:2LxUOGiR3O6tw8ui5sZa2LAaHnsviZdVOUZw4fvbnME=
