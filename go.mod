@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/prometheus/client_golang v1.15.1
-	github.com/sapcc/go-bits v0.0.0-20230601094646-819288b07996
+	github.com/sapcc/go-bits v0.0.0-20230608160309-15c04a12a7c0
 	go.uber.org/automaxprocs v1.5.2
 	gopkg.in/yaml.v2 v2.4.0
 )
