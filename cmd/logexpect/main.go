@@ -21,6 +21,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -77,7 +78,7 @@ func matchCommands(input io.Reader, commands []string) error {
 		if strings.HasPrefix(command, ">") {
 			pattern := strings.TrimPrefix(command, ">")
 			err := matchPattern(reader, pattern, vars)
-			eof = err == io.EOF
+			eof = errors.Is(err, io.EOF)
 			if err != nil && !eof {
 				return err
 			}
