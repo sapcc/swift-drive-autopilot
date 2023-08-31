@@ -22,6 +22,8 @@ package util
 import (
 	"os"
 	"path/filepath"
+
+	"github.com/sapcc/go-bits/logg"
 )
 
 // ForeachSymlinkIn finds all symlinks in the given directory, and calls the
@@ -31,12 +33,12 @@ import (
 func ForeachSymlinkIn(path string, handler func(name, target string)) (success bool) {
 	dir, err := os.Open(path)
 	if err != nil {
-		LogError(err.Error())
+		logg.Error(err.Error())
 		return false
 	}
 	fis, err := dir.Readdir(-1)
 	if err != nil {
-		LogError(err.Error())
+		logg.Error(err.Error())
 		return false
 	}
 
@@ -49,7 +51,7 @@ func ForeachSymlinkIn(path string, handler func(name, target string)) (success b
 		if err == nil {
 			handler(fi.Name(), linkTarget)
 		} else {
-			LogError(err.Error())
+			logg.Error(err.Error())
 			success = false
 		}
 	}

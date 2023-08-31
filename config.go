@@ -23,10 +23,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/sapcc/go-bits/logg"
 	"github.com/sapcc/go-bits/secrets"
 	yaml "gopkg.in/yaml.v2"
-
-	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
 // Configuration represents the content of the config file.
@@ -60,11 +59,11 @@ func init() {
 	//read config file
 	configBytes, err := os.ReadFile(os.Args[1])
 	if err != nil {
-		util.LogFatal("read configuration file: %s", err.Error())
+		logg.Fatal("read configuration file: %s", err.Error())
 	}
 	err = yaml.Unmarshal(configBytes, &Config)
 	if err != nil {
-		util.LogFatal("parse configuration: %s", err.Error())
+		logg.Fatal("parse configuration: %s", err.Error())
 	}
 
 	//if there are multiple "spare" entries in the SwiftIDPool, disambiguate

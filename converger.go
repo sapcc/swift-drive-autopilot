@@ -26,11 +26,11 @@ import (
 	"strings"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/sapcc/go-bits/logg"
 
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
 	"github.com/sapcc/swift-drive-autopilot/pkg/core"
 	"github.com/sapcc/swift-drive-autopilot/pkg/os"
-	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
 // Converger contains the internal state of the converger thread.
@@ -55,7 +55,7 @@ func RunConverger(queue chan []Event, osi os.Interface) {
 		//handle events
 		for _, event := range events {
 			if msg := event.LogMessage(); msg != "" {
-				util.LogInfo("event received: " + msg)
+				logg.Info("event received: " + msg)
 			}
 			eventCounter.With(prometheus.Labels{"type": event.EventType()}).Add(1)
 			event.Handle(c)
@@ -101,7 +101,7 @@ MOUNT:
 			}
 		}
 
-		util.LogError("unexpected mount at %s", mount.MountPath)
+		logg.Error("unexpected mount at %s", mount.MountPath)
 	}
 }
 
@@ -123,7 +123,7 @@ func (c *Converger) WriteDriveAudit() {
 	data["drive_audit_errors"] = total
 	jsonStr, err := json.Marshal(data)
 	if err != nil {
-		util.LogError(err.Error())
+		logg.Error(err.Error())
 	}
 
 	path := "/var/cache/swift/drive.recon"
@@ -132,7 +132,7 @@ func (c *Converger) WriteDriveAudit() {
 	}
 	err = sys_os.WriteFile(path, jsonStr, 0644)
 	if err != nil {
-		util.LogError(err.Error())
+		logg.Error(err.Error())
 	}
 }
 

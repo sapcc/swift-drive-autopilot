@@ -24,8 +24,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/sapcc/go-bits/logg"
+
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
-	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
 // ReadSwiftID implements the Interface interface.
@@ -60,7 +61,7 @@ func (l *Linux) Chown(path, user, group string) {
 	)
 
 	if path == "" {
-		util.LogFatal("Cannot chown empty path")
+		logg.Fatal("Cannot chown empty path")
 	}
 
 	//set only those things which were given
@@ -76,6 +77,6 @@ func (l *Linux) Chown(path, user, group string) {
 		}
 	}
 
-	util.LogDebug("%s %s to %s", cmd, path, arg)
+	logg.Debug("%s %s to %s", cmd, path, arg)
 	command.Run(cmd, arg, path)
 }

@@ -28,7 +28,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sapcc/swift-drive-autopilot/pkg/util"
+	"github.com/sapcc/go-bits/logg"
+	"github.com/sapcc/go-bits/must"
 )
 
 var klogErrorRx = regexp.MustCompile(`(?i)\b(?:error|metadata corruption detected|unmount and run xfs_repair)\b`)
@@ -45,14 +46,8 @@ func (l *Linux) CollectDriveErrors(errors chan<- []DriveError) {
 
 	cmd := exec.Command(command[0], command[1:]...) //nolint:gosec // inputs are not user supplied
 	cmd.Stderr = os.Stderr
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		util.LogFatal(err.Error())
-	}
-	err = cmd.Start()
-	if err != nil {
-		util.LogFatal(err.Error())
-	}
+	stdout := must.Return(cmd.StdoutPipe())
+	must.Succeed(cmd.Start())
 
 	//wait for a few seconds before starting to read stuff, so that all the
 	//DriveAddedEvents have already been sent
@@ -62,7 +57,7 @@ func (l *Linux) CollectDriveErrors(errors chan<- []DriveError) {
 	for {
 		line, err := reader.ReadString('\n')
 		if err != nil && err != io.EOF {
-			util.LogError(err.Error())
+			logg.Error(err.Error())
 		}
 		//NOTE: no special handling of io.EOF here; we will encounter it very
 		//frequently anyway while we're waiting for new log lines
@@ -72,7 +67,7 @@ func (l *Linux) CollectDriveErrors(errors chan<- []DriveError) {
 		}
 
 		//we're looking for log lines with "error" and a disk device name like "sda"
-		util.LogDebug("received kernel log line: '%s'", line)
+		logg.Debug("received kernel log line: '%s'", line)
 		if !klogErrorRx.MatchString(line) {
 			continue
 		}
