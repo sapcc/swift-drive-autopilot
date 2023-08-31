@@ -20,10 +20,14 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	std_os "os"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/sapcc/go-bits/httpext"
+	"github.com/sapcc/go-bits/must"
 	"go.uber.org/automaxprocs/maxprocs"
 
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
@@ -68,12 +72,11 @@ func main() {
 	//start the metrics endpoint
 	if Config.MetricsListenAddress != "" {
 		go func() {
-			http.Handle("/metrics", promhttp.Handler())
+			mux := http.NewServeMux()
+			mux.Handle("/metrics", promhttp.Handler())
+			ctx := httpext.ContextWithSIGINT(context.Background(), 1*time.Second)
 			util.LogInfo("listening on " + Config.MetricsListenAddress + " for metric shipping")
-			err := http.ListenAndServe(Config.MetricsListenAddress, nil) //nolint: gosec // no timeout is required
-			if err != nil {
-				util.LogFatal("cannot listen on %s for metric shipping: %s", Config.MetricsListenAddress, err.Error())
-			}
+			must.Succeed(httpext.ListenAndServeContext(ctx, Config.MetricsListenAddress, mux))
 		}()
 	}
 
