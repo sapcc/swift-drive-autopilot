@@ -75,7 +75,6 @@ func main() {
 			mux := http.NewServeMux()
 			mux.Handle("/metrics", promhttp.Handler())
 			ctx := httpext.ContextWithSIGINT(context.Background(), 1*time.Second)
-			util.LogInfo("listening on " + Config.MetricsListenAddress + " for metric shipping")
 			must.Succeed(httpext.ListenAndServeContext(ctx, Config.MetricsListenAddress, mux))
 		}()
 	}
