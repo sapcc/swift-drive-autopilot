@@ -24,6 +24,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/sapcc/go-bits/logg"
 )
 
 // SetupTestMode performs various setup tasks that are only required for the
@@ -93,7 +95,7 @@ func testTrigger(path string, trigger chan<- struct{}) {
 		case os.IsNotExist(err):
 			mtime = time.Unix(0, 0)
 		default:
-			LogError(err.Error())
+			logg.Error(err.Error())
 			continue
 		}
 

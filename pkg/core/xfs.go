@@ -24,9 +24,10 @@ import (
 	sys_os "os"
 	"path/filepath"
 
+	"github.com/sapcc/go-bits/logg"
+
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
 	"github.com/sapcc/swift-drive-autopilot/pkg/os"
-	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
 // XFSDevice is a device containing an XFS filesystem.
@@ -53,7 +54,7 @@ func (d *XFSDevice) Setup(drive *Drive, osi os.Interface) bool {
 	//sanity check (and recognize pre-existing mount before attempting our own)
 	err := d.Validate(drive, osi)
 	if err != nil {
-		util.LogError(err.Error())
+		logg.Error(err.Error())
 		return false
 	}
 
@@ -61,14 +62,14 @@ func (d *XFSDevice) Setup(drive *Drive, osi os.Interface) bool {
 	if !d.formatted {
 		//double-check that disk is empty
 		if osi.ClassifyDevice(d.path) != os.DeviceTypeUnknown {
-			util.LogError("XFSDevice.Setup called on %s, but is not empty!", d.path)
+			logg.Error("XFSDevice.Setup called on %s, but is not empty!", d.path)
 			return false
 		}
 
 		ok := osi.FormatDevice(d.path)
 		if ok {
 			d.formatted = true
-			util.LogDebug("XFS filesystem created on %s", d.path)
+			logg.Debug("XFS filesystem created on %s", d.path)
 		} else {
 			return false
 		}
@@ -113,7 +114,7 @@ func (d *XFSDevice) Setup(drive *Drive, osi os.Interface) bool {
 			filepath.Base(mountPath),
 		))
 		if err != nil && !sys_os.IsNotExist(err) {
-			util.LogError(err.Error())
+			logg.Error(err.Error())
 		}
 	}
 
@@ -167,7 +168,7 @@ func (d *XFSDevice) Validate(drive *Drive, osi os.Interface) error {
 			//this case is okay - the XFSDevice struct may have just been created and
 			//now we know that it is already active (and under which name)
 			if d.mountPath == "" {
-				util.LogInfo("discovered %s to be mounted at %s already in %s mount namespace", d.path, m.MountPath, scope)
+				logg.Info("discovered %s to be mounted at %s already in %s mount namespace", d.path, m.MountPath, scope)
 				d.mountPath = m.MountPath
 				continue
 			}

@@ -24,8 +24,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/sapcc/go-bits/logg"
+
 	"github.com/sapcc/swift-drive-autopilot/pkg/os"
-	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
 // AssignmentError is a reason why a drive could not be assigned.
@@ -67,9 +68,9 @@ func (a Assignment) Apply(d *Drive) {
 	if prevErrorMsg != currErrorMsg && currErrorMsg != "" {
 		//AssignmentPending will be fixed shortly, so it's not really an error
 		if a.Error == AssignmentPending {
-			util.LogInfo(currErrorMsg)
+			logg.Info(currErrorMsg)
 		} else {
-			util.LogError(currErrorMsg)
+			logg.Error(currErrorMsg)
 		}
 	}
 
@@ -132,7 +133,7 @@ func UpdateDriveAssignments(drives []*Drive, swiftIDPool []string, osi os.Interf
 		//read this device's swift-id
 		swiftID, err := osi.ReadSwiftID(mountedPath)
 		if err != nil {
-			util.LogError(err.Error())
+			logg.Error(err.Error())
 			continue
 		} else if swiftID == "" {
 			if len(swiftIDPool) > 0 {
@@ -211,7 +212,7 @@ func UpdateDriveAssignments(drives []*Drive, swiftIDPool []string, osi os.Interf
 
 			if poolID == "" {
 				//TODO: This may get spammy since it is printed during each converger pass.
-				util.LogError("tried to assign swift-id to %s, but pool is exhausted", drive.DevicePath)
+				logg.Error("tried to assign swift-id to %s, but pool is exhausted", drive.DevicePath)
 				continue
 			}
 
@@ -220,10 +221,10 @@ func UpdateDriveAssignments(drives []*Drive, swiftIDPool []string, osi os.Interf
 				swiftID = "spare"
 			}
 
-			util.LogInfo("assigning swift-id '%s' to %s", swiftID, drive.DevicePath)
+			logg.Info("assigning swift-id '%s' to %s", swiftID, drive.DevicePath)
 			err := osi.WriteSwiftID(drive.MountPath(), swiftID)
 			if err != nil {
-				util.LogError(err.Error())
+				logg.Error(err.Error())
 				continue
 			}
 

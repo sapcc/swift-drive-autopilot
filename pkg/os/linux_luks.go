@@ -23,9 +23,11 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/sapcc/go-bits/logg"
+	"github.com/sapcc/go-bits/must"
+
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
 	"github.com/sapcc/swift-drive-autopilot/pkg/parsers"
-	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
 // CreateLUKSContainer implements the Interface interface.
@@ -38,7 +40,7 @@ func (l *Linux) CreateLUKSContainer(devicePath, key string) bool {
 func (l *Linux) OpenLUKSContainer(devicePath, mappingName string, keys []string) (string, bool) {
 	//try each key until one works
 	for idx, key := range keys {
-		util.LogDebug("trying to luksOpen %s as %s with key %d...", devicePath, mappingName, idx)
+		logg.Debug("trying to luksOpen %s as %s with key %d...", devicePath, mappingName, idx)
 		_, ok := command.Command{
 			Stdin:   key + "\n",
 			SkipLog: true,
@@ -69,7 +71,7 @@ func (l *Linux) RefreshLUKSMappings() {
 	stdout, _ := command.Command{ExitOnError: true}.Run("lsblk", "-J")
 	lsblkOutput, err := parsers.ParseLsblkOutput(stdout)
 	if err != nil {
-		util.LogFatal("cannot parse `lsblk -J` output: " + err.Error())
+		logg.Fatal("cannot parse `lsblk -J` output: " + err.Error())
 	}
 
 	l.ActiveLUKSMappings = make(map[string]string)
@@ -101,7 +103,7 @@ func (l *Linux) RefreshLUKSMappings() {
 			//file (e.g. `/dev/dm-NNN`) instead of the symlink, so track that file as well
 			backingDeviceCanonicalPath, err := l.evalSymlinksInChroot(*backingDevicePath)
 			if err != nil {
-				util.LogFatal("while resolving symlinks in %s: %s", *backingDevicePath, err.Error())
+				logg.Fatal("while resolving symlinks in %s: %s", *backingDevicePath, err.Error())
 			}
 			l.ActiveLUKSMappings[backingDeviceCanonicalPath] = "/dev/mapper/" + mappingName
 		}
@@ -117,29 +119,26 @@ func (l *Linux) getBackingDevicePath(mapName string) *string {
 	//look for a line like "  device:  /dev/sdb"
 	match := backingDeviceRx.FindStringSubmatch(stdout)
 	if match == nil {
-		util.LogFatal("cannot find backing device for /dev/mapper/%s", mapName)
+		logg.Fatal("cannot find backing device for /dev/mapper/%s", mapName)
 	} else if match[1] == "(null)" {
-		util.LogError("skipping /dev/mapper/%s: `cryptsetup status` reports backing device as `(null)` (the kernel log probably has an IO error for the underlying device)", mapName)
+		logg.Error("skipping /dev/mapper/%s: `cryptsetup status` reports backing device as `(null)` (the kernel log probably has an IO error for the underlying device)", mapName)
 		return nil
 	} else {
 		//resolve any symlinks to get the actual devicePath
 		//when the luks container is created on top of multipathing, cryptsetup status might report the /dev/mapper/mpath device
 		//also the luksFormat was called on actual device
-		devicePath, err := l.evalSymlinksInChroot(match[1])
-		if err != nil {
-			util.LogFatal(err.Error())
-		}
+		devicePath := must.Return(l.evalSymlinksInChroot(match[1]))
 		if devicePath != match[1] {
-			util.LogDebug("backing device path for %s is %s -> %s", mapName, match[1], devicePath)
+			logg.Debug("backing device path for %s is %s -> %s", mapName, match[1], devicePath)
 			return &devicePath
 		}
-		util.LogDebug("backing device path for %s is %s", mapName, match[1])
+		logg.Debug("backing device path for %s is %s", mapName, match[1])
 	}
 	return &match[1]
 }
 
 // GetLUKSMappingOf implements the Interface interface.
 func (l *Linux) GetLUKSMappingOf(devicePath string) string {
-	util.LogDebug("discovered LUKS device path for %s is %q", devicePath, l.ActiveLUKSMappings[devicePath])
+	logg.Debug("discovered LUKS device path for %s is %q", devicePath, l.ActiveLUKSMappings[devicePath])
 	return l.ActiveLUKSMappings[devicePath]
 }

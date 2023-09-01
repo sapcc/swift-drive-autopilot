@@ -26,7 +26,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/sapcc/swift-drive-autopilot/pkg/util"
+	"github.com/sapcc/go-bits/logg"
 )
 
 // Run is a shortcut for Command.Run() that just takes a command line.
@@ -74,7 +74,7 @@ func (c Command) Run(cmd ...string) (stdout string, success bool) {
 	stdoutBuf := bytes.NewBuffer(nil)
 	stderrBuf := bytes.NewBuffer(nil)
 
-	util.LogDebug("executing command: %v", cmd)
+	logg.Debug("executing command: %v", cmd)
 	execCmd := exec.Command(cmd[0], cmd[1:]...) //nolint:gosec // inputs are not user supplied
 	execCmd.Stdout = stdoutBuf
 	execCmd.Stderr = stderrBuf
@@ -91,9 +91,9 @@ func (c Command) Run(cmd ...string) (stdout string, success bool) {
 			}
 		}
 		if err != nil {
-			logLevel := util.LogError
+			logLevel := logg.Error
 			if c.ExitOnError {
-				logLevel = util.LogFatal
+				logLevel = logg.Fatal
 			}
 			logLevel("exec(%s) failed: %s", cmdForLog, err.Error())
 		}
@@ -102,7 +102,7 @@ func (c Command) Run(cmd ...string) (stdout string, success bool) {
 	stdout = stdoutBuf.String()
 	for _, line := range strings.Split(stdout, "\n") {
 		if strings.TrimSpace(line) != "" {
-			util.LogDebug("exec(%s) produced stdout: %s", cmdForLog, line)
+			logg.Debug("exec(%s) produced stdout: %s", cmdForLog, line)
 		}
 	}
 	return stdout, err == nil

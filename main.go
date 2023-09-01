@@ -21,13 +21,16 @@ package main
 
 import (
 	"context"
+	"log"
 	"net/http"
 	std_os "os"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sapcc/go-bits/httpext"
+	"github.com/sapcc/go-bits/logg"
 	"github.com/sapcc/go-bits/must"
+	"github.com/sapcc/go-bits/osext"
 	"go.uber.org/automaxprocs/maxprocs"
 
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
@@ -36,10 +39,10 @@ import (
 )
 
 func main() {
-	undoMaxprocs, err := maxprocs.Set(maxprocs.Logger(util.LogDebug))
-	if err != nil {
-		util.LogFatal(err.Error())
-	}
+	logg.SetLogger(log.New(std_os.Stdout, log.Prefix(), log.Flags())) //use stdout instead of stderr for backwards-compatibility
+	logg.ShowDebug = osext.GetenvBool("DEBUG")
+
+	undoMaxprocs := must.Return(maxprocs.Set(maxprocs.Logger(logg.Debug)))
 	defer undoMaxprocs()
 
 	//set working directory to the chroot directory; this simplifies file
@@ -49,9 +52,9 @@ func main() {
 	if Config.ChrootPath != "" {
 		workingDir = Config.ChrootPath
 	}
-	err = std_os.Chdir(workingDir)
+	err := std_os.Chdir(workingDir)
 	if err != nil {
-		util.LogFatal("chdir to %s: %s", workingDir, err.Error())
+		logg.Fatal("chdir to %s: %s", workingDir, err.Error())
 	}
 
 	//prepare directories that the converger wants to write to
@@ -63,10 +66,7 @@ func main() {
 	)
 
 	//swift cache path must be accesible from user swift
-	osi, err := os.NewLinux()
-	if err != nil {
-		util.LogFatal(err.Error())
-	}
+	osi := must.Return(os.NewLinux())
 	osi.Chown("/var/cache/swift", Config.Owner.User, Config.Owner.Group)
 
 	//start the metrics endpoint

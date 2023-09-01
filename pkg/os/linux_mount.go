@@ -22,8 +22,9 @@ package os
 import (
 	"strings"
 
+	"github.com/sapcc/go-bits/logg"
+
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
-	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
 func (l *Linux) mountScopesAreSeparate() bool {
@@ -56,9 +57,9 @@ func (l *Linux) MountDevice(devicePath, mountPath string, scope MountScope) bool
 	if !ok {
 		return false
 	}
-	util.LogInfo("mounted %s to %s in %s mount namespace", devicePath, mountPath, scope)
+	logg.Info("mounted %s to %s in %s mount namespace", devicePath, mountPath, scope)
 	if !l.mountScopesAreSeparate() {
-		util.LogInfo("mounted %s to %s in %s mount namespace", devicePath, mountPath, oppositeOf(scope))
+		logg.Info("mounted %s to %s in %s mount namespace", devicePath, mountPath, oppositeOf(scope))
 	}
 
 	//record the new mount
@@ -95,9 +96,9 @@ func (l *Linux) UnmountDevice(mountPath string, scope MountScope) bool {
 	if !ok {
 		return false
 	}
-	util.LogInfo("unmounted %s in %s mount namespace", mountPath, scope)
+	logg.Info("unmounted %s in %s mount namespace", mountPath, scope)
 	if !l.mountScopesAreSeparate() {
-		util.LogInfo("unmounted %s in %s mount namespace", mountPath, oppositeOf(scope))
+		logg.Info("unmounted %s in %s mount namespace", mountPath, oppositeOf(scope))
 	}
 
 	//record that the unmount happened
@@ -131,7 +132,7 @@ func (l *Linux) RefreshMountPoints() {
 
 	for scope, mounts := range l.ActiveMountPoints {
 		for _, mount := range mounts {
-			util.LogDebug("ActiveMountPoints[%s] += %#v", scope, mount)
+			logg.Debug("ActiveMountPoints[%s] += %#v", scope, mount)
 		}
 	}
 }

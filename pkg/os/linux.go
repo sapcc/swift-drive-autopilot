@@ -25,6 +25,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/sapcc/go-bits/logg"
+
 	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
@@ -43,7 +45,7 @@ func NewLinux() (*Linux, error) {
 		return nil, fmt.Errorf("mount propagation detection failed: %s", err.Error())
 	}
 	if !util.InTestMode() {
-		util.LogInfo("mount namespaces are: " + string(mpm))
+		logg.Info("mount namespaces are: " + string(mpm))
 	}
 
 	return &Linux{

@@ -22,8 +22,9 @@ package core
 import (
 	"fmt"
 
+	"github.com/sapcc/go-bits/logg"
+
 	"github.com/sapcc/swift-drive-autopilot/pkg/os"
-	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
 // LUKSDevice is a device containing a LUKS container.
@@ -54,11 +55,11 @@ func (d *LUKSDevice) Setup(drive *Drive, osi os.Interface) bool {
 	//sanity check (and recognize pre-existing mapping before attempting our own)
 	err := d.Validate(drive, osi)
 	if err != nil {
-		util.LogError(err.Error())
+		logg.Error(err.Error())
 		return false
 	}
 	if len(drive.Keys) == 0 {
-		util.LogError("LUKSDevice.Setup called on %s, but no keys specified!", d.path)
+		logg.Error("LUKSDevice.Setup called on %s, but no keys specified!", d.path)
 		return false
 	}
 
@@ -66,7 +67,7 @@ func (d *LUKSDevice) Setup(drive *Drive, osi os.Interface) bool {
 	if !d.formatted {
 		//double-check that disk is empty
 		if osi.ClassifyDevice(d.path) != os.DeviceTypeUnknown {
-			util.LogError("LUKSDevice.Setup called on %s, but is not empty!", d.path)
+			logg.Error("LUKSDevice.Setup called on %s, but is not empty!", d.path)
 			return false
 		}
 
@@ -83,11 +84,11 @@ func (d *LUKSDevice) Setup(drive *Drive, osi os.Interface) bool {
 	if d.mapped == nil {
 		mappedDevicePath, ok := osi.OpenLUKSContainer(d.path, drive.DriveID, drive.Keys)
 		if ok {
-			util.LogInfo("LUKS container at %s opened as %s", d.path, mappedDevicePath)
+			logg.Info("LUKS container at %s opened as %s", d.path, mappedDevicePath)
 			d.mapped = newDevice(mappedDevicePath, osi, false)
 			d.mappingName = drive.DriveID
 		} else {
-			util.LogError(
+			logg.Error(
 				"exec(cryptsetup luksOpen %s %s) failed: none of the configured keys was accepted",
 				d.path, drive.DriveID,
 			)
@@ -120,7 +121,7 @@ func (d *LUKSDevice) Teardown(drive *Drive, osi os.Interface) bool {
 	if d.mappingName != "" {
 		ok := osi.CloseLUKSContainer(d.mappingName)
 		if ok {
-			util.LogInfo("LUKS container /dev/mapper/%s closed", d.mappingName)
+			logg.Info("LUKS container /dev/mapper/%s closed", d.mappingName)
 			d.mappingName = ""
 		} else {
 			return false
@@ -142,7 +143,7 @@ func (d *LUKSDevice) Validate(drive *Drive, osi os.Interface) error {
 		}
 	} else if d.mapped == nil {
 		//existing mapping is now discovered for the first time -> update ourselves
-		util.LogInfo("discovered %s to be mapped to %s already", d.path, mappedDevicePath)
+		logg.Info("discovered %s to be mapped to %s already", d.path, mappedDevicePath)
 		d.mapped = newDevice(mappedDevicePath, osi, false)
 	} else if mappedDevicePath != d.mapped.DevicePath() {
 		//our internal state tells a different story!

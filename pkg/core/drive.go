@@ -25,9 +25,10 @@ import (
 	std_os "os"
 	"strings"
 
+	"github.com/sapcc/go-bits/logg"
+
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
 	"github.com/sapcc/swift-drive-autopilot/pkg/os"
-	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
 // NewDrive initializes a Drive instance.
@@ -43,7 +44,7 @@ func NewDrive(devicePath, serialNumber string, keys []string, osi os.Interface) 
 	if d.DriveID == "" {
 		s := md5.Sum([]byte(devicePath)) //nolint:gosec // usage is for identification purposes and not security related
 		d.DriveID = hex.EncodeToString(s[:])
-		util.LogError(
+		logg.Error(
 			"cannot determine serial number for %s, will use device ID %s instead",
 			devicePath, d.DriveID)
 	}
@@ -59,12 +60,12 @@ func NewDrive(devicePath, serialNumber string, keys []string, osi os.Interface) 
 		switch {
 		case err == nil:
 			//link still exists, so device is broken
-			util.LogInfo("%s was flagged as broken by a previous run of swift-drive-autopilot", d.DevicePath)
+			logg.Info("%s was flagged as broken by a previous run of swift-drive-autopilot", d.DevicePath)
 			d.MarkAsBroken(osi) //this will re-print the log message explaining how to reinstate the drive into the cluster
 		case std_os.IsNotExist(err):
 			//ignore this error (no broken-flag means everything's okay)
 		default:
-			util.LogError(err.Error())
+			logg.Error(err.Error())
 		}
 	}
 
@@ -143,12 +144,12 @@ func (d *Drive) DurableBrokenFlagPath() string {
 // MarkAsBroken sets the d.Broken flag.
 func (d *Drive) MarkAsBroken(osi os.Interface) {
 	d.Broken = true
-	util.LogInfo("flagging %s as broken because of previous error", d.DevicePath)
+	logg.Info("flagging %s as broken because of previous error", d.DevicePath)
 
 	flagPath := d.TransientBrokenFlagPath()
 	_, ok := command.Run("ln", "-sfT", d.DevicePath, flagPath)
 	if ok {
-		util.LogInfo("To reinstate this drive into the cluster, delete the symlink at " + flagPath)
+		logg.Info("To reinstate this drive into the cluster, delete the symlink at " + flagPath)
 	}
 
 	//reset assignment (and thus require a re-reading of the swift-id file after the

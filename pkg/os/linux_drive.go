@@ -25,9 +25,11 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/sapcc/go-bits/logg"
+	"github.com/sapcc/go-bits/must"
+
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
 	"github.com/sapcc/swift-drive-autopilot/pkg/parsers"
-	"github.com/sapcc/swift-drive-autopilot/pkg/util"
 )
 
 // When a drive has a partition table, there will be a line like "Disklabel
@@ -52,17 +54,13 @@ func (l *Linux) CollectDrives(devicePathGlobs []string, trigger <-chan struct{},
 
 			matches, err := filepath.Glob(pattern)
 			if err != nil {
-				util.LogFatal("glob(%#v) failed: %s", pattern, err.Error())
+				logg.Fatal("glob(%#v) failed: %s", pattern, err.Error())
 			}
 
 			for _, globbedRelPath := range matches {
 				//resolve any symlinks to get the actual devicePath (this also makes
 				//the path absolute again)
-				devicePath, err := l.evalSymlinksInChroot(globbedRelPath)
-				if err != nil {
-					util.LogFatal(err.Error())
-				}
-
+				devicePath := must.Return(l.evalSymlinksInChroot(globbedRelPath))
 				existingDrives["/"+globbedRelPath] = devicePath
 			}
 		}
@@ -70,7 +68,7 @@ func (l *Linux) CollectDrives(devicePathGlobs []string, trigger <-chan struct{},
 		//fail loudly when there are no drives matching our glob
 		//(https://github.com/sapcc/swift-drive-autopilot/issues/23)
 		if len(existingDrives) == 0 {
-			util.LogFatal("no drives found matching the configured patterns: %s",
+			logg.Fatal("no drives found matching the configured patterns: %s",
 				strings.Join(devicePathGlobs, ", "),
 			)
 		}
@@ -102,7 +100,7 @@ func (l *Linux) CollectDrives(devicePathGlobs []string, trigger <-chan struct{},
 			stdout, _ := command.Command{ExitOnError: false}.Run("sfdisk", "-l", devicePath)
 			switch {
 			case driveWithPartitionTableRx.MatchString(stdout):
-				util.LogInfo("ignoring drive %s because it contains partitions", devicePath)
+				logg.Info("ignoring drive %s because it contains partitions", devicePath)
 			case strings.TrimSpace(stdout) == "":
 				//if `sfdisk -l` does not print anything at all, then the device is
 				//not readable and should be ignored (e.g. on some servers, we have
@@ -123,7 +121,7 @@ func (l *Linux) CollectDrives(devicePathGlobs []string, trigger <-chan struct{},
 					}
 					addedDrives = append(addedDrives, drive)
 				}
-				util.LogInfo("ignoring drive %s because it is not readable", devicePath)
+				logg.Info("ignoring drive %s because it is not readable", devicePath)
 			default:
 				//drive is eligible -> find serial number and report it
 				drive := Drive{
@@ -170,7 +168,7 @@ func tryFindSerialNumberForBrokenDevice(devicePath string) *string {
 	stdout, _ := command.Command{ExitOnError: true}.Run("lsblk", "-J")
 	lsblkOutput, err := parsers.ParseLsblkOutput(stdout)
 	if err != nil {
-		util.LogFatal("cannot parse `lsblk -J` output: " + err.Error())
+		logg.Fatal("cannot parse `lsblk -J` output: " + err.Error())
 	}
 
 	return lsblkOutput.FindSerialNumberForDevice(devicePath)
