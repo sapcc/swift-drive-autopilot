@@ -11,8 +11,10 @@ RUN make -C /src install PREFIX=/pkg GOTOOLCHAIN=local GO_BUILDFLAGS='-mod vendo
 FROM alpine:3.18
 
 # upgrade all installed packages to fix potential CVEs in advance
+# also remove apk package manager to hopefully remove dependecy on openssl 🤞
 RUN apk upgrade --no-cache --no-progress \
-  && apk add --no-cache --no-progress ca-certificates dumb-init file smartmontools
+  && apk add --no-cache --no-progress ca-certificates dumb-init file smartmontools \
+  && apk del --no-cache --no-progress apk-tools alpine-keys
 
 COPY --from=builder /pkg/ /usr/
 
