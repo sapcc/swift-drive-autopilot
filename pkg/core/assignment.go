@@ -106,9 +106,19 @@ func (a *Assignment) MountPath() string {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+type SwiftIDPools struct {
+	Type          string
+	Prefix        string
+	Postfix       string
+	Start         int
+	End           int
+	SpareInterval int
+	SwiftIDPool   []string
+}
+
 // UpdateDriveAssignments scans all drives for their swift-id assignments, and
 // auto-assigns swift-ids from the given pool if required and possible.
-func UpdateDriveAssignments(drives []*Drive, swiftIDPool []string, osi os.Interface) {
+func UpdateDriveAssignments(drives []*Drive, swiftIDPool []string, osi os.Interface, swiftIDPools []SwiftIDPools) {
 	//are there any broken drives?
 	hasBrokenDrives := false
 	for _, drive := range drives {
