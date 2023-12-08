@@ -43,6 +43,9 @@ type DriveAddedEvent struct {
 	DevicePath   string
 	FoundAtPath  string //the DevicePath before symlinks were expanded
 	SerialNumber string //may be empty if it cannot be determined
+	Vendor       string
+	RotationRate string
+	Type         string
 }
 
 // LogMessage implements the Event interface.
@@ -90,6 +93,9 @@ func CollectDriveEvents(osi os.Interface, queue chan []Event) {
 					DevicePath:   drive.DevicePath,
 					FoundAtPath:  drive.FoundAtPath,
 					SerialNumber: drive.SerialNumber,
+					Vendor:       drive.Vendor,
+					RotationRate: drive.RotationRate,
+					Type:         drive.Type,
 				}
 			}
 			queue <- events

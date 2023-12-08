@@ -32,12 +32,15 @@ import (
 )
 
 // NewDrive initializes a Drive instance.
-func NewDrive(devicePath, serialNumber string, keys []string, osi os.Interface) *Drive {
+func NewDrive(devicePath, serialNumber, vendor, rotationRate, driveType string, keys []string, osi os.Interface) *Drive {
 	d := &Drive{
-		DevicePath: devicePath,
-		Device:     newDevice(devicePath, osi, len(keys) > 0),
-		DriveID:    serialNumber,
-		Keys:       keys,
+		DevicePath:   devicePath,
+		Device:       newDevice(devicePath, osi, len(keys) > 0),
+		DriveID:      serialNumber,
+		Vendor:       vendor,
+		RotationRate: rotationRate,
+		DriveType:    driveType,
+		Keys:         keys,
 	}
 
 	//fallback value for DriveID is md5sum of devicePath

@@ -88,6 +88,9 @@ type Drive struct {
 	DevicePath   string
 	FoundAtPath  string //only used in log messages
 	SerialNumber string
+	Vendor       string
+	RotationRate string
+	Type         string
 }
 
 // DriveError represents a drive error that was found e.g. in a kernel log.

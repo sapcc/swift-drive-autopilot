@@ -71,6 +71,7 @@ func (c *Converger) Converge() {
 	for _, drive := range c.Drives {
 		drive.Converge(c.OS)
 	}
+
 	core.UpdateDriveAssignments(c.Drives, Config.SwiftIDPool, c.OS)
 
 	for _, drive := range c.Drives {
@@ -143,7 +144,7 @@ func (e DriveAddedEvent) Handle(c *Converger) {
 		keys[idx] = string(key.Secret)
 	}
 
-	drive := core.NewDrive(e.DevicePath, e.SerialNumber, keys, c.OS)
+	drive := core.NewDrive(e.DevicePath, e.SerialNumber, e.Vendor, e.RotationRate, e.Type, keys, c.OS)
 	c.Drives = append(c.Drives, drive)
 	drive.Converge(c.OS)
 }
@@ -184,7 +185,7 @@ func (e DriveReinstatedEvent) Handle(c *Converger) {
 	for idx, d := range c.Drives {
 		if d.DevicePath == e.DevicePath {
 			//reset the drive to pristine condition
-			d = core.NewDrive(d.DevicePath, d.DriveID, d.Keys, c.OS)
+			d = core.NewDrive(d.DevicePath, d.DriveID, d.Vendor, d.RotationRate, d.DriveType, d.Keys, c.OS)
 			c.Drives[idx] = d
 			d.Converge(c.OS)
 			break

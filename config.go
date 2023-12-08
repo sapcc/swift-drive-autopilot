@@ -41,8 +41,17 @@ type Configuration struct {
 		//specify the key derivation method
 		Secret secrets.FromEnv `yaml:"secret"`
 	} `yaml:"keys"`
-	SwiftIDPool          []string `yaml:"swift-id-pool"`
-	MetricsListenAddress string   `yaml:"metrics-listen-address"`
+	SwiftIDPool  []string `yaml:"swift-id-pool"`
+	SwiftIDPools []struct {
+		Type          string `yaml:"type"`
+		Prefix        string `yaml:"prefix"`
+		Postfix       string `yaml:"postfix"`
+		Start         int    `yaml:"start"`
+		End           int    `yaml:"end"`
+		SpareInterval int    `yaml:"spareInterval"`
+		SwiftIDPool   []string
+	} `yaml:"swift-id-pools"`
+	MetricsListenAddress string `yaml:"metrics-listen-address"`
 }
 
 // Config is the global Configuration instance that's filled by main() at
@@ -75,6 +84,18 @@ func init() {
 				Config.SwiftIDPool[idx] = fmt.Sprintf("spare/%d", spareIdx)
 				spareIdx++
 			}
+		}
+	}
+
+	//expand swift-id-pools
+	if len(Config.SwiftIDPools) > 0 {
+		for idx, driveType := range Config.SwiftIDPools {
+			for i := driveType.Start; i < driveType.End; i++ {
+				poolID := fmt.Sprintf("%s-%02d-%s", driveType.Prefix, i, driveType.Postfix)
+				println(poolID)
+				Config.SwiftIDPools[idx].SwiftIDPool = append(Config.SwiftIDPools[idx].SwiftIDPool, poolID)
+			}
+			fmt.Printf("%+v\n", Config.SwiftIDPools[idx])
 		}
 	}
 }

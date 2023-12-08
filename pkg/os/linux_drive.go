@@ -40,6 +40,12 @@ var driveWithPartitionTableRx = regexp.MustCompile(`(?mi)^Disklabel type`)
 // This is used to extract a drive's serial number from `smartctl -i`.
 var serialNumberRx = regexp.MustCompile(`(?m)^Serial number:\s*(\S+)\s*$`)
 
+// This is used to extract a drive's vendor from `smartctl -i`.
+var vendorRx = regexp.MustCompile(`(?m)^Vendor:\s*(\S+)\s*$`)
+
+// This is used to extract a drive's Rotation Rate from `smartctl -i`.
+var rotationRateRx = regexp.MustCompile(`(?m)^Rotation Rate:\s*([a-zA-Z0-9- ]*)\s*$`)
+
 // CollectDrives implements the Interface interface.
 func (l *Linux) CollectDrives(devicePathGlobs []string, trigger <-chan struct{}, added chan<- []Drive, removed chan<- []string) {
 	knownDrives := make(map[string]string)
@@ -133,10 +139,50 @@ func (l *Linux) CollectDrives(devicePathGlobs []string, trigger <-chan struct{},
 				//nsenter and chroot here since the host may not have smartctl in its PATH)
 				relDevicePath := strings.TrimPrefix(devicePath, "/")
 				stdout, ok := command.Command{SkipLog: true, NoChroot: true, NoNsenter: true}.Run("smartctl", "-d", "scsi", "-i", relDevicePath)
+
+				ok = true
+				stdout = `smartctl 7.3 2022-02-28 r5338 [x86_64-linux-6.1.62-flatcar] (local build)
+Copyright (C) 2002-22, Bruce Allen, Christian Franke, www.smartmontools.org
+=== START OF INFORMATION SECTION ===
+Vendor:        NVMe
+Product:       Micron_7450_MTFD
+Revision:       U200
+Compliance:      SPC-5
+User Capacity:    15,360,950,534,144 bytes [15.3 TB]
+Logical block size:  512 bytes
+LU is resource provisioned, LBPRZ=1
+Rotation Rate:    Solid State Device
+Logical Unit id:   0x000000000000000200a0752342dede3a0x3adede420275a000
+Serial number:    232942DEDE3A
+Device type:     disk
+Transport protocol:  PCIe
+Local Time is:    Wed Dec 6 11:30:28 2023 UTC
+SMART support is:   Available - device has SMART capability.
+SMART support is:   Enabled
+Temperature Warning: Enabled`
+
 				if ok {
 					match := serialNumberRx.FindStringSubmatch(stdout)
+					vendor := vendorRx.FindStringSubmatch(stdout)
+					rotationRate := rotationRateRx.FindStringSubmatch(stdout)
+
+					logg.Info("Vendor: %s", vendor[1])
+					logg.Info("Rotation Rate: %s", rotationRate[1])
+
 					if match != nil {
 						drive.SerialNumber = sanitizeSerialNumber(match[1])
+					}
+
+					if vendor != nil {
+						drive.Vendor = strings.ToLower(sanitizeSerialNumber(vendor[1]))
+					}
+
+					if rotationRate != nil {
+						drive.RotationRate = strings.ToLower(sanitizeSerialNumber(rotationRate[1]))
+					}
+
+					if drive.Vendor != "" && drive.RotationRate != "" {
+						drive.Type = determineDriveType(drive)
 					}
 				}
 
@@ -162,6 +208,16 @@ var specialCharInSerialNumberRx = regexp.MustCompile(`[^a-zA-Z0-9_-]`)
 // does some escaping when creating mapped devices, so get rid of them early on.
 func sanitizeSerialNumber(input string) string {
 	return specialCharInSerialNumberRx.ReplaceAllString(input, "_")
+}
+
+func determineDriveType(drive Drive) string {
+	if drive.Vendor == "nvme" {
+		return "nvme"
+	} else if strings.Contains(drive.RotationRate, "rpm") {
+		return "hdd"
+	} else {
+		return "ssd"
+	}
 }
 
 func tryFindSerialNumberForBrokenDevice(devicePath string) *string {

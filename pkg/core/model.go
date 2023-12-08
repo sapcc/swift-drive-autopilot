@@ -69,7 +69,11 @@ type Drive struct {
 	Broken bool
 
 	//DriveID identifies this drive in derived filenames.
-	DriveID string
+	DriveID      string
+	Vendor       string
+	RotationRate string
+	DriveType    string
+
 	//Assignment identifies this drive's location within the Swift ring.
 	Assignment *Assignment
 	//Keys contains the LUKS encryption keys that may be used with this drive. When

@@ -3,3 +3,4 @@ build/
 
 # development stuff
 test*.yaml
+__debug_*
