@@ -86,7 +86,7 @@ func (c *Converger) Converge() {
 		pools = append(pools, p)
 	}
 
-	core.UpdateDriveAssignments(c.Drives, Config.SwiftIDPool, c.OS, pools)
+	core.UpdateDriveAssignments(c.Drives, pools, c.OS)
 
 	for _, drive := range c.Drives {
 		if !drive.Broken {

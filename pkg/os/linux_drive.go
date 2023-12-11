@@ -140,26 +140,26 @@ func (l *Linux) CollectDrives(devicePathGlobs []string, trigger <-chan struct{},
 				relDevicePath := strings.TrimPrefix(devicePath, "/")
 				stdout, ok := command.Command{SkipLog: true, NoChroot: true, NoNsenter: true}.Run("smartctl", "-d", "scsi", "-i", relDevicePath)
 
-				ok = true
-				stdout = `smartctl 7.3 2022-02-28 r5338 [x86_64-linux-6.1.62-flatcar] (local build)
-Copyright (C) 2002-22, Bruce Allen, Christian Franke, www.smartmontools.org
-=== START OF INFORMATION SECTION ===
-Vendor:        NVMe
-Product:       Micron_7450_MTFD
-Revision:       U200
-Compliance:      SPC-5
-User Capacity:    15,360,950,534,144 bytes [15.3 TB]
-Logical block size:  512 bytes
-LU is resource provisioned, LBPRZ=1
-Rotation Rate:    Solid State Device
-Logical Unit id:   0x000000000000000200a0752342dede3a0x3adede420275a000
-Serial number:    232942DEDE3A
-Device type:     disk
-Transport protocol:  PCIe
-Local Time is:    Wed Dec 6 11:30:28 2023 UTC
-SMART support is:   Available - device has SMART capability.
-SMART support is:   Enabled
-Temperature Warning: Enabled`
+				// 				ok = true
+				// 				stdout = `smartctl 7.3 2022-02-28 r5338 [x86_64-linux-6.1.62-flatcar] (local build)
+				// Copyright (C) 2002-22, Bruce Allen, Christian Franke, www.smartmontools.org
+				// === START OF INFORMATION SECTION ===
+				// Vendor:        NVMe
+				// Product:       Micron_7450_MTFD
+				// Revision:       U200
+				// Compliance:      SPC-5
+				// User Capacity:    15,360,950,534,144 bytes [15.3 TB]
+				// Logical block size:  512 bytes
+				// LU is resource provisioned, LBPRZ=1
+				// Rotation Rate:    Solid State Device
+				// Logical Unit id:   0x000000000000000200a0752342dede3a0x3adede420275a000
+				// Serial number:    232942DEDE3A
+				// Device type:     disk
+				// Transport protocol:  PCIe
+				// Local Time is:    Wed Dec 6 11:30:28 2023 UTC
+				// SMART support is:   Available - device has SMART capability.
+				// SMART support is:   Enabled
+				// Temperature Warning: Enabled`
 
 				if ok {
 					match := serialNumberRx.FindStringSubmatch(stdout)
@@ -184,6 +184,11 @@ Temperature Warning: Enabled`
 					if drive.Vendor != "" && drive.RotationRate != "" {
 						drive.Type = determineDriveType(drive)
 					}
+				} else if strings.Contains(relDevicePath, "loop") {
+					//Must be using a loopback device for testing/debu
+					drive.Vendor = "Samsung"
+					drive.RotationRate = "Solid State Device"
+					drive.Type = determineDriveType(drive)
 				}
 
 				addedDrives = append(addedDrives, drive)

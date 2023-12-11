@@ -20,6 +20,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -98,7 +99,7 @@ func (a *Assignment) ErrorMessage(d *Drive) string {
 // MountPath returns the path where a disk with this assignment shall be mounted,
 // or an empty string if this assignment does not allow mounting below /srv/node.
 func (a *Assignment) MountPath() string {
-	if a == nil || a.SwiftID == "spare" || a.Error != "" {
+	if a == nil || strings.Contains(a.SwiftID, "spare") || a.Error != "" {
 		return ""
 	}
 	return filepath.Join("/srv/node", a.SwiftID)
@@ -116,9 +117,51 @@ type SwiftIDPools struct {
 	SwiftIDPool   []string
 }
 
+func getSwiftIDPool(driveType string, swiftIDPools []SwiftIDPools) ([]string, error) {
+	for _, pool := range swiftIDPools {
+		if pool.Type == driveType {
+			return pool.SwiftIDPool, nil
+		}
+	}
+	empty := []string{}
+	message := fmt.Sprintf("SwiftIDPool not found for drive of type %s", driveType)
+	return empty, errors.New(message)
+}
+
+func validateSwiftIDPools(drives []*Drive, swiftIDPools []SwiftIDPools) bool {
+	validated := false
+
+	// Loop around drives and tally the number for each type
+	driveTypeCount := make(map[string]int)
+	for _, drive := range drives {
+		_, ok := driveTypeCount[drive.DriveType]
+		if ok {
+			driveTypeCount[drive.DriveType]++
+		} else {
+			driveTypeCount[drive.DriveType] = 1
+		}
+	}
+
+	// Loop around swiftIDPools and ensure there are enough for each type of drive
+	for _, pool := range swiftIDPools {
+		driveTypeCount, ok := driveTypeCount[pool.Type]
+		if ok {
+			if driveTypeCount > pool.End {
+				return validated
+			}
+		} else {
+			//Pool defined, but no drives of these type detected
+			continue
+		}
+	}
+
+	validated = true
+	return validated
+}
+
 // UpdateDriveAssignments scans all drives for their swift-id assignments, and
 // auto-assigns swift-ids from the given pool if required and possible.
-func UpdateDriveAssignments(drives []*Drive, swiftIDPool []string, osi os.Interface, swiftIDPools []SwiftIDPools) {
+func UpdateDriveAssignments(drives []*Drive, swiftIDPools []SwiftIDPools, osi os.Interface) {
 	//are there any broken drives?
 	hasBrokenDrives := false
 	for _, drive := range drives {
@@ -132,6 +175,7 @@ func UpdateDriveAssignments(drives []*Drive, swiftIDPool []string, osi os.Interf
 	drivesBySwiftID := make(map[string]*Drive)
 	hasMismountedDrives := false
 	isAssignedSwiftID := make(map[string]bool)
+
 	spareIdx := 0
 	for _, drive := range drives {
 		//ignore broken drives and keep going
@@ -146,7 +190,8 @@ func UpdateDriveAssignments(drives []*Drive, swiftIDPool []string, osi os.Interf
 			logg.Error(err.Error())
 			continue
 		} else if swiftID == "" {
-			if len(swiftIDPool) > 0 {
+			swiftIDPoolForDriveType, _ := getSwiftIDPool(drive.DriveType, swiftIDPools)
+			if len(swiftIDPoolForDriveType) > 0 {
 				//mark this drive as eligible for automatic assignment during AutoAssignSwiftIDs()
 				//BUT auto-assignment is only possible when no drives are broken (if a
 				//drive is broken, we cannot look at its swift-id and thus cannot
@@ -164,13 +209,14 @@ func UpdateDriveAssignments(drives []*Drive, swiftIDPool []string, osi os.Interf
 		}
 
 		//recognize spare disks
-		if swiftID == "spare" {
+		if strings.Contains(swiftID, "spare") {
+			//if swiftID == "spare" {
 			Assignment{SwiftID: "spare"}.Apply(drive)
 
 			//count how many spare disks exist by giving them names like "spare/0", "spare/1", etc.
 			//(this is the same format in which spare disks are presented in the Config.SwiftIDPool)
-			name := fmt.Sprintf("spare/%d", spareIdx)
-			isAssignedSwiftID[name] = true
+			//name := fmt.Sprintf("spare/%d", spareIdx)
+			isAssignedSwiftID[swiftID] = true
 			spareIdx++
 
 			//skip collision check
@@ -200,7 +246,8 @@ func UpdateDriveAssignments(drives []*Drive, swiftIDPool []string, osi os.Interf
 	}
 
 	//can we perform auto-assignment?
-	if hasBrokenDrives || hasMismountedDrives || len(swiftIDPool) == 0 {
+	hasMissingSwiftIDPools := !validateSwiftIDPools(drives, swiftIDPools)
+	if hasBrokenDrives || hasMismountedDrives || hasMissingSwiftIDPools {
 		return
 	}
 
@@ -213,7 +260,8 @@ func UpdateDriveAssignments(drives []*Drive, swiftIDPool []string, osi os.Interf
 			//in the order in which they appear in the configuration (see docs for
 			//`swift-id-pool` in README).
 			var poolID string
-			for _, id := range swiftIDPool {
+			swiftIDPoolForDriveType, _ := getSwiftIDPool(drive.DriveType, swiftIDPools)
+			for _, id := range swiftIDPoolForDriveType {
 				if !isAssignedSwiftID[id] {
 					poolID = id
 					break
@@ -221,15 +269,12 @@ func UpdateDriveAssignments(drives []*Drive, swiftIDPool []string, osi os.Interf
 			}
 
 			if poolID == "" {
-				//TODO: This may get spammy since it is printed during each converger pass.
+				// NOTE: This may get spammy since it is printed during each converger pass.
 				logg.Error("tried to assign swift-id to %s, but pool is exhausted", drive.DevicePath)
 				continue
 			}
 
 			swiftID := poolID
-			if strings.HasPrefix(poolID, "spare/") {
-				swiftID = "spare"
-			}
 
 			logg.Info("assigning swift-id '%s' to %s", swiftID, drive.DevicePath)
 			err := osi.WriteSwiftID(drive.MountPath(), swiftID)

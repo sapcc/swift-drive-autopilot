@@ -41,7 +41,6 @@ type Configuration struct {
 		//specify the key derivation method
 		Secret secrets.FromEnv `yaml:"secret"`
 	} `yaml:"keys"`
-	SwiftIDPool  []string `yaml:"swift-id-pool"`
 	SwiftIDPools []struct {
 		Type          string `yaml:"type"`
 		Prefix        string `yaml:"prefix"`
@@ -75,27 +74,38 @@ func init() {
 		logg.Fatal("parse configuration: %s", err.Error())
 	}
 
-	//if there are multiple "spare" entries in the SwiftIDPool, disambiguate
-	//them into "spare/0", "spare/1", and so on
-	if len(Config.SwiftIDPool) > 0 {
-		spareIdx := 0
-		for idx, str := range Config.SwiftIDPool {
-			if str == "spare" {
-				Config.SwiftIDPool[idx] = fmt.Sprintf("spare/%d", spareIdx)
-				spareIdx++
-			}
-		}
-	}
-
 	//expand swift-id-pools
 	if len(Config.SwiftIDPools) > 0 {
 		for idx, driveType := range Config.SwiftIDPools {
-			for i := driveType.Start; i < driveType.End; i++ {
-				poolID := fmt.Sprintf("%s-%02d-%s", driveType.Prefix, i, driveType.Postfix)
-				println(poolID)
+			spareIdx := 1
+			for i := driveType.Start; i <= driveType.End; i++ {
+				poolID := ""
+				if driveType.Postfix == "" {
+					poolID = fmt.Sprintf("%s-%02d", driveType.Prefix, i)
+				} else {
+					poolID = fmt.Sprintf("%s-%s-%02d", driveType.Prefix, driveType.Postfix, i)
+				}
+
 				Config.SwiftIDPools[idx].SwiftIDPool = append(Config.SwiftIDPools[idx].SwiftIDPool, poolID)
+
+				//if there are multiple "spare" entries in the SwiftIDPool, disambiguate
+				//them into "spare/0", "spare/1", and so on
+				if driveType.SpareInterval > 0 {
+					isDivisibleBySpareInterval := i%driveType.SpareInterval == 0
+
+					if isDivisibleBySpareInterval {
+						spareID := ""
+						if driveType.Postfix == "" {
+							spareID = fmt.Sprintf("spare/%d", spareIdx)
+						} else {
+							spareID = fmt.Sprintf("spare-%s/%d", driveType.Postfix, spareIdx)
+						}
+						Config.SwiftIDPools[idx].SwiftIDPool = append(Config.SwiftIDPools[idx].SwiftIDPool, spareID)
+						spareIdx++
+					}
+				}
 			}
-			fmt.Printf("%+v\n", Config.SwiftIDPools[idx])
+			logg.Info(fmt.Sprintf("%+v\n", Config.SwiftIDPools[idx]))
 		}
 	}
 }
