@@ -190,7 +190,10 @@ func UpdateDriveAssignments(drives []*Drive, swiftIDPools []SwiftIDPools, osi os
 			logg.Error(err.Error())
 			continue
 		} else if swiftID == "" {
-			swiftIDPoolForDriveType, _ := getSwiftIDPool(drive.DriveType, swiftIDPools)
+			swiftIDPoolForDriveType, swiftIDPoolErr := getSwiftIDPool(drive.DriveType, swiftIDPools)
+			if swiftIDPoolErr != nil {
+				logg.Error(swiftIDPoolErr.Error())
+			}
 			if len(swiftIDPoolForDriveType) > 0 {
 				//mark this drive as eligible for automatic assignment during AutoAssignSwiftIDs()
 				//BUT auto-assignment is only possible when no drives are broken (if a
@@ -260,7 +263,10 @@ func UpdateDriveAssignments(drives []*Drive, swiftIDPools []SwiftIDPools, osi os
 			//in the order in which they appear in the configuration (see docs for
 			//`swift-id-pool` in README).
 			var poolID string
-			swiftIDPoolForDriveType, _ := getSwiftIDPool(drive.DriveType, swiftIDPools)
+			swiftIDPoolForDriveType, swiftIDPoolErr := getSwiftIDPool(drive.DriveType, swiftIDPools)
+			if swiftIDPoolErr != nil {
+				logg.Error(swiftIDPoolErr.Error())
+			}
 			for _, id := range swiftIDPoolForDriveType {
 				if !isAssignedSwiftID[id] {
 					poolID = id
