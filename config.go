@@ -22,6 +22,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/sapcc/go-bits/logg"
 	"github.com/sapcc/go-bits/secrets"
@@ -108,6 +109,14 @@ func init() {
 							Config.SwiftIDPools[idx].SwiftIDPool = append(Config.SwiftIDPools[idx].SwiftIDPool, spareID)
 							spareIdx++
 						}
+					}
+				}
+			} else {
+				// Need to check for spare's and update labels
+				for idy, str := range Config.SwiftIDPools[idx].SwiftIDPool {
+					if strings.Contains(str, "spare") {
+						Config.SwiftIDPools[idx].SwiftIDPool[idy] = fmt.Sprintf("%s/%d", str, spareIdx)
+						spareIdx++
 					}
 				}
 			}
