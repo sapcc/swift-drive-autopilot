@@ -27,7 +27,26 @@ as_root cryptsetup close autopilot-test1
 
 with_config <<-EOF
     drives: [ '${DIR}/loop?' ]
-    swift-id-pool: [ new ]
+    swift-id-pools:
+    - type: hdd
+      prefix: swift
+      start: 1
+      end: 3
+      spareInterval: 2
+    - type: ssd
+      prefix: swift
+      postfix: ssd
+      start: 1
+      end: 3
+      spareInterval: 2
+      swift-id-pool:
+        - new
+    - type: nvme
+      prefix: swift
+      postfix: nvme
+      start: 1
+      end: 3
+      spareInterval: 0
     keys:
         - secret: supersecretpassword
 EOF

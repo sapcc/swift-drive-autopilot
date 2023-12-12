@@ -41,14 +41,18 @@ type Configuration struct {
 		//specify the key derivation method
 		Secret secrets.FromEnv `yaml:"secret"`
 	} `yaml:"keys"`
+	// Swift id pools provides functionality to label drives of different types,
+	// e.g. nvme, ssd, hdd with different pre and post fix labels
+	// These are configured from the yaml and a list of valid labels are generated
+	// and placed in the SwiftIDPool []string if not supplied
 	SwiftIDPools []struct {
-		Type          string `yaml:"type"`
-		Prefix        string `yaml:"prefix"`
-		Postfix       string `yaml:"postfix"`
-		Start         int    `yaml:"start"`
-		End           int    `yaml:"end"`
-		SpareInterval int    `yaml:"spareInterval"`
-		SwiftIDPool   []string
+		Type          string   `yaml:"type"`
+		Prefix        string   `yaml:"prefix"`  //typically swift
+		Postfix       string   `yaml:"postfix"` //typically hdd, ssd, nvme
+		Start         int      `yaml:"start"`
+		End           int      `yaml:"end"`
+		SpareInterval int      `yaml:"spareInterval"` // at what interval spares should be kept
+		SwiftIDPool   []string `yaml:"swift-id-pool"`
 	} `yaml:"swift-id-pools"`
 	MetricsListenAddress string `yaml:"metrics-listen-address"`
 }
@@ -78,34 +82,36 @@ func init() {
 	if len(Config.SwiftIDPools) > 0 {
 		for idx, driveType := range Config.SwiftIDPools {
 			spareIdx := 1
-			for i := driveType.Start; i <= driveType.End; i++ {
-				poolID := ""
-				if driveType.Postfix == "" {
-					poolID = fmt.Sprintf("%s-%02d", driveType.Prefix, i)
-				} else {
-					poolID = fmt.Sprintf("%s-%s-%02d", driveType.Prefix, driveType.Postfix, i)
-				}
+			if len(Config.SwiftIDPools[idx].SwiftIDPool) < 1 {
+				for i := driveType.Start; i <= driveType.End; i++ {
+					poolID := ""
+					if driveType.Postfix == "" {
+						poolID = fmt.Sprintf("%s-%02d", driveType.Prefix, i)
+					} else {
+						poolID = fmt.Sprintf("%s-%s-%02d", driveType.Prefix, driveType.Postfix, i)
+					}
 
-				Config.SwiftIDPools[idx].SwiftIDPool = append(Config.SwiftIDPools[idx].SwiftIDPool, poolID)
+					Config.SwiftIDPools[idx].SwiftIDPool = append(Config.SwiftIDPools[idx].SwiftIDPool, poolID)
 
-				//if there are multiple "spare" entries in the SwiftIDPool, disambiguate
-				//them into "spare/0", "spare/1", and so on
-				if driveType.SpareInterval > 0 {
-					isDivisibleBySpareInterval := i%driveType.SpareInterval == 0
+					//if there are multiple "spare" entries in the SwiftIDPool, disambiguate
+					//them into "spare/0", "spare/1", and so on
+					if driveType.SpareInterval > 0 {
+						isDivisibleBySpareInterval := i%driveType.SpareInterval == 0
 
-					if isDivisibleBySpareInterval {
-						spareID := ""
-						if driveType.Postfix == "" {
-							spareID = fmt.Sprintf("spare/%d", spareIdx)
-						} else {
-							spareID = fmt.Sprintf("spare-%s/%d", driveType.Postfix, spareIdx)
+						if isDivisibleBySpareInterval {
+							spareID := ""
+							if driveType.Postfix == "" {
+								spareID = fmt.Sprintf("spare/%d", spareIdx)
+							} else {
+								spareID = fmt.Sprintf("spare-%s/%d", driveType.Postfix, spareIdx)
+							}
+							Config.SwiftIDPools[idx].SwiftIDPool = append(Config.SwiftIDPools[idx].SwiftIDPool, spareID)
+							spareIdx++
 						}
-						Config.SwiftIDPools[idx].SwiftIDPool = append(Config.SwiftIDPools[idx].SwiftIDPool, spareID)
-						spareIdx++
 					}
 				}
 			}
-			logg.Info(fmt.Sprintf("%+v\n", Config.SwiftIDPools[idx]))
+			//logg.Info(fmt.Sprintf("%+v\n", Config.SwiftIDPools[idx]))
 		}
 	}
 }

@@ -23,7 +23,9 @@ run_and_expect <<-EOF
 > ERROR: cannot determine serial number for {{dev2}}, will use device ID {{hash2}} instead
 > INFO: mounted {{dev2}} to /run/swift-storage/{{hash2}} in host mount namespace
 > INFO: mounted {{dev2}} to /run/swift-storage/{{hash2}} in local mount namespace
+> ERROR: SwiftIDPool not found for drive of type ssd
 > ERROR: invalid assignment for {{dev1}} (mounted at /run/swift-storage/{{hash1}}): no swift-id file found on device
+> ERROR: SwiftIDPool not found for drive of type ssd
 > ERROR: invalid assignment for {{dev2}} (mounted at /run/swift-storage/{{hash2}}): no swift-id file found on device
 EOF
 
@@ -44,7 +46,9 @@ run_and_expect <<-EOF
 > INFO: event received: new device found: ${DIR}/loop2 -> {{dev2}}
 > ERROR: cannot determine serial number for {{dev2}}, will use device ID {{hash2}} instead
 > INFO: discovered {{dev2}} to be mounted at /run/swift-storage/{{hash2}} already in host mount namespace
+> ERROR: SwiftIDPool not found for drive of type ssd
 > ERROR: invalid assignment for {{dev1}} (mounted at /run/swift-storage/{{hash1}}): no swift-id file found on device
+> ERROR: SwiftIDPool not found for drive of type ssd
 > ERROR: invalid assignment for {{dev2}} (mounted at /run/swift-storage/{{hash2}}): no swift-id file found on device
 EOF
 

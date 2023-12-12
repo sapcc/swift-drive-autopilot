@@ -8,7 +8,8 @@
 		"vscode": {
 			"extensions": [
 				"ms-vscode.makefile-tools",
-				"Gruntfuggly.todo-tree"
+				"Gruntfuggly.todo-tree",
+				"rogalmic.bash-debug"
 			]
 		}
 	},
