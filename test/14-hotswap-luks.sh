@@ -11,7 +11,14 @@ DEV2="$(readlink -f "${DIR}/loop2")"
 
 with_config <<-EOF
     drives: [ '${DIR}/loop?' ]
-    swift-id-pool: [ swift1, swift2, swift3 ]
+    swift-id-pools:
+    - type: ssd
+      prefix: swift
+      postfix: ssd
+      start: 1
+      end: 3
+      spareInterval: 1
+      swift-id-pool: [ swift1, swift2, swift3 ]
     keys:
         - secret: supersecretpassword
 EOF

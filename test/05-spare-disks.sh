@@ -8,7 +8,24 @@ make_loop_devices 1 2 3
 
 with_config <<-EOF
     drives: [ '${DIR}/loop?' ]
-    swift-id-pool: [ swift1, spare, swift2, spare, swift3 ]
+    swift-id-pools:
+    - type: hdd
+      prefix: swift
+      start: 1
+      end: 3
+      spareInterval: 2
+    - type: ssd
+      prefix: swift
+      postfix: ssd
+      start: 1
+      end: 3
+      spareInterval: 1
+    - type: nvme
+      prefix: swift
+      postfix: nvme
+      start: 1
+      end: 3
+      spareInterval: 0
 EOF
 
 # What we check here:
@@ -32,32 +49,32 @@ run_and_expect <<-EOF
 > INFO: invalid assignment for {{dev1}} (mounted at /run/swift-storage/{{hash1}}): no swift-id file found on device, will try to assign one
 > INFO: invalid assignment for {{dev2}} (mounted at /run/swift-storage/{{hash2}}): no swift-id file found on device, will try to assign one
 > INFO: invalid assignment for {{dev3}} (mounted at /run/swift-storage/{{hash3}}): no swift-id file found on device, will try to assign one
-> INFO: assigning swift-id 'swift1' to {{dev1}}
-> INFO: assigning swift-id 'spare' to {{dev2}}
-> INFO: assigning swift-id 'swift2' to {{dev3}}
+> INFO: assigning swift-id 'swift-ssd-01' to {{dev1}}
+> INFO: assigning swift-id 'spare-ssd/1' to {{dev2}}
+> INFO: assigning swift-id 'swift-ssd-02' to {{dev3}}
 > INFO: unmounted /run/swift-storage/{{hash1}} in host mount namespace
 > INFO: unmounted /run/swift-storage/{{hash1}} in local mount namespace
-> INFO: mounted {{dev1}} to /srv/node/swift1 in host mount namespace
-> INFO: mounted {{dev1}} to /srv/node/swift1 in local mount namespace
+> INFO: mounted {{dev1}} to /srv/node/swift-ssd-01 in host mount namespace
+> INFO: mounted {{dev1}} to /srv/node/swift-ssd-01 in local mount namespace
 > INFO: unmounted /run/swift-storage/{{hash3}} in host mount namespace
 > INFO: unmounted /run/swift-storage/{{hash3}} in local mount namespace
-> INFO: mounted {{dev3}} to /srv/node/swift2 in host mount namespace
-> INFO: mounted {{dev3}} to /srv/node/swift2 in local mount namespace
+> INFO: mounted {{dev3}} to /srv/node/swift-ssd-02 in host mount namespace
+> INFO: mounted {{dev3}} to /srv/node/swift-ssd-02 in local mount namespace
 
-$ source lib/common.sh; expect_mountpoint /srv/node/swift{1,2} /run/swift-storage/{{hash2}}; expect_no_mountpoint /srv/node/swift3; expect_deleted /srv/node/spare; expect_file_with_content /run/swift-storage/{{hash2}}/swift-id 'spare'; as_root touch /run/swift-storage/wakeup
+$ source lib/common.sh; expect_mountpoint /srv/node/swift-ssd-{01,02} /run/swift-storage/{{hash2}}; expect_no_mountpoint /srv/node/swift-ssd-03; expect_deleted /srv/node/spare; expect_file_with_content /run/swift-storage/{{hash2}}/swift-id 'spare-ssd/1'; as_root touch /run/swift-storage/wakeup
 > INFO: event received: scheduled consistency check
 
 $ source lib/common.sh; rm ${DIR}/loop3; as_root touch /run/swift-storage/check-drives
 > INFO: event received: device removed: {{dev3}}
-> INFO: unmounted /srv/node/swift2 in host mount namespace
-> INFO: unmounted /srv/node/swift2 in local mount namespace
+> INFO: unmounted /srv/node/swift-ssd-02 in host mount namespace
+> INFO: unmounted /srv/node/swift-ssd-02 in local mount namespace
 
-$ source lib/common.sh; expect_no_mountpoint /srv/node/swift2; echo swift2 | as_root tee /run/swift-storage/{{hash2}}/swift-id > /dev/null; as_root touch /run/swift-storage/wakeup
+$ source lib/common.sh; expect_no_mountpoint /srv/node/swift-ssd-02; echo swift-ssd-02 | as_root tee /run/swift-storage/{{hash2}}/swift-id > /dev/null; as_root touch /run/swift-storage/wakeup
 > INFO: event received: scheduled consistency check
 > INFO: unmounted /run/swift-storage/{{hash2}} in host mount namespace
 > INFO: unmounted /run/swift-storage/{{hash2}} in local mount namespace
-> INFO: mounted {{dev2}} to /srv/node/swift2 in host mount namespace
-> INFO: mounted {{dev2}} to /srv/node/swift2 in local mount namespace
+> INFO: mounted {{dev2}} to /srv/node/swift-ssd-02 in host mount namespace
+> INFO: mounted {{dev2}} to /srv/node/swift-ssd-02 in local mount namespace
 
 $ source lib/common.sh; make_loop_devices 4 5; as_root touch /run/swift-storage/check-drives
 > INFO: event received: new device found: ${DIR}/loop4 -> {{dev4}}
@@ -73,10 +90,10 @@ $ source lib/common.sh; make_loop_devices 4 5; as_root touch /run/swift-storage/
 > INFO: assigning swift-id 'spare' to {{dev4}}
 > INFO: assigning swift-id 'spare' to {{dev5}}
 
-$ source lib/common.sh; expect_mountpoint /srv/node/swift{1,2} /run/swift-storage/{{{hash4}},{{hash5}}}; expect_no_mountpoint /srv/node/swift3; expect_file_with_content /run/swift-storage/{{hash4}}/swift-id 'spare'; expect_file_with_content /run/swift-storage/{{hash5}}/swift-id 'spare'; as_root touch /run/swift-storage/wakeup
+$ source lib/common.sh; expect_mountpoint /srv/node/swift-ssd-{01,02} /run/swift-storage/{{{hash4}},{{hash5}}}; expect_no_mountpoint /srv/node/swift-ssd-03; expect_file_with_content /run/swift-storage/{{hash4}}/swift-id 'spare'; expect_file_with_content /run/swift-storage/{{hash5}}/swift-id 'spare'; as_root touch /run/swift-storage/wakeup
 > INFO: event received: scheduled consistency check
 EOF
 
-expect_mountpoint    /srv/node/swift1 /srv/node/swift2
-expect_no_mountpoint /srv/node/swift3
+expect_mountpoint    /srv/node/swift-ssd-01 /srv/node/swift-ssd-02
+expect_no_mountpoint /srv/node/swift-ssd-03
 expect_deleted       /srv/node/spare

@@ -13,6 +13,14 @@
             "args": ["${env:HOME}/disks/config.yaml"],
             "showLog": true,
             "asRoot": true
-        }
+        },
+        {
+            "type": "bashdb",
+            "request": "launch",
+            "name": "Run Bash Test",
+            "cwd": "${workspaceFolder}",
+            "program": "${file}",
+            "terminalKind": "integrated"
+          }
     ]
 }

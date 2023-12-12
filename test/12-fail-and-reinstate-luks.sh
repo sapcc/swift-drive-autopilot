@@ -11,7 +11,24 @@ DEV2="$(readlink -f "${DIR}/loop2")"
 
 with_config <<-EOF
     drives: [ '${DIR}/loop?' ]
-    swift-id-pool: [ swift1, swift2, swift3 ]
+    swift-id-pools:
+    - type: hdd
+      prefix: swift
+      start: 1
+      end: 3
+      spareInterval: 2
+    - type: ssd
+      prefix: swift
+      postfix: ssd
+      start: 1
+      end: 3
+      spareInterval: 2
+    - type: nvme
+      prefix: swift
+      postfix: nvme
+      start: 1
+      end: 3
+      spareInterval: 0
     keys:
         - secret: supersecretpassword
 EOF
@@ -29,43 +46,43 @@ run_and_expect <<-EOF
 > INFO: mounted /dev/mapper/{{hash2}} to /run/swift-storage/{{hash2}} in local mount namespace
 > INFO: invalid assignment for ${DEV1} (mounted at /run/swift-storage/{{hash1}}): no swift-id file found on device, will try to assign one
 > INFO: invalid assignment for ${DEV2} (mounted at /run/swift-storage/{{hash2}}): no swift-id file found on device, will try to assign one
-> INFO: assigning swift-id 'swift1' to ${DEV1}
-> INFO: assigning swift-id 'swift2' to ${DEV2}
+> INFO: assigning swift-id 'swift-ssd-01' to ${DEV1}
+> INFO: assigning swift-id 'swift-ssd-02' to ${DEV2}
 > INFO: unmounted /run/swift-storage/{{hash1}} in host mount namespace
 > INFO: unmounted /run/swift-storage/{{hash1}} in local mount namespace
-> INFO: mounted /dev/mapper/{{hash1}} to /srv/node/swift1 in host mount namespace
-> INFO: mounted /dev/mapper/{{hash1}} to /srv/node/swift1 in local mount namespace
+> INFO: mounted /dev/mapper/{{hash1}} to /srv/node/swift-ssd-01 in host mount namespace
+> INFO: mounted /dev/mapper/{{hash1}} to /srv/node/swift-ssd-01 in local mount namespace
 > INFO: unmounted /run/swift-storage/{{hash2}} in host mount namespace
 > INFO: unmounted /run/swift-storage/{{hash2}} in local mount namespace
-> INFO: mounted /dev/mapper/{{hash2}} to /srv/node/swift2 in host mount namespace
-> INFO: mounted /dev/mapper/{{hash2}} to /srv/node/swift2 in local mount namespace
+> INFO: mounted /dev/mapper/{{hash2}} to /srv/node/swift-ssd-02 in host mount namespace
+> INFO: mounted /dev/mapper/{{hash2}} to /srv/node/swift-ssd-02 in local mount namespace
 
 $ source lib/common.sh; as_root touch /run/swift-storage/wakeup
 > INFO: event received: scheduled consistency check
 
-$ source lib/common.sh; expect_open_luks_count 2; expect_mountpoint /srv/node/swift{1,2}; as_root mount -o remount,ro /srv/node/swift1; as_root touch /run/swift-storage/wakeup
+$ source lib/common.sh; expect_open_luks_count 2; expect_mountpoint /srv/node/swift-ssd-{01,02}; as_root mount -o remount,ro /srv/node/swift-ssd-01; as_root touch /run/swift-storage/wakeup
 > INFO: event received: scheduled consistency check
-> ERROR: mount of /dev/mapper/{{hash1}} at /srv/node/swift1 is read-only in host mount namespace (could be due to a disk error)
+> ERROR: mount of /dev/mapper/{{hash1}} at /srv/node/swift-ssd-01 is read-only in host mount namespace (could be due to a disk error)
 > INFO: flagging ${DEV1} as broken because of previous error
 > INFO: To reinstate this drive into the cluster, delete the symlink at /run/swift-storage/broken/{{hash1}}
-> INFO: unmounted /srv/node/swift1 in host mount namespace
-> INFO: unmounted /srv/node/swift1 in local mount namespace
+> INFO: unmounted /srv/node/swift-ssd-01 in host mount namespace
+> INFO: unmounted /srv/node/swift-ssd-01 in local mount namespace
 > INFO: LUKS container /dev/mapper/{{hash1}} closed
 
 $ source lib/common.sh; as_root touch /run/swift-storage/wakeup
 > INFO: event received: scheduled consistency check
 
-$ source lib/common.sh; expect_open_luks_count 1; expect_no_mountpoint /srv/node/swift1; expect_symlink /run/swift-storage/broken/* "${DEV1}"; expect_symlink /run/swift-storage/state/unmount-propagation/swift1 "${DEV1}"; reinstate_drive "${DEV1}"
+$ source lib/common.sh; expect_open_luks_count 1; expect_no_mountpoint /srv/node/swift-ssd-01; expect_symlink /run/swift-storage/broken/* "${DEV1}"; expect_symlink /run/swift-storage/state/unmount-propagation/swift-ssd-01 "${DEV1}"; reinstate_drive "${DEV1}"
 > INFO: event received: device reinstated: ${DEV1}
 > INFO: LUKS container at ${DEV1} opened as /dev/mapper/{{hash1}}
 > INFO: mounted /dev/mapper/{{hash1}} to /run/swift-storage/{{hash1}} in host mount namespace
 > INFO: mounted /dev/mapper/{{hash1}} to /run/swift-storage/{{hash1}} in local mount namespace
 > INFO: unmounted /run/swift-storage/{{hash1}} in host mount namespace
 > INFO: unmounted /run/swift-storage/{{hash1}} in local mount namespace
-> INFO: mounted /dev/mapper/{{hash1}} to /srv/node/swift1 in host mount namespace
-> INFO: mounted /dev/mapper/{{hash1}} to /srv/node/swift1 in local mount namespace
+> INFO: mounted /dev/mapper/{{hash1}} to /srv/node/swift-ssd-01 in host mount namespace
+> INFO: mounted /dev/mapper/{{hash1}} to /srv/node/swift-ssd-01 in local mount namespace
 EOF
 
 expect_open_luks_count 2
-expect_mountpoint /srv/node/swift{1,2}
+expect_mountpoint /srv/node/swift-ssd-{01,02}
 expect_deleted    /run/swift-storage/broken/* /run/swift-storage/state/unmount-propagation/*
