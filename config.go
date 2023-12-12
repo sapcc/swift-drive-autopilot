@@ -22,6 +22,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/sapcc/go-bits/logg"
@@ -81,8 +82,27 @@ func init() {
 
 	//expand swift-id-pools
 	if len(Config.SwiftIDPools) > 0 {
+		driveTypes := []string{}
 		for idx, driveType := range Config.SwiftIDPools {
 			spareIdx := 1
+
+			if !slices.Contains([]string{"hdd", "ssd", "nvme"}, driveType.Type) {
+				logg.Error((fmt.Sprintf("Configuration error: Invalid drive type entry %s.", driveType.Type)))
+			}
+			if slices.Contains(driveTypes, driveType.Type) {
+				logg.Fatal((fmt.Sprintf("Configuration error: Duplicate drive type entry for %s.", driveType.Type)))
+			}
+			driveTypes = append(driveTypes, driveType.Type)
+			if driveType.SpareInterval < 0 {
+				logg.Fatal("Configuration error: Drive spare interval must be a positive integer.")
+			}
+			if driveType.Start < 1 || driveType.End < 1 {
+				logg.Fatal("Configuration error: Drive index must be a positive integer.")
+			}
+			if driveType.Start >= driveType.End {
+				logg.Fatal("Configuration error: Drive index end must be greater than start.")
+			}
+
 			if len(Config.SwiftIDPools[idx].SwiftIDPool) < 1 {
 				for i := driveType.Start; i <= driveType.End; i++ {
 					poolID := ""
