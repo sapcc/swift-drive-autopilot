@@ -1,4 +1,4 @@
-FROM golang:1.21.5-alpine3.18 as builder
+FROM golang:1.21.5-alpine3.19 as builder
 
 RUN apk add --no-cache --no-progress gcc git make musl-dev
 
@@ -8,7 +8,7 @@ RUN make -C /src install PREFIX=/pkg GOTOOLCHAIN=local GO_BUILDFLAGS='-mod vendo
 
 ################################################################################
 
-FROM alpine:3.18
+FROM alpine:3.19
 
 # upgrade all installed packages to fix potential CVEs in advance
 # also remove apk package manager to hopefully remove dependecy on openssl 🤞
