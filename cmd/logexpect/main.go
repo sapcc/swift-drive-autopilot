@@ -28,9 +28,13 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+
+	"github.com/sapcc/go-api-declarations/bininfo"
 )
 
 func main() {
+	bininfo.HandleVersionArgument()
+
 	if len(os.Args) != 2 {
 		fmt.Fprintf(os.Stderr, "usage: %s <command-file>", os.Args[0])
 		os.Exit(1)
