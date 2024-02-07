@@ -22,13 +22,19 @@ GO_BUILDFLAGS = -mod vendor
 GO_LDFLAGS =
 GO_TESTENV =
 
+# These definitions are overridable, e.g. to provide fixed version/commit values when
+# no .git directory is present or to provide a fixed build date for reproducability.
+BININFO_VERSION     ?= $(shell git describe --tags --always --abbrev=7)
+BININFO_COMMIT_HASH ?= $(shell git rev-parse --verify HEAD)
+BININFO_BUILD_DATE  ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+
 build-all: build/swift-drive-autopilot build/logexpect
 
 build/swift-drive-autopilot: FORCE
-	go build $(GO_BUILDFLAGS) -ldflags '-s -w $(GO_LDFLAGS)' -o build/swift-drive-autopilot .
+	go build $(GO_BUILDFLAGS) -ldflags '-s -w -X github.com/sapcc/go-api-declarations/bininfo.binName=swift-drive-autopilot -X github.com/sapcc/go-api-declarations/bininfo.version=$(BININFO_VERSION) -X github.com/sapcc/go-api-declarations/bininfo.commit=$(BININFO_COMMIT_HASH) -X github.com/sapcc/go-api-declarations/bininfo.buildDate=$(BININFO_BUILD_DATE) $(GO_LDFLAGS)' -o build/swift-drive-autopilot .
 
 build/logexpect: FORCE
-	go build $(GO_BUILDFLAGS) -ldflags '-s -w $(GO_LDFLAGS)' -o build/logexpect ./cmd/logexpect
+	go build $(GO_BUILDFLAGS) -ldflags '-s -w -X github.com/sapcc/go-api-declarations/bininfo.binName=logexpect -X github.com/sapcc/go-api-declarations/bininfo.version=$(BININFO_VERSION) -X github.com/sapcc/go-api-declarations/bininfo.commit=$(BININFO_COMMIT_HASH) -X github.com/sapcc/go-api-declarations/bininfo.buildDate=$(BININFO_BUILD_DATE) $(GO_LDFLAGS)' -o build/logexpect ./cmd/logexpect
 
 DESTDIR =
 ifeq ($(shell uname -s),Darwin)
@@ -64,7 +70,7 @@ run-golangci-lint: FORCE prepare-static-check
 
 build/cover.out: FORCE | build
 	@printf "\e[1;36m>> go test\e[0m\n"
-	@env $(GO_TESTENV) go test $(GO_BUILDFLAGS) -ldflags '-s -w $(GO_LDFLAGS)' -shuffle=on -p 1 -coverprofile=$@ -covermode=count -coverpkg=$(subst $(space),$(comma),$(GO_COVERPKGS)) $(GO_TESTPKGS)
+	@env $(GO_TESTENV) go test $(GO_BUILDFLAGS) -ldflags '-s -w -X github.com/sapcc/go-api-declarations/bininfo.binName=swift-drive-autopilot -X github.com/sapcc/go-api-declarations/bininfo.version=$(BININFO_VERSION) -X github.com/sapcc/go-api-declarations/bininfo.commit=$(BININFO_COMMIT_HASH) -X github.com/sapcc/go-api-declarations/bininfo.buildDate=$(BININFO_BUILD_DATE) $(GO_LDFLAGS)' -shuffle=on -p 1 -coverprofile=$@ -covermode=count -coverpkg=$(subst $(space),$(comma),$(GO_COVERPKGS)) $(GO_TESTPKGS)
 
 build/cover.html: build/cover.out
 	@printf "\e[1;36m>> go tool cover > build/cover.html\e[0m\n"
@@ -101,6 +107,9 @@ clean: FORCE
 	git clean -dxf build
 
 vars: FORCE
+	@printf "BININFO_BUILD_DATE=$(BININFO_BUILD_DATE)\n"
+	@printf "BININFO_COMMIT_HASH=$(BININFO_COMMIT_HASH)\n"
+	@printf "BININFO_VERSION=$(BININFO_VERSION)\n"
 	@printf "DESTDIR=$(DESTDIR)\n"
 	@printf "GO_BUILDFLAGS=$(GO_BUILDFLAGS)\n"
 	@printf "GO_COVERPKGS=$(GO_COVERPKGS)\n"

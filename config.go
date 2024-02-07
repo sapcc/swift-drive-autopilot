@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/sapcc/go-api-declarations/bininfo"
 	"github.com/sapcc/go-bits/logg"
 	"github.com/sapcc/go-bits/secrets"
 	yaml "gopkg.in/yaml.v2"
@@ -50,6 +51,8 @@ type Configuration struct {
 var Config Configuration
 
 func init() {
+	bininfo.HandleVersionArgument()
+
 	//expect one argument (config file name)
 	if len(os.Args) != 2 {
 		fmt.Fprintf(os.Stderr, "Usage: %s <config-file>\n", os.Args[0])
