@@ -47,7 +47,7 @@ func main() {
 	}
 	commands := filterEmptyCommands(strings.Split(string(commandBytes), "\n"))
 
-	//echo all reads from stdin onto stdout
+	// echo all reads from stdin onto stdout
 	in := io.TeeReader(os.Stdin, os.Stdout)
 
 	err = matchCommands(in, commands)
@@ -74,11 +74,11 @@ func matchCommands(input io.Reader, commands []string) error {
 	eof := false
 
 	for len(commands) > 0 && !eof {
-		//fetch next command
+		// fetch next command
 		command := commands[0]
 		commands = commands[1:]
 
-		//if it's a pattern, match with input
+		// if it's a pattern, match with input
 		if strings.HasPrefix(command, ">") {
 			pattern := strings.TrimPrefix(command, ">")
 			err := matchPattern(reader, pattern, vars)
@@ -89,7 +89,7 @@ func matchCommands(input io.Reader, commands []string) error {
 			continue
 		}
 
-		//if it's a command, execute
+		// if it's a command, execute
 		if strings.HasPrefix(command, "$") {
 			err := executeScript(strings.TrimPrefix(command, "$"), vars)
 			if err != nil {
@@ -98,11 +98,11 @@ func matchCommands(input io.Reader, commands []string) error {
 			continue
 		}
 
-		//what is this?
+		// what is this?
 		return fmt.Errorf("malformed command (neither a pattern nor a script): %s", command)
 	}
 
-	//check if command list was exhausted
+	// check if command list was exhausted
 	if len(commands) > 0 {
 		return fmt.Errorf("unexpected EOF while executing command: %s", commands[0])
 	}
@@ -116,14 +116,14 @@ var timestampRx = regexp.MustCompile(`^\d{4}/\d{2}/\d{2}\s*\d{2}:\d{2}:\d{2}\s*`
 var whitespaceRx = regexp.MustCompile(`\s+`)
 
 func matchPattern(reader *bufio.Reader, pattern string, vars map[string]string) error {
-	//get next input line
+	// get next input line
 	line, err := reader.ReadString('\n')
 	eof := err == io.EOF
 	if err != nil && !eof {
 		return err
 	}
 
-	//skip empty input lines
+	// skip empty input lines
 	if strings.TrimSpace(line) == "" {
 		if eof {
 			return io.EOF
@@ -131,42 +131,42 @@ func matchPattern(reader *bufio.Reader, pattern string, vars map[string]string) 
 		return matchPattern(reader, pattern, vars)
 	}
 
-	//everybody hates whitespace
+	// everybody hates whitespace
 	line = whitespaceRx.ReplaceAllString(strings.TrimSpace(line), " ")
 	pattern = whitespaceRx.ReplaceAllString(strings.TrimSpace(pattern), " ")
 
-	//remove timestamp from input, if any
+	// remove timestamp from input, if any
 	line = timestampRx.ReplaceAllString(line, "")
 
-	//compile pattern into a regex
+	// compile pattern into a regex
 	var captures []string
 	patternRxStr := variableRxQuoted.ReplaceAllStringFunc(
 		regexp.QuoteMeta(pattern),
 		func(match string) string {
-			//get variable name from match
+			// get variable name from match
 			name := strings.TrimPrefix(strings.TrimSuffix(match, `\}\}`), `\{\{`)
 
-			//if value of variable is known from previous pattern match, use value
+			// if value of variable is known from previous pattern match, use value
 			value, ok := vars[name]
 			if ok {
 				return regexp.QuoteMeta(value)
 			}
 
-			//value of variable is not yet known - catch its value
+			// value of variable is not yet known - catch its value
 			captures = append(captures, name)
 			return `(.+)`
 		},
 	)
 
-	//check if line matches pattern
+	// check if line matches pattern
 	match := regexp.MustCompile("^" + patternRxStr + "$").FindStringSubmatch(line)
 	if match == nil {
 		return fmt.Errorf("log line does not match expectation\nexpected: %s\ncompiled: %s\n  actual: %s", pattern, patternRxStr, line)
 	}
 
-	//if new variables were introduced in this pattern, remember their values
+	// if new variables were introduced in this pattern, remember their values
 	for idx, name := range captures {
-		//if this variable catched eariler in the same match, ensure that both values are identical
+		// if this variable catched eariler in the same match, ensure that both values are identical
 		value, ok := vars[name]
 		if ok {
 			if value != match[idx+1] {
@@ -186,10 +186,10 @@ func matchPattern(reader *bufio.Reader, pattern string, vars map[string]string) 
 func executeScript(script string, vars map[string]string) error {
 	script = strings.TrimSpace(script)
 
-	//if script contains any variable references like {{foo}}, replace them with the actual values
+	// if script contains any variable references like {{foo}}, replace them with the actual values
 	var err error
 	compiledScript := variableRx.ReplaceAllStringFunc(script, func(match string) string {
-		//get variable name from match
+		// get variable name from match
 		name := strings.TrimPrefix(strings.TrimSuffix(match, "}}"), "{{")
 
 		value, ok := vars[name]

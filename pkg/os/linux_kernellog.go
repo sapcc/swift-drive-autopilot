@@ -37,8 +37,8 @@ var klogDeviceRx = regexp.MustCompile(`\b(sd[a-z]{1,2})\b`)
 
 // CollectDriveErrors implements the Interface interface.
 func (l *Linux) CollectDriveErrors(errors chan<- []DriveError) {
-	//assemble commandline for journalctl (similar to logic in Command.Run()
-	//which we cannot use here because we need a pipe on stdout)
+	// assemble commandline for journalctl (similar to logic in Command.Run()
+	// which we cannot use here because we need a pipe on stdout)
 	command := []string{"chroot", ".", "nsenter", "--ipc=/proc/1/ns/ipc", "--", "journalctl", "-kf"}
 	if os.Geteuid() != 0 {
 		command = append([]string{"sudo"}, command...)
@@ -49,8 +49,8 @@ func (l *Linux) CollectDriveErrors(errors chan<- []DriveError) {
 	stdout := must.Return(cmd.StdoutPipe())
 	must.Succeed(cmd.Start())
 
-	//wait for a few seconds before starting to read stuff, so that all the
-	//DriveAddedEvents have already been sent
+	// wait for a few seconds before starting to read stuff, so that all the
+	// DriveAddedEvents have already been sent
 	time.Sleep(3 * time.Second)
 
 	reader := bufio.NewReader(stdout)
@@ -60,13 +60,13 @@ func (l *Linux) CollectDriveErrors(errors chan<- []DriveError) {
 			logg.Error(err.Error())
 		}
 		//NOTE: no special handling of io.EOF here; we will encounter it very
-		//frequently anyway while we're waiting for new log lines
+		// frequently anyway while we're waiting for new log lines
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
 		}
 
-		//we're looking for log lines with "error" and a disk device name like "sda"
+		// we're looking for log lines with "error" and a disk device name like "sda"
 		logg.Debug("received kernel log line: '%s'", line)
 		if !klogErrorRx.MatchString(line) {
 			continue

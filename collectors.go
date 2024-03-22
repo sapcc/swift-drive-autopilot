@@ -31,7 +31,7 @@ import (
 // the converger thread.
 type Event interface {
 	LogMessage() string
-	EventType() string //for counter metric that counts events
+	EventType() string // for counter metric that counts events
 	Handle(c *Converger)
 }
 
@@ -41,8 +41,8 @@ type Event interface {
 // DriveAddedEvent is an Event that fires when a new drive is found.
 type DriveAddedEvent struct {
 	DevicePath   string
-	FoundAtPath  string //the DevicePath before symlinks were expanded
-	SerialNumber string //may be empty if it cannot be determined
+	FoundAtPath  string // the DevicePath before symlinks were expanded
+	SerialNumber string // may be empty if it cannot be determined
 }
 
 // LogMessage implements the Event interface.
@@ -125,8 +125,8 @@ func (e DriveReinstatedEvent) EventType() string {
 // /var/lib/swift-storage/broken and issues a DriveReinstatedEvent whenever a
 // broken-flag in there is deleted by an administrator.
 func CollectReinstatements(queue chan []Event) {
-	//tracks broken devices between loop iterations; we only send an event when
-	//a device is removed from this set
+	// tracks broken devices between loop iterations; we only send an event when
+	// a device is removed from this set
 	brokenDevices := make(map[string]bool)
 
 	interval := util.GetJobInterval(5*time.Second, 1*time.Second)
@@ -134,7 +134,7 @@ OUTER:
 	for {
 		var events []Event
 
-		//enumerate broken devices linked in /run/swift-storage/broken
+		// enumerate broken devices linked in /run/swift-storage/broken
 		newBrokenDevices := make(map[string]bool)
 
 		for _, brokenFlagDir := range []string{"run/swift-storage/broken", "var/lib/swift-storage/broken"} {
@@ -148,7 +148,7 @@ OUTER:
 			}
 		}
 
-		//generate DriveReinstatedEvent for all devices that are not broken anymore
+		// generate DriveReinstatedEvent for all devices that are not broken anymore
 		for devicePath := range brokenDevices {
 			if !newBrokenDevices[devicePath] {
 				events = append(events, DriveReinstatedEvent{DevicePath: devicePath})
@@ -156,12 +156,12 @@ OUTER:
 		}
 		brokenDevices = newBrokenDevices
 
-		//wake up the converger thread
+		// wake up the converger thread
 		if len(events) > 0 {
 			queue <- events
 		}
 
-		//sleep for 5 seconds before re-running
+		// sleep for 5 seconds before re-running
 		time.Sleep(interval)
 	}
 }
@@ -201,7 +201,7 @@ func (e WakeupEvent) EventType() string {
 
 // Handle implements the Event interface.
 func (e WakeupEvent) Handle(c *Converger) {
-	//do nothing
+	// do nothing
 }
 
 ////////////////////////////////////////////////////////////////////////////////

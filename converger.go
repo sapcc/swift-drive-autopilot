@@ -35,7 +35,7 @@ import (
 
 // Converger contains the internal state of the converger thread.
 type Converger struct {
-	//long-lived state
+	// long-lived state
 	Drives []*core.Drive
 	OS     os.Interface
 }
@@ -45,14 +45,14 @@ func RunConverger(queue chan []Event, osi os.Interface) {
 	c := &Converger{OS: osi}
 
 	for {
-		//wait for processable events
+		// wait for processable events
 		events := <-queue
 
-		//initialize short-lived state for this event loop iteration
+		// initialize short-lived state for this event loop iteration
 		osi.RefreshMountPoints()
 		osi.RefreshLUKSMappings()
 
-		//handle events
+		// handle events
 		for _, event := range events {
 			if msg := event.LogMessage(); msg != "" {
 				logg.Info("event received: " + msg)
@@ -75,7 +75,7 @@ func (c *Converger) Converge() {
 
 	for _, drive := range c.Drives {
 		if !drive.Broken {
-			drive.Converge(c.OS) //to reflect updated drive assignments
+			drive.Converge(c.OS) // to reflect updated drive assignments
 			mountPath := drive.MountPath()
 			if filepath.Dir(mountPath) == "/srv/node" {
 				c.OS.Chown(mountPath, Config.Owner.User, Config.Owner.Group)
@@ -86,7 +86,7 @@ func (c *Converger) Converge() {
 	c.CheckForUnexpectedMounts()
 	c.WriteDriveAudit()
 
-	//mark storage as ready for consumption by Swift
+	// mark storage as ready for consumption by Swift
 	command.Command{ExitOnError: true}.Run("touch", "/run/swift-storage/state/flag-ready")
 }
 
@@ -150,7 +150,7 @@ func (e DriveAddedEvent) Handle(c *Converger) {
 
 // Handle implements the Event interface.
 func (e DriveRemovedEvent) Handle(c *Converger) {
-	//do we know this drive?
+	// do we know this drive?
 	var drive *core.Drive
 	var otherDrives []*core.Drive
 	for _, d := range c.Drives {
@@ -164,7 +164,7 @@ func (e DriveRemovedEvent) Handle(c *Converger) {
 		return
 	}
 
-	//remove drive
+	// remove drive
 	drive.Teardown(c.OS)
 	c.Drives = otherDrives
 }
@@ -183,7 +183,7 @@ func (e DriveErrorEvent) Handle(c *Converger) {
 func (e DriveReinstatedEvent) Handle(c *Converger) {
 	for idx, d := range c.Drives {
 		if d.DevicePath == e.DevicePath {
-			//reset the drive to pristine condition
+			// reset the drive to pristine condition
 			d = core.NewDrive(d.DevicePath, d.DriveID, d.Keys, c.OS)
 			c.Drives[idx] = d
 			d.Converge(c.OS)

@@ -38,7 +38,7 @@ func (l *Linux) CreateLUKSContainer(devicePath, key string) bool {
 
 // OpenLUKSContainer implements the Interface interface.
 func (l *Linux) OpenLUKSContainer(devicePath, mappingName string, keys []string) (string, bool) {
-	//try each key until one works
+	// try each key until one works
 	for idx, key := range keys {
 		logg.Debug("trying to luksOpen %s as %s with key %d...", devicePath, mappingName, idx)
 		_, ok := command.Command{
@@ -47,7 +47,7 @@ func (l *Linux) OpenLUKSContainer(devicePath, mappingName string, keys []string)
 		}.Run("cryptsetup", "luksOpen", devicePath, mappingName)
 		if ok {
 			mappedDevicePath := "/dev/mapper/" + mappingName
-			//remember this mapping
+			// remember this mapping
 			if l.ActiveLUKSMappings == nil {
 				l.ActiveLUKSMappings = make(map[string]string)
 			}
@@ -56,7 +56,7 @@ func (l *Linux) OpenLUKSContainer(devicePath, mappingName string, keys []string)
 		}
 	}
 
-	//no key worked
+	// no key worked
 	return "", false
 }
 
@@ -82,15 +82,15 @@ func (l *Linux) RefreshLUKSMappings() {
 	}
 
 	for _, line := range strings.Split(stdout, "\n") {
-		//each output line describes a mapping and looks like
-		//"mapname\t(devmajor, devminor)"; extract the mapping names
+		// each output line describes a mapping and looks like
+		// "mapname\t(devmajor, devminor)"; extract the mapping names
 		fields := strings.Fields(line)
 		if len(fields) == 0 {
 			continue
 		}
 		mappingName := fields[0]
 
-		//check lsblk output for the device backing this mapping, otherwise ask cryptsetup for it
+		// check lsblk output for the device backing this mapping, otherwise ask cryptsetup for it
 		backingDevicePath := lsblkOutput.FindBackingDeviceForLUKS(mappingName)
 		if backingDevicePath == nil {
 			backingDevicePath = l.getBackingDevicePath(mappingName)
@@ -98,9 +98,9 @@ func (l *Linux) RefreshLUKSMappings() {
 		if backingDevicePath != nil {
 			l.ActiveLUKSMappings[*backingDevicePath] = "/dev/mapper/" + mappingName
 
-			//if `backingDevicePath` is a symlink (e.g. `/dev/mapper/mpathXXX` for
-			//multipath devices), callers may also ask us for the underlying device
-			//file (e.g. `/dev/dm-NNN`) instead of the symlink, so track that file as well
+			// if `backingDevicePath` is a symlink (e.g. `/dev/mapper/mpathXXX` for
+			// multipath devices), callers may also ask us for the underlying device
+			// file (e.g. `/dev/dm-NNN`) instead of the symlink, so track that file as well
 			backingDeviceCanonicalPath, err := l.evalSymlinksInChroot(*backingDevicePath)
 			if err != nil {
 				logg.Fatal("while resolving symlinks in %s: %s", *backingDevicePath, err.Error())
@@ -116,17 +116,18 @@ var backingDeviceRx = regexp.MustCompile(`(?m)^\s*device:\s*(\S+)\s*$`)
 func (l *Linux) getBackingDevicePath(mapName string) *string {
 	stdout, _ := command.Command{ExitOnError: true}.Run("cryptsetup", "status", mapName)
 
-	//look for a line like "  device:  /dev/sdb"
+	// look for a line like "  device:  /dev/sdb"
 	match := backingDeviceRx.FindStringSubmatch(stdout)
-	if match == nil {
+	switch {
+	case match == nil:
 		logg.Fatal("cannot find backing device for /dev/mapper/%s", mapName)
-	} else if match[1] == "(null)" {
+	case match[1] == "(null)":
 		logg.Error("skipping /dev/mapper/%s: `cryptsetup status` reports backing device as `(null)` (the kernel log probably has an IO error for the underlying device)", mapName)
 		return nil
-	} else {
-		//resolve any symlinks to get the actual devicePath
-		//when the luks container is created on top of multipathing, cryptsetup status might report the /dev/mapper/mpath device
-		//also the luksFormat was called on actual device
+	default:
+		// resolve any symlinks to get the actual devicePath
+		// when the luks container is created on top of multipathing, cryptsetup status might report the /dev/mapper/mpath device
+		// also the luksFormat was called on actual device
 		devicePath := must.Return(l.evalSymlinksInChroot(match[1]))
 		if devicePath != match[1] {
 			logg.Debug("backing device path for %s is %s -> %s", mapName, match[1], devicePath)

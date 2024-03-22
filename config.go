@@ -38,8 +38,8 @@ type Configuration struct {
 		Group string `yaml:"group"`
 	} `yaml:"chown"`
 	Keys []struct {
-		//this is a struct to later support the addition of a Method field to
-		//specify the key derivation method
+		// this is a struct to later support the addition of a Method field to
+		// specify the key derivation method
 		Secret secrets.FromEnv `yaml:"secret"`
 	} `yaml:"keys"`
 	SwiftIDPool          []string `yaml:"swift-id-pool"`
@@ -53,13 +53,13 @@ var Config Configuration
 func init() {
 	bininfo.HandleVersionArgument()
 
-	//expect one argument (config file name)
+	// expect one argument (config file name)
 	if len(os.Args) != 2 {
 		fmt.Fprintf(os.Stderr, "Usage: %s <config-file>\n", os.Args[0])
 		os.Exit(1)
 	}
 
-	//read config file
+	// read config file
 	configBytes, err := os.ReadFile(os.Args[1])
 	if err != nil {
 		logg.Fatal("read configuration file: %s", err.Error())
@@ -69,8 +69,8 @@ func init() {
 		logg.Fatal("parse configuration: %s", err.Error())
 	}
 
-	//if there are multiple "spare" entries in the SwiftIDPool, disambiguate
-	//them into "spare/0", "spare/1", and so on
+	// if there are multiple "spare" entries in the SwiftIDPool, disambiguate
+	// them into "spare/0", "spare/1", and so on
 	if len(Config.SwiftIDPool) > 0 {
 		spareIdx := 0
 		for idx, str := range Config.SwiftIDPool {

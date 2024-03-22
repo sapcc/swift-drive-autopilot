@@ -40,7 +40,7 @@ func NewDrive(devicePath, serialNumber string, keys []string, osi os.Interface) 
 		Keys:       keys,
 	}
 
-	//fallback value for DriveID is md5sum of devicePath
+	// fallback value for DriveID is md5sum of devicePath
 	if d.DriveID == "" {
 		s := md5.Sum([]byte(devicePath)) //nolint:gosec // usage is for identification purposes and not security related
 		d.DriveID = hex.EncodeToString(s[:])
@@ -49,21 +49,21 @@ func NewDrive(devicePath, serialNumber string, keys []string, osi os.Interface) 
 			devicePath, d.DriveID)
 	}
 
-	//detect unreadable device
+	// detect unreadable device
 	if d.Device == nil {
 		d.Broken = true
 	}
 
-	//check if the broken-flag is still present
+	// check if the broken-flag is still present
 	for _, brokenFlagPath := range []string{d.TransientBrokenFlagPath(), d.DurableBrokenFlagPath()} {
 		_, err := std_os.Readlink(strings.TrimPrefix(brokenFlagPath, "/"))
 		switch {
 		case err == nil:
-			//link still exists, so device is broken
+			// link still exists, so device is broken
 			logg.Info("%s was flagged as broken by a previous run of swift-drive-autopilot", d.DevicePath)
-			d.MarkAsBroken(osi) //this will re-print the log message explaining how to reinstate the drive into the cluster
+			d.MarkAsBroken(osi) // this will re-print the log message explaining how to reinstate the drive into the cluster
 		case std_os.IsNotExist(err):
-			//ignore this error (no broken-flag means everything's okay)
+			// ignore this error (no broken-flag means everything's okay)
 		default:
 			logg.Error(err.Error())
 		}
@@ -84,8 +84,8 @@ func (d *Drive) MountedPath() string {
 func (d *Drive) MountPath() string {
 	path := d.Assignment.MountPath()
 	if path == "" {
-		//not assigned yet -> prefer path where drive is already mounted from an
-		//earlier run of swift-drive-autopilot
+		// not assigned yet -> prefer path where drive is already mounted from an
+		// earlier run of swift-drive-autopilot
 		mountedPath := d.MountedPath()
 		if mountedPath != "" {
 			return mountedPath
@@ -152,8 +152,8 @@ func (d *Drive) MarkAsBroken(osi os.Interface) {
 		logg.Info("To reinstate this drive into the cluster, delete the symlink at " + flagPath)
 	}
 
-	//reset assignment (and thus require a re-reading of the swift-id file after the
-	//drive is reinstated)
+	// reset assignment (and thus require a re-reading of the swift-id file after the
+	// drive is reinstated)
 	d.Assignment = nil
 }
 

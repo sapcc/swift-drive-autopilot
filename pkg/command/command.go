@@ -48,9 +48,9 @@ type Command struct {
 func (c Command) Run(cmd ...string) (stdout string, success bool) {
 	cmdName := cmd[0]
 
-	//if we are executing mount, we need to make sure that we are in the
-	//correct mount namespace; for cryptsetup, we even need to be in the
-	//correct IPC namespace (device-mapper wants to talk to udev)
+	// if we are executing mount, we need to make sure that we are in the
+	// correct mount namespace; for cryptsetup, we even need to be in the
+	// correct IPC namespace (device-mapper wants to talk to udev)
 	if !c.NoNsenter {
 		switch cmd[0] {
 		case "mount", "umount":
@@ -60,13 +60,13 @@ func (c Command) Run(cmd ...string) (stdout string, success bool) {
 		}
 	}
 
-	//prepend chroot if requested (note that if there is a ChrootPath, it's our
-	//cwd; and if there is none, our cwd is /, so this is a no-op)
+	// prepend chroot if requested (note that if there is a ChrootPath, it's our
+	// cwd; and if there is none, our cwd is /, so this is a no-op)
 	if !c.NoChroot {
 		cmd = append([]string{"chroot", "."}, cmd...)
 	}
 
-	//become root if necessary (useful for development mode)
+	// become root if necessary (useful for development mode)
 	if os.Geteuid() != 0 {
 		cmd = append([]string{"sudo"}, cmd...)
 	}

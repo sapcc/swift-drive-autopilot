@@ -39,15 +39,15 @@ import (
 )
 
 func main() {
-	logg.SetLogger(log.New(std_os.Stdout, log.Prefix(), log.Flags())) //use stdout instead of stderr for backwards-compatibility
+	logg.SetLogger(log.New(std_os.Stdout, log.Prefix(), log.Flags())) // use stdout instead of stderr for backwards-compatibility
 	logg.ShowDebug = osext.GetenvBool("DEBUG")
 
 	undoMaxprocs := must.Return(maxprocs.Set(maxprocs.Logger(logg.Debug)))
 	defer undoMaxprocs()
 
-	//set working directory to the chroot directory; this simplifies file
-	//system operations because we can just use relative paths to refer to
-	//stuff inside the chroot
+	// set working directory to the chroot directory; this simplifies file
+	// system operations because we can just use relative paths to refer to
+	// stuff inside the chroot
 	workingDir := "/"
 	if Config.ChrootPath != "" {
 		workingDir = Config.ChrootPath
@@ -57,7 +57,7 @@ func main() {
 		logg.Fatal("chdir to %s: %s", workingDir, err.Error())
 	}
 
-	//prepare directories that the converger wants to write to
+	// prepare directories that the converger wants to write to
 	command.Command{ExitOnError: true}.Run("mkdir", "-p",
 		"/run/swift-storage/broken",
 		"/run/swift-storage/state/unmount-propagation",
@@ -65,11 +65,11 @@ func main() {
 		"/var/lib/swift-storage/broken",
 	)
 
-	//swift cache path must be accesible from user swift
+	// swift cache path must be accesible from user swift
 	osi := must.Return(os.NewLinux())
 	osi.Chown("/var/cache/swift", Config.Owner.User, Config.Owner.Group)
 
-	//start the metrics endpoint
+	// start the metrics endpoint
 	if Config.MetricsListenAddress != "" {
 		go func() {
 			mux := http.NewServeMux()
@@ -79,7 +79,7 @@ func main() {
 		}()
 	}
 
-	//start the collectors
+	// start the collectors
 	queue := make(chan []Event, 10)
 	go CollectDriveEvents(osi, queue)
 	go CollectReinstatements(queue)
@@ -90,6 +90,6 @@ func main() {
 		util.SetupTestMode()
 	}
 
-	//the converger runs in the main thread
+	// the converger runs in the main thread
 	RunConverger(queue, osi)
 }

@@ -35,7 +35,7 @@ func (l *Linux) ReadSwiftID(mountPath string) (string, error) {
 	switch {
 	case err == nil:
 		return strings.TrimSpace(string(buf)), nil
-	case os.IsNotExist(err): //not an error
+	case os.IsNotExist(err): // not an error
 		return "", nil
 	default:
 		return "", err
@@ -49,7 +49,7 @@ func (l *Linux) WriteSwiftID(mountPath, swiftID string) error {
 
 func swiftIDPathIn(mountPath string) string {
 	path := filepath.Join(mountPath, "swift-id")
-	//make path relative to working directory to account for chrootPath
+	// make path relative to working directory to account for chrootPath
 	return strings.TrimPrefix(path, "/")
 }
 
@@ -64,7 +64,7 @@ func (l *Linux) Chown(path, user, group string) {
 		logg.Fatal("Cannot chown empty path")
 	}
 
-	//set only those things which were given
+	// set only those things which were given
 	if user == "" {
 		if group == "" {
 			return // nothing to do

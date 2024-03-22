@@ -40,19 +40,19 @@ func oppositeOf(scope MountScope) MountScope {
 
 // MountDevice implements the Interface interface.
 func (l *Linux) MountDevice(devicePath, mountPath string, scope MountScope) bool {
-	//check if already mounted
+	// check if already mounted
 	for _, m := range l.ActiveMountPoints[scope] {
 		if m.DevicePath == devicePath && m.MountPath == mountPath {
 			return true
 		}
 	}
 
-	//prepare target directory
+	// prepare target directory
 	_, ok := command.Run("mkdir", "-m", "0700", "-p", mountPath)
 	if !ok {
 		return false
 	}
-	//execute mount
+	// execute mount
 	_, ok = command.Command{NoNsenter: scope == LocalScope}.Run("mount", devicePath, mountPath)
 	if !ok {
 		return false
@@ -62,7 +62,7 @@ func (l *Linux) MountDevice(devicePath, mountPath string, scope MountScope) bool
 		logg.Info("mounted %s to %s in %s mount namespace", devicePath, mountPath, oppositeOf(scope))
 	}
 
-	//record the new mount
+	// record the new mount
 	m := MountPoint{
 		DevicePath: devicePath,
 		MountPath:  mountPath,
@@ -79,7 +79,7 @@ func (l *Linux) MountDevice(devicePath, mountPath string, scope MountScope) bool
 
 // UnmountDevice implements the Interface interface.
 func (l *Linux) UnmountDevice(mountPath string, scope MountScope) bool {
-	//check if already unmounted
+	// check if already unmounted
 	mounted := false
 	for _, m := range l.ActiveMountPoints[scope] {
 		if m.MountPath == mountPath {
@@ -91,7 +91,7 @@ func (l *Linux) UnmountDevice(mountPath string, scope MountScope) bool {
 		return true
 	}
 
-	//perform the unmount
+	// perform the unmount
 	_, ok := command.Command{NoNsenter: scope == LocalScope}.Run("umount", mountPath)
 	if !ok {
 		return false
@@ -101,7 +101,7 @@ func (l *Linux) UnmountDevice(mountPath string, scope MountScope) bool {
 		logg.Info("unmounted %s in %s mount namespace", mountPath, oppositeOf(scope))
 	}
 
-	//record that the unmount happened
+	// record that the unmount happened
 	if l.mountScopesAreSeparate() {
 		l.ActiveMountPoints[scope] = removeMountPoint(l.ActiveMountPoints[scope], mountPath)
 	} else {
@@ -126,7 +126,7 @@ func (l *Linux) RefreshMountPoints() {
 	if l.mountScopesAreSeparate() {
 		l.ActiveMountPoints[HostScope] = collectMountPoints(HostScope)
 	} else {
-		//make a deep copy to ensure that editing of one list does not affect the other one inadvertently
+		// make a deep copy to ensure that editing of one list does not affect the other one inadvertently
 		l.ActiveMountPoints[HostScope] = append([]MountPoint(nil), l.ActiveMountPoints[LocalScope]...)
 	}
 
@@ -138,18 +138,18 @@ func (l *Linux) RefreshMountPoints() {
 }
 
 func collectMountPoints(scope MountScope) (result []MountPoint) {
-	//`mount` is executed with chroot even for LocalScope to ensure that paths are not prefixed with the ChrootPath
+	// `mount` is executed with chroot even for LocalScope to ensure that paths are not prefixed with the ChrootPath
 	stdout, _ := command.Command{ExitOnError: true, NoNsenter: scope == LocalScope}.Run("mount")
 
 	for _, line := range strings.Split(stdout, "\n") {
-		//line looks like "<device> on <mountpoint> type <type> (<options>)"
+		// line looks like "<device> on <mountpoint> type <type> (<options>)"
 		words := strings.Split(line, " ")
 		if len(words) < 3 || words[1] != "on" {
 			continue
 		}
 		devicePath, mountPath := words[0], words[2]
 
-		//parse options into a set
+		// parse options into a set
 		optionsStr := words[5]
 		optionsStr = strings.TrimPrefix(optionsStr, "(")
 		optionsStr = strings.TrimSuffix(optionsStr, ")")
@@ -158,7 +158,7 @@ func collectMountPoints(scope MountScope) (result []MountPoint) {
 			options[option] = true
 		}
 
-		//ignore mount points that have been duplicated by Docker/etc. for passing into a container
+		// ignore mount points that have been duplicated by Docker/etc. for passing into a container
 		if strings.HasPrefix(mountPath, "/var/lib/docker/") {
 			continue
 		}

@@ -32,8 +32,8 @@ var eventCounter = prometheus.NewCounterVec(
 func init() {
 	prometheus.MustRegister(eventCounter)
 
-	//make sure that the count for every event type is reported, even as 0, so
-	//that users know which (possibly rare) events can occur
+	// make sure that the count for every event type is reported, even as 0, so
+	// that users know which (possibly rare) events can occur
 	events := []Event{
 		DriveAddedEvent{},
 		DriveRemovedEvent{},

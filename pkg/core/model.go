@@ -26,18 +26,18 @@ import "github.com/sapcc/swift-drive-autopilot/pkg/os"
 // contains this device, and to the os.Interface with which to execute OS-level
 // operations.
 type Device interface {
-	//DevicePath returns the path to the device file.
+	// DevicePath returns the path to the device file.
 	DevicePath() string
-	//MountedPath returns the path where this device (or its contents) are mounted.
+	// MountedPath returns the path where this device (or its contents) are mounted.
 	MountedPath() string
-	//Setup is called by the converger when the drive is not broken. It shall
-	//idempotently prepare the drive for consumption by Swift.
+	// Setup is called by the converger when the drive is not broken. It shall
+	// idempotently prepare the drive for consumption by Swift.
 	Setup(drive *Drive, osi os.Interface) (ok bool)
-	//Teardown is called by the converger when the drive is broken. It shall
-	//idempotently shutdown all mounts and mappings for this drive.
+	// Teardown is called by the converger when the drive is broken. It shall
+	// idempotently shutdown all mounts and mappings for this drive.
 	Teardown(drive *Drive, osi os.Interface) (ok bool)
-	//Validate is called by the converger when the drive is not broken, to
-	//determine whether it has become broken.
+	// Validate is called by the converger when the drive is not broken, to
+	// determine whether it has become broken.
 	Validate(drive *Drive, osi os.Interface) error
 }
 
@@ -65,15 +65,15 @@ type Drive struct {
 	DevicePath string
 	Device     Device
 
-	//state machine
+	// state machine
 	Broken bool
 
-	//DriveID identifies this drive in derived filenames.
+	// DriveID identifies this drive in derived filenames.
 	DriveID string
-	//Assignment identifies this drive's location within the Swift ring.
+	// Assignment identifies this drive's location within the Swift ring.
 	Assignment *Assignment
-	//Keys contains the LUKS encryption keys that may be used with this drive. When
-	//creating a new LUKS container on this drive, Keys[0] must be used. An empty
-	//slice indicates that encryption is not configured.
+	// Keys contains the LUKS encryption keys that may be used with this drive. When
+	// creating a new LUKS container on this drive, Keys[0] must be used. An empty
+	// slice indicates that encryption is not configured.
 	Keys []string
 }

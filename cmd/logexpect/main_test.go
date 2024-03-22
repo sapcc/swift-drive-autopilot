@@ -29,7 +29,7 @@ func runMatchCommands(input string, patterns ...string) error {
 }
 
 func TestPlainPatterns(t *testing.T) {
-	//also tests that trailing input lines are ignored
+	// also tests that trailing input lines are ignored
 	input := `hello
 		world
 		more input than needed
@@ -58,7 +58,7 @@ func TestTimestampTrimming(t *testing.T) {
 }
 
 func TestVariables(t *testing.T) {
-	//check simple variable capture and re-use
+	// check simple variable capture and re-use
 	input := `device is keks
 		device is really keks
 		device is not kuller
@@ -72,7 +72,7 @@ func TestVariables(t *testing.T) {
 		t.Error(err)
 	}
 
-	//check that variable reoccurrence with different value fails
+	// check that variable reoccurrence with different value fails
 	err = runMatchCommands(input,
 		"> device is {{dev}}",
 		"> device is really {{dev}}",
@@ -82,7 +82,7 @@ func TestVariables(t *testing.T) {
 		t.Error("same variable should not match different strings at different times")
 	}
 
-	//check multiple occurrence of one variable in the same line
+	// check multiple occurrence of one variable in the same line
 	err = runMatchCommands("to be or not to be - that is the question",
 		"> {{issue}} or not {{issue}} - that is the question",
 	)

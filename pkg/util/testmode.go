@@ -31,13 +31,13 @@ import (
 // SetupTestMode performs various setup tasks that are only required for the
 // integration tests.
 func SetupTestMode() {
-	//During integration tests, the autopilot will be killed by SIGPIPE after
-	//`logexpect` has seen all the log lines that it wanted (or after it found
-	//the first error), but that only happens when a write() syscall is issued
-	//on stdout after `logexpect` has exited. This would usually only occur
-	//after 30 seconds, with the next "event received: scheduled healthcheck",
-	//but we don't want to wait so long. This goroutine will write empty lines
-	//to stdout all the time, and `logexpect` will ignore these.
+	// During integration tests, the autopilot will be killed by SIGPIPE after
+	// `logexpect` has seen all the log lines that it wanted (or after it found
+	// the first error), but that only happens when a write() syscall is issued
+	// on stdout after `logexpect` has exited. This would usually only occur
+	// after 30 seconds, with the next "event received: scheduled healthcheck",
+	// but we don't want to wait so long. This goroutine will write empty lines
+	// to stdout all the time, and `logexpect` will ignore these.
 	go func() {
 		for {
 			time.Sleep(1 * time.Second)
@@ -45,10 +45,10 @@ func SetupTestMode() {
 		}
 	}()
 
-	//This makes sure that SIGPIPE is honored and results in a clean exit.
+	// This makes sure that SIGPIPE is honored and results in a clean exit.
 	//TODO: This could be extended to properly shut down the converger by
-	//posting a ShutdownEvent or similar, and could then also be used for
-	//SIGINT/SIGTERM.
+	// posting a ShutdownEvent or similar, and could then also be used for
+	// SIGINT/SIGTERM.
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGPIPE)
 	go func(c <-chan os.Signal) {
