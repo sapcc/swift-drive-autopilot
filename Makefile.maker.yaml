@@ -23,7 +23,6 @@ dockerfile:
   runAsRoot: true # to execute privileged operations on disks (decrypt, format, mount)
 
 golang:
-  enableVendoring: true
   setGoModVersion: true
 
 golangciLint:
@@ -32,11 +31,7 @@ golangciLint:
 githubWorkflow:
   ci:
     enabled: true
-    ignorePaths: ["**.md"] # all Markdown files
-  license:
-    enabled: true
-  securityChecks:
-    enabled: true
+
 renovate:
   enabled: true
   assignees:
