@@ -5,7 +5,7 @@ go 1.22
 require (
 	github.com/prometheus/client_golang v1.19.1
 	github.com/sapcc/go-api-declarations v1.11.3
-	github.com/sapcc/go-bits v0.0.0-20240704034903-8a2e97b1eaf1
+	github.com/sapcc/go-bits v0.0.0-20240709125621-b1e90ef040ad
 	go.uber.org/automaxprocs v1.5.3
 	gopkg.in/yaml.v2 v2.4.0
 )
