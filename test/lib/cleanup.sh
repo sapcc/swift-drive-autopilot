@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company
+# SPDX-License-Identifier: Apache-2.0
+
 if mount | grep -qE "on (/run/swift-storage|/srv/node|${DIR})/"; then
     mount | grep -E "on (/run/swift-storage|/srv/node|${DIR})/" | cut -d' ' -f3 | while read MOUNTPOINT; do
         log_debug "Cleanup: mountpoint ${MOUNTPOINT}"

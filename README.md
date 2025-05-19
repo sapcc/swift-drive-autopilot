@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # swift-drive-autopilot
 
 This service finds, formats and mounts Swift storage drives, usually from
