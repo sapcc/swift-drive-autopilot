@@ -23,6 +23,7 @@ dockerfile:
   runAsRoot: true # to execute privileged operations on disks (decrypt, format, mount)
 
 golang:
+  autoupdateableDeps: ^github.com/(?:sapcc|sap-cloud-infrastructure)/
   setGoModVersion: true
 
 golangciLint:
