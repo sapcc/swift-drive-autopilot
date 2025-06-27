@@ -4,6 +4,7 @@
 package os
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/sapcc/go-bits/logg"
@@ -98,7 +99,7 @@ func (l *Linux) UnmountDevice(mountPath string, scope MountScope) bool {
 func removeMountPoint(ms []MountPoint, mountPath string) []MountPoint {
 	for idx, m := range ms {
 		if m.MountPath == mountPath {
-			return append(ms[:idx], ms[idx+1:]...)
+			return slices.Delete(ms, idx, idx+1)
 		}
 	}
 	return ms
@@ -111,7 +112,7 @@ func (l *Linux) RefreshMountPoints() {
 		l.ActiveMountPoints[HostScope] = collectMountPoints(HostScope)
 	} else {
 		// make a deep copy to ensure that editing of one list does not affect the other one inadvertently
-		l.ActiveMountPoints[HostScope] = append([]MountPoint(nil), l.ActiveMountPoints[LocalScope]...)
+		l.ActiveMountPoints[HostScope] = slices.Clone(l.ActiveMountPoints[LocalScope])
 	}
 
 	for scope, mounts := range l.ActiveMountPoints {
@@ -125,7 +126,7 @@ func collectMountPoints(scope MountScope) (result []MountPoint) {
 	// `mount` is executed with chroot even for LocalScope to ensure that paths are not prefixed with the ChrootPath
 	stdout, _ := command.Command{ExitOnError: true, NoNsenter: scope == LocalScope}.Run("mount")
 
-	for _, line := range strings.Split(stdout, "\n") {
+	for line := range strings.SplitSeq(stdout, "\n") {
 		// line looks like "<device> on <mountpoint> type <type> (<options>)"
 		words := strings.Split(line, " ")
 		if len(words) < 3 || words[1] != "on" {
@@ -138,7 +139,7 @@ func collectMountPoints(scope MountScope) (result []MountPoint) {
 		optionsStr = strings.TrimPrefix(optionsStr, "(")
 		optionsStr = strings.TrimSuffix(optionsStr, ")")
 		options := make(map[string]bool)
-		for _, option := range strings.Split(optionsStr, ",") {
+		for option := range strings.SplitSeq(optionsStr, ",") {
 			options[option] = true
 		}
 

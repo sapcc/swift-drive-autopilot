@@ -63,8 +63,7 @@ func matchCommands(input io.Reader, commands []string) error {
 		commands = commands[1:]
 
 		// if it's a pattern, match with input
-		if strings.HasPrefix(command, ">") {
-			pattern := strings.TrimPrefix(command, ">")
+		if pattern, ok := strings.CutPrefix(command, ">"); ok {
 			err := matchPattern(reader, pattern, vars)
 			eof = errors.Is(err, io.EOF)
 			if err != nil && !eof {
@@ -74,8 +73,8 @@ func matchCommands(input io.Reader, commands []string) error {
 		}
 
 		// if it's a command, execute
-		if strings.HasPrefix(command, "$") {
-			err := executeScript(strings.TrimPrefix(command, "$"), vars)
+		if script, ok := strings.CutPrefix(command, "$"); ok {
+			err := executeScript(script, vars)
 			if err != nil {
 				return err
 			}

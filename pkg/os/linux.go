@@ -89,7 +89,7 @@ func detectMountPropagationMode() (MountPropagationMode, error) {
 
 	// parse mountinfo; format is documented at
 	// <https://www.kernel.org/doc/Documentation/filesystems/proc.txt>
-	for _, line := range strings.Split(string(buf), "\n") {
+	for line := range strings.SplitSeq(string(buf), "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
