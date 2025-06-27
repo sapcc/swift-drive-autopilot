@@ -65,7 +65,7 @@ func (l *Linux) RefreshLUKSMappings() {
 		return
 	}
 
-	for _, line := range strings.Split(stdout, "\n") {
+	for line := range strings.SplitSeq(stdout, "\n") {
 		// each output line describes a mapping and looks like
 		// "mapname\t(devmajor, devminor)"; extract the mapping names
 		fields := strings.Fields(line)

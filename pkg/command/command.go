@@ -69,7 +69,7 @@ func (c Command) Run(cmd ...string) (stdout string, success bool) {
 
 	cmdForLog := strings.Join(cmd, " ")
 	if !c.SkipLog {
-		for _, line := range strings.Split(stderrBuf.String(), "\n") {
+		for line := range strings.SplitSeq(stderrBuf.String(), "\n") {
 			if line != "" {
 				log.Printf("Output from %s: %s\n", cmdName, line)
 			}
@@ -84,7 +84,7 @@ func (c Command) Run(cmd ...string) (stdout string, success bool) {
 	}
 
 	stdout = stdoutBuf.String()
-	for _, line := range strings.Split(stdout, "\n") {
+	for line := range strings.SplitSeq(stdout, "\n") {
 		if strings.TrimSpace(line) != "" {
 			logg.Debug("exec(%s) produced stdout: %s", cmdForLog, line)
 		}
