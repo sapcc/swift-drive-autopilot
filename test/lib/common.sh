@@ -7,7 +7,7 @@ set -euo pipefail
 
 if [ "${DEBUG:-0}" == 1 ]; then
     function log_debug {
-        echo ">> $@"
+        echo ">> $*"
     }
 else
     function log_debug {

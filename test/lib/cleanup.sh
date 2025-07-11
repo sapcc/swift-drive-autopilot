@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 if mount | grep -qE "on (/run/swift-storage|/srv/node|${DIR})/"; then
-    mount | grep -E "on (/run/swift-storage|/srv/node|${DIR})/" | cut -d' ' -f3 | while read MOUNTPOINT; do
+    for MOUNTPOINT in $(mount | grep -E "on (/run/swift-storage|/srv/node|${DIR})/" | cut -d' ' -f3); do
         log_debug "Cleanup: mountpoint ${MOUNTPOINT}"
         as_root umount "${MOUNTPOINT}"
     done
@@ -12,14 +12,14 @@ fi
 
 # device names starting with "autopilot-test" are used by some testcases at test setup time
 if as_root dmsetup ls --target=crypt | grep -qE '^(autopilot-test|[0-9a-f]{32}\s)'; then
-    as_root dmsetup ls --target=crypt | grep -E '^(autopilot-test|[0-9a-f]{32}\s)' | cut -f1 | while read MAPNAME; do
+    for MAPNAME in $(as_root dmsetup ls --target=crypt | grep -E '^(autopilot-test|[0-9a-f]{32}\s)' | cut -f1); do
         log_debug "Cleanup: LUKS container /dev/mapper/${MAPNAME}"
         as_root cryptsetup close "${MAPNAME}"
     done
 fi
 
 if losetup | grep -qF "${DIR}"; then
-    losetup | grep -F "${DIR}" | cut -d' ' -f1 | while read DEVICE; do
+    for DEVICE in $(losetup | grep -F "${DIR}" | cut -d' ' -f1); do
         log_debug "Cleanup: loop device ${DEVICE}"
         as_root losetup -d "${DEVICE}"
     done
@@ -41,6 +41,6 @@ if [ -d /var/cache/swift ]; then
 fi
 
 log_debug "Cleanup: disk images in ${DIR}"
-( cd "${DIR}"; rm -f -- image? )
+( cd "${DIR}" && rm -f -- image? )
 log_debug "Cleanup: loop device links in ${DIR}"
-( cd "${DIR}"; rm -f -- loop? )
+( cd "${DIR}" && rm -f -- loop? )

@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-THISDIR="$(dirname "$(readlink -f $0)")"
+THISDIR="$(dirname "$(readlink -f "$0")")"
 source "${THISDIR}/lib/common.sh"
 
 # run each testcase in order
