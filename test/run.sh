@@ -6,6 +6,7 @@
 set -euo pipefail
 
 THISDIR="$(dirname "$(readlink -f "$0")")"
+# shellcheck source=./test/lib/common.sh
 source "${THISDIR}/lib/common.sh"
 
 # run each testcase in order
@@ -24,4 +25,5 @@ for TESTCASE in ??-*.sh; do
 done
 
 echo -e "\e[1;32mAll testcases finished.\e[0m"
+# shellcheck source=./test/lib/cleanup.sh
 source "${THISDIR}/lib/cleanup.sh"

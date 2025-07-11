@@ -4,7 +4,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 cd "$(dirname "$(readlink -f "$0")")" || exit 1
+# shellcheck source=./test/lib/common.sh
 source ./lib/common.sh
+# shellcheck source=./test/lib/cleanup.sh
 source ./lib/cleanup.sh
 
 with_config <<-EOF
