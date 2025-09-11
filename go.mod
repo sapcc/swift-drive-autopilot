@@ -1,6 +1,6 @@
 module github.com/sapcc/swift-drive-autopilot
 
-go 1.24
+go 1.25
 
 require (
 	github.com/prometheus/client_golang v1.23.0
