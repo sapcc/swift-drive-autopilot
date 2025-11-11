@@ -13,6 +13,8 @@ binaries:
 
 dockerfile:
   enabled: true
+  checkEnv:
+    - CHECK_SKIPS_FUNCTIONAL_TEST=true
   entrypoint: ["/usr/bin/dumb-init", "--", "/usr/bin/swift-drive-autopilot"]
   extraIgnores:
     - HACKING.md
