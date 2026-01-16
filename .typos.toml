@@ -8,4 +8,5 @@
 extend-exclude = [
   "go.mod",
   "vendor/",
+  "pkg/parsers/fixtures/*.json",
 ]

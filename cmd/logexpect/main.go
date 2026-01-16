@@ -149,7 +149,7 @@ func matchPattern(reader *bufio.Reader, pattern string, vars map[string]string) 
 
 	// if new variables were introduced in this pattern, remember their values
 	for idx, name := range captures {
-		// if this variable catched eariler in the same match, ensure that both values are identical
+		// if this variable caught earlier in the same match, ensure that both values are identical
 		value, ok := vars[name]
 		if ok {
 			if value != match[idx+1] {

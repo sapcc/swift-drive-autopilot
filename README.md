@@ -155,7 +155,7 @@ group here.
 
 ```yaml
 keys:
-  - secret: "bzQoG5HN4onnEis5bhDmnYqqacoLNCSmDbFEAb3VDztmBtGobH"
+  - secret: "bzQoG5HN4onneis5bhDmnYqqacoLNCSmDbFEAb3VDztmBtGobH"
   - secret: { fromEnv: ENVIRONMENT_VARIABLE }
 ```
 
