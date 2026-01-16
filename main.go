@@ -15,7 +15,6 @@ import (
 	"github.com/sapcc/go-bits/logg"
 	"github.com/sapcc/go-bits/must"
 	"github.com/sapcc/go-bits/osext"
-	"go.uber.org/automaxprocs/maxprocs"
 
 	"github.com/sapcc/swift-drive-autopilot/pkg/command"
 	"github.com/sapcc/swift-drive-autopilot/pkg/os"
@@ -25,9 +24,6 @@ import (
 func main() {
 	logg.SetLogger(log.New(std_os.Stdout, log.Prefix(), log.Flags())) // use stdout instead of stderr for backwards-compatibility
 	logg.ShowDebug = osext.GetenvBool("DEBUG")
-
-	undoMaxprocs := must.Return(maxprocs.Set(maxprocs.Logger(logg.Debug)))
-	defer undoMaxprocs()
 
 	// set working directory to the chroot directory; this simplifies file
 	// system operations because we can just use relative paths to refer to
@@ -49,7 +45,7 @@ func main() {
 		"/var/lib/swift-storage/broken",
 	)
 
-	// swift cache path must be accesible from user swift
+	// swift cache path must be accessible from user swift
 	osi := must.Return(os.NewLinux())
 	osi.Chown("/var/cache/swift", Config.Owner.User, Config.Owner.Group)
 

@@ -51,6 +51,10 @@ reuse:
 shellCheck:
   opts: '--external-sources'
 
+typos:
+  extendExcludes:
+    - pkg/parsers/fixtures/*.json
+
 # When running `make check` manually, we find it desirable to have this include the functional test suite since it has the most test coverage.
 # People have muscle memory for `make check`, so this should include the functional test suite, too.
 #
