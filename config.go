@@ -48,7 +48,7 @@ func init() {
 	if err != nil {
 		logg.Fatal("read configuration file: %s", err.Error())
 	}
-	err = yaml.Unmarshal(configBytes, &Config)
+	err = yaml.Unmarshal(configBytes, &Config) //nolint:gosec // you won't believe this, gosec, but our config file is not "untrusted data"
 	if err != nil {
 		logg.Fatal("parse configuration: %s", err.Error())
 	}
