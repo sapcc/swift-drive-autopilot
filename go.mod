@@ -5,7 +5,7 @@ go 1.26
 require (
 	github.com/prometheus/client_golang v1.23.2
 	github.com/sapcc/go-api-declarations v1.24.0
-	github.com/sapcc/go-bits v0.0.0-20260623114633-b9734b46a368
+	github.com/sapcc/go-bits v0.0.0-20260702170430-ea66ea5d2790
 	gopkg.in/yaml.v2 v2.4.0
 )
 
